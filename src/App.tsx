@@ -72,70 +72,139 @@ function App() {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('ytd');
   const [cadence, setCadence] = useState<Cadence>('monthly');
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>('Off');
+  const [customDateRange, setCustomDateRange] = useState<string>('');
+  const [viewportWidth, setViewportWidth] = useState<number>(window.innerWidth);
+  const [forceOpenComparison, setForceOpenComparison] = useState<boolean>(false);
   
   // Sidebar state
   const [activePath, setActivePath] = useState('/insights');
   const [collapsedIds, setCollapsedIds] = useState<string[]>([]);
 
-  // Rail dates that can be shifted
-  const [railStart, setRailStart] = useState<Date>(new Date('2023-11-01'));
-  const [railEnd, setRailEnd] = useState<Date>(new Date('2026-12-31'));
-  
   // Use the current date as reference (you can change this to any date)
   const referenceDate = useMemo(() => new Date('2025-09-23'), []); // Using Sept 23, 2025 as "today"
+
+  // Rail dates that can be shifted
+  const [railStart, setRailStart] = useState<Date>(new Date('2023-11-01'));
+  const [railEnd, setRailEnd] = useState<Date>(() => {
+    const threeMonthsAhead = new Date(referenceDate);
+    threeMonthsAhead.setMonth(threeMonthsAhead.getMonth() + 3);
+    return threeMonthsAhead;
+  });
   
   const [valueStart, setValueStart] = useState<Date>(new Date('2025-01-01'));
   const [valueEnd, setValueEnd] = useState<Date>(new Date('2025-09-23'));
   const markerDate = useMemo(() => referenceDate, [referenceDate]);
 
-  // Update date range when time period changes
+  // Handle viewport width changes
   useEffect(() => {
-    const [start, end] = getDateRangeForPeriod(timePeriod, referenceDate);
-    setValueStart(start);
-    setValueEnd(end);
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Calculate timeline range based on viewport width
+  const calculateTimelineRange = useCallback(() => {
+    // Determine months to show based on viewport width
+    let monthsToShow: number;
+    if (viewportWidth >= 1400) {
+      monthsToShow = 24; // 2 years
+    } else if (viewportWidth >= 1200) {
+      monthsToShow = 18; // 1.5 years
+    } else if (viewportWidth >= 1000) {
+      monthsToShow = 12; // 1 year
+    } else if (viewportWidth >= 800) {
+      monthsToShow = 9; // 9 months
+    } else {
+      monthsToShow = 6; // 6 months
+    }
+
+    // Calculate start date (going back from current date)
+    const startDate = new Date(referenceDate);
+    startDate.setMonth(startDate.getMonth() - Math.floor(monthsToShow * 0.7)); // Show more past than future
+    
+    // Always include January of the start year
+    const startYear = startDate.getFullYear();
+    const januaryStart = new Date(startYear, 0, 1);
+    if (startDate > januaryStart) {
+      startDate.setMonth(0, 1); // Set to January 1st of the year
+    }
+
+    // Calculate end date
+    const endDate = new Date(referenceDate);
+    endDate.setMonth(endDate.getMonth() + Math.floor(monthsToShow * 0.3)); // Show less future
+    
+    // Always include December of the end year
+    const endYear = endDate.getFullYear();
+    const decemberEnd = new Date(endYear, 11, 31);
+    if (endDate < decemberEnd) {
+      endDate.setMonth(11, 31); // Set to December 31st of the year
+    }
+
+    // Cap at 3 months ahead of reference date
+    const maxEndDate = new Date(referenceDate);
+    maxEndDate.setMonth(maxEndDate.getMonth() + 3);
+    if (endDate > maxEndDate) {
+      endDate.setTime(maxEndDate.getTime());
+    }
+
+    return { startDate, endDate };
+  }, [referenceDate, viewportWidth]);
+
+  // Update rail dates based on viewport width
+  useEffect(() => {
+    const { startDate, endDate } = calculateTimelineRange();
+    setRailStart(startDate);
+    setRailEnd(endDate);
+  }, [calculateTimelineRange]);
+
+  // Update date range when time period changes (except for custom)
+  useEffect(() => {
+    if (timePeriod !== 'custom') {
+      const [start, end] = getDateRangeForPeriod(timePeriod, referenceDate);
+      setValueStart(start);
+      setValueEnd(end);
+    }
   }, [timePeriod, referenceDate]);
 
   const handleTimePeriodChange = useCallback((period: TimePeriod) => {
     setTimePeriod(period);
+    // Clear custom date range when switching to a predefined period
+    if (period !== 'custom') {
+      setCustomDateRange('');
+    }
+    // Open the comparison dropdown after changing timeframe
+    setForceOpenComparison(true);
   }, []);
 
   const handleCadenceChange = useCallback((newCadence: Cadence) => {
     setCadence(newCadence);
     
-    // Adjust timeline range based on cadence
-    const today = referenceDate;
-    let newRailStart: Date;
-    let newRailEnd: Date;
-    
-    switch (newCadence) {
-      case 'days':
-        // For days view, show just 1 month for maximum spacing between days
-        newRailStart = new Date(valueStart);
-        newRailStart.setDate(1); // Start of the current month
-        newRailEnd = new Date(valueStart);
-        newRailEnd.setMonth(newRailEnd.getMonth() + 1);
-        newRailEnd.setDate(1); // Start of next month (so we show full current month)
-        break;
-      case 'monthly':
-        // For monthly view, show 2 years around current selection
-        newRailStart = new Date(valueStart);
-        newRailStart.setFullYear(newRailStart.getFullYear() - 1);
-        newRailEnd = new Date(today);
-        newRailEnd.setFullYear(newRailEnd.getFullYear() + 1);
-        break;
-      case 'yearly':
-        // For yearly view, show wider range
-        newRailStart = new Date('2020-01-01');
-        newRailEnd = new Date(today);
-        newRailEnd.setFullYear(newRailEnd.getFullYear() + 2);
-        break;
-      default:
-        return;
+    // For days view, we might want to show a more focused range
+    if (newCadence === 'days') {
+      // Show just the current month for days view for better spacing
+      const startOfCurrentMonth = new Date(valueStart);
+      startOfCurrentMonth.setDate(1);
+      
+      const endOfCurrentMonth = new Date(valueStart);
+      endOfCurrentMonth.setMonth(endOfCurrentMonth.getMonth() + 1);
+      endOfCurrentMonth.setDate(0); // Last day of current month
+      
+      // Cap at 3 months ahead of reference date
+      const maxEndDate = new Date(referenceDate);
+      maxEndDate.setMonth(maxEndDate.getMonth() + 3);
+      
+      setRailStart(startOfCurrentMonth);
+      setRailEnd(new Date(Math.min(endOfCurrentMonth.getTime(), maxEndDate.getTime())));
+    } else {
+      // For monthly and yearly views, use the viewport-based calculation
+      const { startDate, endDate } = calculateTimelineRange();
+      setRailStart(startDate);
+      setRailEnd(endDate);
     }
-    
-    setRailStart(newRailStart);
-    setRailEnd(newRailEnd);
-  }, [referenceDate, valueStart]);
+  }, [referenceDate, valueStart, calculateTimelineRange]);
 
   // Convert cadence to scale for the timeline
   const timelineScale = useMemo((): Scale => {
@@ -151,16 +220,67 @@ function App() {
     }
   }, [cadence]);
 
+  const formatDateRange = useCallback((start: Date, end: Date): string => {
+    return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  }, []);
+
   const handleChange = useCallback((s: Date, e: Date) => {
     setValueStart(s);
     setValueEnd(e);
+    
+    // If we're in custom mode, update the custom date range display
+    if (timePeriod === 'custom') {
+      setCustomDateRange(formatDateRange(s, e));
+    }
+    
     // eslint-disable-next-line no-console
     console.log('onChange', s.toISOString(), e.toISOString());
-  }, []);
+  }, [timePeriod, formatDateRange]);
+
+  // Function to match date range to existing time periods
+  const matchDateRangeToPeriod = useCallback((start: Date, end: Date): TimePeriod | null => {
+    const periods: TimePeriod[] = ['mtd', 'qtd', 'ytd', 'last3m', 'last6m', 'last12m'];
+    
+    for (const period of periods) {
+      const [expectedStart, expectedEnd] = getDateRangeForPeriod(period, referenceDate);
+      
+      // Check if dates match (within a day tolerance)
+      const startDiff = Math.abs(start.getTime() - expectedStart.getTime());
+      const endDiff = Math.abs(end.getTime() - expectedEnd.getTime());
+      const dayMs = 24 * 60 * 60 * 1000;
+      
+      if (startDiff <= dayMs && endDiff <= dayMs) {
+        return period;
+      }
+    }
+    
+    return null;
+  }, [referenceDate]);
 
   const handleCommit = useCallback((s: Date, e: Date) => {
     // eslint-disable-next-line no-console
     console.log('onCommit', s.toISOString(), e.toISOString());
+    
+    // Check if the dragged range matches any predefined period
+    const matchedPeriod = matchDateRangeToPeriod(s, e);
+    
+    if (matchedPeriod) {
+      // Update to the matched period
+      setTimePeriod(matchedPeriod);
+      setCustomDateRange('');
+    } else {
+      // Set to custom with the date range
+      setTimePeriod('custom');
+      setCustomDateRange(formatDateRange(s, e));
+    }
+    // NOTE: Do NOT open comparison dropdown here - this is for timeline dragging
+  }, [matchDateRangeToPeriod, formatDateRange]);
+
+  const handleComparisonOpenChange = useCallback((isOpen: boolean) => {
+    if (!isOpen) {
+      // Reset force open when dropdown closes
+      setForceOpenComparison(false);
+    }
   }, []);
 
   const handleSelectionChange = useCallback((selection: TimeRange | null) => {
@@ -171,6 +291,8 @@ function App() {
   const handleComparisonChange = useCallback((comparison: TimeRange | null, mode: ComparisonMode) => {
     // eslint-disable-next-line no-console
     console.log('Comparison changed:', { comparison, mode });
+    // Update the comparison mode state
+    setComparisonMode(mode);
   }, []);
 
   // Sidebar data
@@ -245,9 +367,14 @@ function App() {
               <FinancialSegmentedControl />
             </div>
             <div className="flex items-center gap-3">
-              <PeriodDropdown value={timePeriod} onChange={handleTimePeriodChange} referenceDate={referenceDate} />
-              <Dropdown value={cadence} onChange={handleCadenceChange} />
-              <ComparisonDropdown value={comparisonMode} onChange={setComparisonMode} />
+              <PeriodDropdown value={timePeriod} onChange={handleTimePeriodChange} referenceDate={referenceDate} customDateRange={customDateRange} />
+              <ComparisonDropdown 
+                value={comparisonMode} 
+                onChange={setComparisonMode} 
+                forceOpen={forceOpenComparison}
+                onOpenChange={handleComparisonOpenChange}
+              />
+              <Dropdown value={cadence} onChange={handleCadenceChange} selectionStart={valueStart} selectionEnd={valueEnd} />
             </div>
           </div>
         </div>

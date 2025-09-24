@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Scale } from './SegmentedControl';
 
-export type ComparisonMode = 'Off' | 'PreviousPeriod';
+export type ComparisonMode = 'Off' | 'PreviousPeriod' | 'PreviousYear';
 export type TimeRange = { start: number; end: number }; // ms since epoch
 
 export interface TimelineRangeProps {
@@ -95,8 +95,26 @@ export function clampRange(
   return [start, end];
 }
 
-// Compute previous period (one calendar year back)
+// Compute previous period (immediately before the selection)
 function computePreviousPeriod(selection: TimeRange): TimeRange | null {
+  const startDate = new Date(selection.start);
+  const endDate = new Date(selection.end);
+  
+  // Calculate the duration of the current selection
+  const duration = endDate.getTime() - startDate.getTime();
+  
+  // Previous period ends where current period starts, with same duration
+  const prevEnd = new Date(startDate);
+  const prevStart = new Date(startDate.getTime() - duration);
+  
+  return {
+    start: prevStart.getTime(),
+    end: prevEnd.getTime()
+  };
+}
+
+// Compute previous year (same time frame but one year ago)
+function computePreviousYear(selection: TimeRange): TimeRange | null {
   const startDate = new Date(selection.start);
   const endDate = new Date(selection.end);
   
@@ -223,6 +241,8 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
   const [createStartPx, setCreateStartPx] = useState(0);
   const [createCurrentPx, setCreateCurrentPx] = useState(0);
   const [previewSelection, setPreviewSelection] = useState<{ start: Date; end: Date } | null>(null);
+  const [hoverX, setHoverX] = useState<number | null>(null);
+  const [isComparisonHovered, setIsComparisonHovered] = useState<boolean>(false);
   const rafRef = useRef<number | null>(null);
   
   const FINALIZE_THRESHOLD_PX = 4;
@@ -260,6 +280,18 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
     
     if (comparisonMode === 'PreviousPeriod') {
       const prev = computePreviousPeriod(selection);
+      if (!prev) return null;
+      
+      // Clamp to timeline bounds
+      const compStart = Math.max(prev.start, startDate.getTime());
+      const compEnd = Math.min(prev.end, endDate.getTime());
+      
+      // Only return if there's a valid range within bounds
+      if (compStart < compEnd) {
+        return { start: compStart, end: compEnd };
+      }
+    } else if (comparisonMode === 'PreviousYear') {
+      const prev = computePreviousYear(selection);
       if (!prev) return null;
       
       // Clamp to timeline bounds
@@ -450,6 +482,52 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
   }, [dragState, createStartPx, createCurrentPx, previewSelection, onChange, onCommit, valueStart, valueEnd, dbg, FINALIZE_THRESHOLD_PX]);
 
+  const handleMouseEnter = useCallback(() => {
+    // Show hover line when entering the timeline
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    // Hide hover line when leaving the timeline
+    setHoverX(null);
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    // Update hover line position during mouse movement (not dragging)
+    if (dragState === 'idle') {
+      const currentX = localX(e as any);
+      
+      // Check if mouse is over selected timeframe
+      const isOverSelection = currentX >= selectionStartPx && currentX <= selectionEndPx;
+      
+      // Check if mouse is over comparison timeframe
+      const isOverComparison = comparisonRange && 
+        currentX >= comparisonStartPx && 
+        currentX <= comparisonEndPx;
+      
+      // Hide hover line if over selection or comparison areas
+      if (isOverSelection || isOverComparison) {
+        setHoverX(null);
+      } else {
+        setHoverX(currentX);
+      }
+    }
+  }, [dragState, localX, selectionStartPx, selectionEndPx, comparisonRange, comparisonStartPx, comparisonEndPx]);
+
+  const handleComparisonMouseEnter = useCallback(() => {
+    setIsComparisonHovered(true);
+  }, []);
+
+  const handleComparisonMouseLeave = useCallback(() => {
+    setIsComparisonHovered(false);
+  }, []);
+
+  const handleRemoveComparison = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onComparisonChange) {
+      onComparisonChange(null, 'Off');
+    }
+  }, [onComparisonChange]);
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     // Handle Escape during new selection creation
     if (e.key === 'Escape' && dragState === 'draggingCreate') {
@@ -594,6 +672,9 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
       onPointerDown={handleBackgroundPointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onMouseMove={handleMouseMove}
       tabIndex={0}
       role="slider"
       aria-valuetext={`${valueStart.toLocaleDateString()} to ${valueEnd.toLocaleDateString()}`}
@@ -635,7 +716,7 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
       {/* Today's date line - full height */}
       {markerPx !== null && (
         <div
-          className="absolute pointer-events-none z-20"
+          className="absolute pointer-events-none z-5"
           style={{
             left: `${markerPx}px`,
             width: '1px',
@@ -646,10 +727,24 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
         />
       )}
 
+      {/* Hover line - follows mouse cursor */}
+      {hoverX !== null && dragState === 'idle' && (
+        <div
+          className="absolute pointer-events-none z-1"
+          style={{
+            left: `${hoverX}px`,
+            width: '1px',
+            top: '-16px',
+            height: `calc(100% + 16px)`,
+            backgroundColor: '#D1D5DB' // Light gray
+          }}
+        />
+      )}
+
       {/* Comparison overlay - gray box below primary selection */}
       {comparisonRange && (
         <div
-          className="absolute pointer-events-none"
+          className="absolute"
           style={{
             left: `${comparisonStartPx}px`,
             width: `${comparisonEndPx - comparisonStartPx}px`,
@@ -660,11 +755,32 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
             borderRadius: '6px',
             zIndex: 1,
           }}
+          onMouseEnter={handleComparisonMouseEnter}
+          onMouseLeave={handleComparisonMouseLeave}
         >
           {/* Comparison label */}
-          <div className="absolute top-1 left-2 bg-gray-500 text-white text-xs px-2 py-1 rounded font-medium">
+          <div className="absolute top-1 left-2 bg-gray-500 text-white text-xs px-2 py-1 rounded font-medium pointer-events-none">
             {new Date(comparisonRange.start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(comparisonRange.end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
           </div>
+          
+          {/* X button to remove comparison - only show on hover */}
+          {isComparisonHovered && (
+            <button
+              className="absolute bg-white hover:bg-gray-100 rounded-full shadow-sm border border-gray-300 flex items-center justify-center cursor-pointer"
+              style={{
+                width: '16px',
+                height: '16px',
+                top: '8px',
+                right: '8px',
+                fontSize: '10px',
+                lineHeight: '1'
+              }}
+              onClick={handleRemoveComparison}
+              title="Remove comparison"
+            >
+              ×
+            </button>
+          )}
         </div>
       )}
 
