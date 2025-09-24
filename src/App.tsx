@@ -6,6 +6,7 @@ import FinancialSegmentedControl from './FinancialSegmentedControl';
 import ComparisonDropdown from './ComparisonDropdown';
 import SidebarNav, { type SidebarSection } from './SidebarNav';
 import { type Scale } from './SegmentedControl';
+import CashFlowBarChart from './CashFlowBarChart';
 
 function startOfMonth(d: Date): Date {
   const n = new Date(d);
@@ -477,6 +478,11 @@ function App() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Cash Flow Chart Section */}
+        <div className="px-6 py-8">
+          <CashFlowBarChart height={500} />
         </div>
       </div>
     </div>

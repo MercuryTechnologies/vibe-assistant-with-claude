@@ -729,16 +729,32 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
 
       {/* Hover line - follows mouse cursor */}
       {hoverX !== null && dragState === 'idle' && (
-        <div
-          className="absolute pointer-events-none z-1"
-          style={{
-            left: `${hoverX}px`,
-            width: '1px',
-            top: '-16px',
-            height: `calc(100% + 16px)`,
-            backgroundColor: '#D1D5DB' // Light gray
-          }}
-        />
+        <>
+          <div
+            className="absolute pointer-events-none z-1"
+            style={{
+              left: `${hoverX}px`,
+              width: '1px',
+              top: '-16px',
+              height: `calc(100% + 16px)`,
+              backgroundColor: '#D1D5DB' // Light gray
+            }}
+          />
+          {/* Hover date label */}
+          <div
+            className="absolute pointer-events-none z-2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap"
+            style={{
+              left: `${hoverX}px`,
+              top: `calc(100% + 4px)`, // Position below the timeline border
+              transform: 'translateX(-50%)', // Center the label on the hover line
+            }}
+          >
+            {pxToDate(hoverX, startDate, endDate, railWidth).toLocaleDateString('en-US', { 
+              month: 'short', 
+              day: 'numeric' 
+            })}
+          </div>
+        </>
       )}
 
       {/* Comparison overlay - gray box below primary selection */}
