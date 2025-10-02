@@ -112,7 +112,12 @@ const PeriodDropdown: React.FC<PeriodDropdownProps> = ({ value, onChange, classN
     <div ref={dropdownRef} className={`relative ${className}`}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between px-2 py-1 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px]"
+        className="flex items-center justify-between px-2 py-1 rounded-lg text-sm hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[120px]"
+        style={{
+          background: 'rgba(59, 130, 246, 0.12)',
+          border: '1.5px solid #3B82F6',
+          color: '#3B82F6'
+        }}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >

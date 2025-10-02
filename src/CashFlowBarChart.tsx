@@ -58,8 +58,8 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
     // Clear previous chart
     d3.select(svgRef.current).selectAll('*').remove();
 
-    // Chart dimensions and margins (increased bottom margin for month labels)
-    const margin = { top: 20, right: 40, bottom: 80, left: 80 };
+    // Chart dimensions and margins (24px padding + space for labels)
+    const margin = { top: 20, right: 40, bottom: 50, left: 80 };
     const chartWidth = dimensions.width - margin.left - margin.right;
     const chartHeight = dimensions.height - margin.top - margin.bottom;
 
@@ -138,13 +138,13 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
     chart.select('.y-axis .domain').remove();
     chart.selectAll('.y-axis .tick line').remove();
 
-    // X-axis (positioned at bottom of chart)
+    // X-axis (positioned 24px below chart area)
     const xAxis = d3.axisBottom(xScale)
       .tickSize(0);
 
     chart.append('g')
       .attr('class', 'x-axis')
-      .attr('transform', `translate(0, ${chartHeight})`)
+      .attr('transform', `translate(0, ${chartHeight + 24})`) // Added 24px padding
       .call(xAxis)
       .selectAll('text')
       .style('font-family', 'Inter, -apple-system, BlinkMacSystemFont, sans-serif')

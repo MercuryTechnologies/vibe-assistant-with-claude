@@ -17,7 +17,7 @@ const FinancialSegmentedControl: React.FC<FinancialSegmentedControlProps> = ({ c
 
   return (
     <div
-      className={`inline-flex items-center bg-gray-100 rounded-full p-1 ${className}`}
+      className={`inline-flex items-center bg-gray-100 rounded-lg border border-gray-200 ${className}`}
       role="radiogroup"
       aria-label="Financial category selection"
     >
@@ -30,7 +30,7 @@ const FinancialSegmentedControl: React.FC<FinancialSegmentedControlProps> = ({ c
             aria-checked={isActive}
             onClick={() => setValue(option.value)}
             className={[
-              'relative px-4 py-1.5 text-sm rounded-full transition-all duration-150',
+              'relative px-4 py-1.5 text-sm rounded-lg transition-all duration-150',
               isActive
                 ? 'bg-white text-gray-900 font-medium shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
