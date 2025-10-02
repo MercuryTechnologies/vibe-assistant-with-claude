@@ -7,6 +7,9 @@ import ComparisonDropdown from './ComparisonDropdown';
 import SidebarNav, { type SidebarSection } from './SidebarNav';
 import { type Scale } from './SegmentedControl';
 import CashFlowBarChart from './CashFlowBarChart';
+import GlobalNav from './GlobalNav';
+import { useTimeRangeStore } from './store';
+import { generateSampleData, aggregateMonthly } from './utils';
 
 function startOfMonth(d: Date): Date {
   const n = new Date(d);
@@ -83,6 +86,33 @@ function App() {
 
   // Use the current date as reference (you can change this to any date)
   const referenceDate = useMemo(() => new Date('2025-09-23'), []); // Using Sept 23, 2025 as "today"
+  
+  // Store access for committing time range
+  const setCommittedTimeRange = useTimeRangeStore((s: { setTimeRange: (r: { start: Date; end: Date } | null) => void }) => s.setTimeRange);
+  
+  // Sample data for the chart
+  const sampleData = useMemo(() => generateSampleData(), []);
+  
+  // Get committed time range from store
+  const committedTimeRange = useTimeRangeStore((s: { timeRange: { start: Date; end: Date } | null }) => s.timeRange);
+  
+  // Filter and aggregate data based on committed time range
+  const chartData = useMemo(() => {
+    const monthly = aggregateMonthly(sampleData, committedTimeRange);
+    
+    // Convert to format expected by D3 chart
+    return monthly.map(m => {
+      const [year, monthNum] = m.month.split('-');
+      const date = new Date(parseInt(year), parseInt(monthNum) - 1);
+      const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+      
+      return {
+        month: monthName,
+        moneyIn: m.moneyIn,
+        moneyOut: -m.moneyOut // D3 chart expects negative values
+      };
+    });
+  }, [sampleData, committedTimeRange]);
 
   // Rail dates that can be shifted
   const [railStart, setRailStart] = useState<Date>(new Date('2023-11-01'));
@@ -167,8 +197,16 @@ function App() {
       const [start, end] = getDateRangeForPeriod(timePeriod, referenceDate);
       setValueStart(start);
       setValueEnd(end);
+      // Also commit this change to the store immediately for predefined periods
+      setCommittedTimeRange({ start, end });
     }
-  }, [timePeriod, referenceDate]);
+  }, [timePeriod, referenceDate, setCommittedTimeRange]);
+  
+  // Initialize the store with the initial date range
+  useEffect(() => {
+    setCommittedTimeRange({ start: valueStart, end: valueEnd });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   const handleTimePeriodChange = useCallback((period: TimePeriod) => {
     setTimePeriod(period);
@@ -262,6 +300,9 @@ function App() {
     // eslint-disable-next-line no-console
     console.log('onCommit', s.toISOString(), e.toISOString());
     
+    // COMMIT to the global store - this will trigger chart update
+    setCommittedTimeRange({ start: s, end: e });
+    
     // Check if the dragged range matches any predefined period
     const matchedPeriod = matchDateRangeToPeriod(s, e);
     
@@ -275,7 +316,7 @@ function App() {
       setCustomDateRange(formatDateRange(s, e));
     }
     // NOTE: Do NOT open comparison dropdown here - this is for timeline dragging
-  }, [matchDateRangeToPeriod, formatDateRange]);
+  }, [matchDateRangeToPeriod, formatDateRange, setCommittedTimeRange]);
 
   const handleComparisonOpenChange = useCallback((isOpen: boolean) => {
     if (!isOpen) {
@@ -360,13 +401,17 @@ function App() {
       
       {/* Main content */}
       <div className="flex-1">
+        {/* Global Navigation */}
+        <GlobalNav 
+          initials="EH"
+          onMoveMoneyClick={() => console.log('Move Money clicked')}
+          onNotificationsClick={() => console.log('Notifications clicked')}
+        />
+        
         <div className="px-6 py-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">Insights</h1>
-          
+          <h1 className="text-3xl font-semibold text-gray-900 mb-4">Insights</h1>
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <FinancialSegmentedControl />
-            </div>
+            <FinancialSegmentedControl />
             <div className="flex items-center gap-3">
               <PeriodDropdown value={timePeriod} onChange={handleTimePeriodChange} referenceDate={referenceDate} customDateRange={customDateRange} />
               <ComparisonDropdown 
@@ -482,7 +527,31 @@ function App() {
 
         {/* Cash Flow Chart Section */}
         <div className="px-6 py-8">
-          <CashFlowBarChart height={500} />
+          {chartData.length === 0 ? (
+            <div className="flex h-96 items-center justify-center text-gray-500 border rounded-xl bg-white">
+              <div className="text-center">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400 mb-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
+                </svg>
+                <p className="text-lg font-medium">No data in the selected range</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Try selecting a different time period on the timeline above
+                </p>
+              </div>
+            </div>
+          ) : (
+            <CashFlowBarChart data={chartData} height={500} />
+          )}
         </div>
       </div>
     </div>
