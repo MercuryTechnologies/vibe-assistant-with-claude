@@ -24,27 +24,22 @@ const DualGradientPlayground: React.FC<DualGradientPlaygroundProps> = ({
   onMoneyInReset 
 }) => {
   return (
-    <div className="space-y-8">
-      {/* Money Out Playground */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Money Out</h3>
-        </div>
-        
-        <div className="flex gap-8 items-start">
-          {/* Money Out Controls */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 w-80 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <h4 className="text-sm font-semibold text-gray-700">Gradient Controls</h4>
+    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        {/* Money Out Controls */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Money Out</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
               <button
                 onClick={onMoneyOutReset}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
               >
                 Reset
               </button>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-4">
               {/* Dimensions */}
               <div className="pb-5 border-b border-gray-100">
                 <h5 className="text-sm font-semibold text-gray-700 mb-3">Dimensions</h5>
@@ -83,10 +78,10 @@ const DualGradientPlayground: React.FC<DualGradientPlaygroundProps> = ({
               </div>
 
               {/* Top Glow (Pink) */}
-              <div className="pb-5 border-b border-gray-100">
-                <h5 className="text-sm font-semibold text-gray-700 mb-3">Top Glow (Pink)</h5>
+              <div className="pb-4 border-b border-gray-100">
+                <h5 className="text-xs font-semibold text-gray-700 mb-2">Top Glow (Pink)</h5>
                 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div>
                     <label className="flex items-center justify-between text-xs text-gray-600 mb-1">
                       <span>Color</span>
@@ -151,10 +146,10 @@ const DualGradientPlayground: React.FC<DualGradientPlaygroundProps> = ({
               </div>
 
               {/* Bottom Glow (Teal) */}
-              <div className="pb-5 border-b border-gray-100">
-                <h5 className="text-sm font-semibold text-gray-700 mb-3">Bottom Glow (Teal)</h5>
+              <div className="pb-4 border-b border-gray-100">
+                <h5 className="text-xs font-semibold text-gray-700 mb-2">Bottom Glow (Teal)</h5>
                 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div>
                     <label className="flex items-center justify-between text-xs text-gray-600 mb-1">
                       <span>Color</span>
@@ -220,7 +215,7 @@ const DualGradientPlayground: React.FC<DualGradientPlaygroundProps> = ({
 
               {/* Base Color */}
               <div>
-                <h5 className="text-sm font-semibold text-gray-700 mb-3">Base Color</h5>
+                <h5 className="text-xs font-semibold text-gray-700 mb-2">Base Color</h5>
                 
                 <div>
                   <label className="flex items-center justify-between text-xs text-gray-600 mb-1">
@@ -237,48 +232,41 @@ const DualGradientPlayground: React.FC<DualGradientPlaygroundProps> = ({
               </div>
             </div>
           </div>
-
-          {/* Money Out Preview */}
-          <div className="flex-1 flex items-center justify-center min-h-[400px] bg-gray-50 rounded-xl border border-gray-200 p-12">
-            <GradientCard
-              width={moneyOutSettings.width}
-              height={moneyOutSettings.height}
-              baseColor={moneyOutSettings.baseColor}
-              topGlowColor={moneyOutSettings.topGlowColor}
-              bottomGlowColor={moneyOutSettings.bottomGlowColor}
-              topGlowOpacity={moneyOutSettings.topGlowOpacity}
-              bottomGlowOpacity={moneyOutSettings.bottomGlowOpacity}
-              topBlurIntensity={moneyOutSettings.topBlurIntensity}
-              bottomBlurIntensity={moneyOutSettings.bottomBlurIntensity}
-              topGlowSize={moneyOutSettings.topGlowSize}
-              bottomGlowSize={moneyOutSettings.bottomGlowSize}
-              topGlowOffset={moneyOutSettings.topGlowOffset}
-              bottomGlowOffset={moneyOutSettings.bottomGlowOffset}
-            />
-          </div>
         </div>
-      </div>
 
-      {/* Money In Playground */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Money In</h3>
+        {/* Money Out Preview */}
+        <div className="flex items-center justify-center bg-gray-50 rounded-lg p-6">
+          <GradientCard
+            width={moneyOutSettings.width}
+            height={moneyOutSettings.height}
+            baseColor={moneyOutSettings.baseColor}
+            topGlowColor={moneyOutSettings.topGlowColor}
+            bottomGlowColor={moneyOutSettings.bottomGlowColor}
+            topGlowOpacity={moneyOutSettings.topGlowOpacity}
+            bottomGlowOpacity={moneyOutSettings.bottomGlowOpacity}
+            topBlurIntensity={moneyOutSettings.topBlurIntensity}
+            bottomBlurIntensity={moneyOutSettings.bottomBlurIntensity}
+            topGlowSize={moneyOutSettings.topGlowSize}
+            bottomGlowSize={moneyOutSettings.bottomGlowSize}
+            topGlowOffset={moneyOutSettings.topGlowOffset}
+            bottomGlowOffset={moneyOutSettings.bottomGlowOffset}
+          />
         </div>
-        
-        <div className="flex gap-8 items-start">
-          {/* Money In Controls */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 w-80 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <h4 className="text-sm font-semibold text-gray-700">Gradient Controls</h4>
+
+        {/* Money In Controls */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Money In</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
               <button
                 onClick={onMoneyInReset}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
               >
                 Reset
               </button>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-4">
               {/* Dimensions */}
               <div className="pb-5 border-b border-gray-100">
                 <h5 className="text-sm font-semibold text-gray-700 mb-3">Dimensions</h5>
@@ -317,10 +305,10 @@ const DualGradientPlayground: React.FC<DualGradientPlaygroundProps> = ({
               </div>
 
               {/* Gradient Colors */}
-              <div className="pb-5 border-b border-gray-100">
-                <h5 className="text-sm font-semibold text-gray-700 mb-3">Linear Gradient</h5>
+              <div className="pb-4 border-b border-gray-100">
+                <h5 className="text-xs font-semibold text-gray-700 mb-2">Linear Gradient</h5>
                 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div>
                     <label className="flex items-center justify-between text-xs text-gray-600 mb-1">
                       <span>Top Color</span>
@@ -350,10 +338,10 @@ const DualGradientPlayground: React.FC<DualGradientPlaygroundProps> = ({
               </div>
 
               {/* Top Glow (Blue) */}
-              <div className="pb-5 border-b border-gray-100">
-                <h5 className="text-sm font-semibold text-gray-700 mb-3">Top Glow (Blue)</h5>
+              <div className="pb-4 border-b border-gray-100">
+                <h5 className="text-xs font-semibold text-gray-700 mb-2">Top Glow (Blue)</h5>
                 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div>
                     <label className="flex items-center justify-between text-xs text-gray-600 mb-1">
                       <span>Color</span>
@@ -419,9 +407,9 @@ const DualGradientPlayground: React.FC<DualGradientPlaygroundProps> = ({
 
               {/* Bottom Glow (Green) */}
               <div>
-                <h5 className="text-sm font-semibold text-gray-700 mb-3">Bottom Glow (Green)</h5>
+                <h5 className="text-xs font-semibold text-gray-700 mb-2">Bottom Glow (Green)</h5>
                 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div>
                     <label className="flex items-center justify-between text-xs text-gray-600 mb-1">
                       <span>Color</span>
@@ -486,26 +474,26 @@ const DualGradientPlayground: React.FC<DualGradientPlaygroundProps> = ({
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Money In Preview */}
-          <div className="flex-1 flex items-center justify-center min-h-[400px] bg-gray-50 rounded-xl border border-gray-200 p-12">
-            <GradientCardMoneyIn
-              width={moneyInSettings.width}
-              height={moneyInSettings.height}
-              topGradientColor={moneyInSettings.topGradientColor}
-              bottomGradientColor={moneyInSettings.bottomGradientColor}
-              topGlowColor={moneyInSettings.topGlowColor}
-              bottomGlowColor={moneyInSettings.bottomGlowColor}
-              topGlowOpacity={moneyInSettings.topGlowOpacity}
-              bottomGlowOpacity={moneyInSettings.bottomGlowOpacity}
-              topBlurIntensity={moneyInSettings.topBlurIntensity}
-              bottomBlurIntensity={moneyInSettings.bottomBlurIntensity}
-              topGlowSize={moneyInSettings.topGlowSize}
-              bottomGlowSize={moneyInSettings.bottomGlowSize}
-              topGlowOffset={moneyInSettings.topGlowOffset}
-              bottomGlowOffset={moneyInSettings.bottomGlowOffset}
-            />
-          </div>
+        {/* Money In Preview */}
+        <div className="flex items-center justify-center bg-gray-50 rounded-lg p-6">
+          <GradientCardMoneyIn
+            width={moneyInSettings.width}
+            height={moneyInSettings.height}
+            topGradientColor={moneyInSettings.topGradientColor}
+            bottomGradientColor={moneyInSettings.bottomGradientColor}
+            topGlowColor={moneyInSettings.topGlowColor}
+            bottomGlowColor={moneyInSettings.bottomGlowColor}
+            topGlowOpacity={moneyInSettings.topGlowOpacity}
+            bottomGlowOpacity={moneyInSettings.bottomGlowOpacity}
+            topBlurIntensity={moneyInSettings.topBlurIntensity}
+            bottomBlurIntensity={moneyInSettings.bottomBlurIntensity}
+            topGlowSize={moneyInSettings.topGlowSize}
+            bottomGlowSize={moneyInSettings.bottomGlowSize}
+            topGlowOffset={moneyInSettings.topGlowOffset}
+            bottomGlowOffset={moneyInSettings.bottomGlowOffset}
+          />
         </div>
       </div>
     </div>
