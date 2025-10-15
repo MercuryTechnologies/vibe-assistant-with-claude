@@ -1,8 +1,13 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as d3 from 'd3';
+import Dropdown, { type Cadence } from './Dropdown';
+import GradientCard from './GradientCard';
+import GradientCardMoneyIn from './GradientCardMoneyIn';
+import { type GradientSettings, type GradientSettingsMoneyIn } from './GradientPlayground';
+import { createRoot } from 'react-dom/client';
 
 interface CashFlowData {
-  month: string;
+  month: string; // Keep as "month" for backward compatibility, but represents any time period
   moneyIn: number;
   moneyOut: number;
 }
@@ -11,6 +16,12 @@ interface CashFlowBarChartProps {
   data?: CashFlowData[];
   width?: number;
   height?: number;
+  cadence?: Cadence;
+  onCadenceChange?: (cadence: Cadence) => void;
+  selectionStart?: Date;
+  selectionEnd?: Date;
+  gradientSettingsMoneyOut?: GradientSettings;
+  gradientSettingsMoneyIn?: GradientSettingsMoneyIn;
 }
 
 // Sample data matching the design
@@ -29,10 +40,18 @@ const defaultData: CashFlowData[] = [
 const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({ 
   data = defaultData, 
   width, 
-  height = 500 
+  height = 500,
+  cadence = 'monthly',
+  onCadenceChange,
+  selectionStart,
+  selectionEnd,
+  gradientSettingsMoneyOut,
+  gradientSettingsMoneyIn
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const gradientContainerMoneyOutRef = useRef<HTMLDivElement>(null);
+  const gradientContainerMoneyInRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
 
   // Handle responsive sizing
@@ -166,6 +185,8 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
       
       // Money In bar (positive) - rounded top, square bottom
       if (d.moneyIn > 0) {
+        const barHeight = Math.abs(yScale(d.moneyIn) - yScale(0));
+        
         // Create a path for rounded top, square bottom
         const pathData = `
           M ${x} ${yScale(0)}
@@ -177,14 +198,29 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
           Z
         `;
         
-        chart.append('path')
-          .attr('d', pathData)
-          .style('fill', moneyInIsLarger ? '#b6a8ff' : '#d1d5db')
-          .style('opacity', 1);
+        // If gradient settings are provided, use a placeholder
+        if (gradientSettingsMoneyIn) {
+          chart.append('rect')
+            .attr('class', `gradient-bar-money-in-placeholder`)
+            .attr('data-bar-index', d.month)
+            .attr('x', x)
+            .attr('y', yScale(d.moneyIn))
+            .attr('width', barWidth)
+            .attr('height', barHeight)
+            .attr('rx', 6)
+            .style('opacity', 0); // Hidden placeholder
+        } else {
+          chart.append('path')
+            .attr('d', pathData)
+            .style('fill', moneyInIsLarger ? '#b6a8ff' : '#d1d5db')
+            .style('opacity', 1);
+        }
       }
 
       // Money Out bar (negative) - square top, rounded bottom
       if (d.moneyOut < 0) {
+        const barHeight = Math.abs(yScale(d.moneyOut) - yScale(0));
+        
         // Create a path for square top, rounded bottom
         const pathData = `
           M ${x} ${yScale(0)}
@@ -196,10 +232,24 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
           Z
         `;
         
-        chart.append('path')
-          .attr('d', pathData)
-          .style('fill', !moneyInIsLarger ? '#1e1b4b' : '#d1d5db')
-          .style('opacity', 1);
+        // If gradient settings are provided, use a placeholder for React component
+        if (gradientSettingsMoneyOut) {
+          // Add a placeholder rect that we'll replace with React component
+          chart.append('rect')
+            .attr('class', `gradient-bar-money-out-placeholder`)
+            .attr('data-bar-index', d.month)
+            .attr('x', x)
+            .attr('y', yScale(d.moneyOut))
+            .attr('width', barWidth)
+            .attr('height', barHeight)
+            .attr('rx', 6)
+            .style('opacity', 0); // Hidden placeholder
+        } else {
+          chart.append('path')
+            .attr('d', pathData)
+            .style('fill', !moneyInIsLarger ? '#1e1b4b' : '#d1d5db')
+            .style('opacity', 1);
+        }
       }
     });
 
@@ -213,31 +263,164 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
       .style('stroke-width', 1)
       .style('opacity', 0.4); // Reduced opacity by 60%
 
-  }, [data, dimensions]);
+    // Render Money Out gradient bars using React components
+    if (gradientSettingsMoneyOut && gradientContainerMoneyOutRef.current) {
+      const gradientContainer = d3.select(gradientContainerMoneyOutRef.current);
+      gradientContainer.selectAll('*').remove();
+      
+      data.forEach(d => {
+        if (d.moneyOut < 0) {
+          const x = xScale(d.month)!;
+          const barWidth = xScale.bandwidth();
+          const barHeight = Math.abs(yScale(d.moneyOut) - yScale(0));
+          
+          // Position from zero line (top of negative bar) downward
+          const topPosition = margin.top + yScale(0);
+          
+          // Create a container for the gradient card
+          const cardContainer = gradientContainer.append('div')
+            .style('position', 'absolute')
+            .style('left', `${margin.left + x}px`)
+            .style('top', `${topPosition}px`)
+            .style('width', `${barWidth}px`)
+            .style('height', `${barHeight}px`)
+            .style('overflow', 'hidden')
+            .style('border-radius', '0 0 6px 6px')
+            .node();
+          
+          if (cardContainer) {
+            const root = createRoot(cardContainer);
+            root.render(
+              <GradientCard
+                width={barWidth}
+                height={barHeight}
+                baseColor={gradientSettingsMoneyOut.baseColor}
+                topGlowColor={gradientSettingsMoneyOut.topGlowColor}
+                bottomGlowColor={gradientSettingsMoneyOut.bottomGlowColor}
+                topGlowOpacity={gradientSettingsMoneyOut.topGlowOpacity}
+                bottomGlowOpacity={gradientSettingsMoneyOut.bottomGlowOpacity}
+                topBlurIntensity={gradientSettingsMoneyOut.topBlurIntensity}
+                bottomBlurIntensity={gradientSettingsMoneyOut.bottomBlurIntensity}
+                topGlowSize={gradientSettingsMoneyOut.topGlowSize}
+                bottomGlowSize={gradientSettingsMoneyOut.bottomGlowSize}
+                topGlowOffset={gradientSettingsMoneyOut.topGlowOffset}
+                bottomGlowOffset={gradientSettingsMoneyOut.bottomGlowOffset}
+              />
+            );
+          }
+        }
+      });
+    }
+
+    // Render Money In gradient bars using React components
+    if (gradientSettingsMoneyIn && gradientContainerMoneyInRef.current) {
+      const gradientContainer = d3.select(gradientContainerMoneyInRef.current);
+      gradientContainer.selectAll('*').remove();
+      
+      data.forEach(d => {
+        if (d.moneyIn > 0) {
+          const x = xScale(d.month)!;
+          const barWidth = xScale.bandwidth();
+          const barHeight = Math.abs(yScale(d.moneyIn) - yScale(0));
+          
+          // Position from top of bar upward to zero line
+          const topPosition = margin.top + yScale(d.moneyIn);
+          
+          // Create a container for the gradient card
+          const cardContainer = gradientContainer.append('div')
+            .style('position', 'absolute')
+            .style('left', `${margin.left + x}px`)
+            .style('top', `${topPosition}px`)
+            .style('width', `${barWidth}px`)
+            .style('height', `${barHeight}px`)
+            .style('overflow', 'hidden')
+            .style('border-radius', '6px 6px 0 0')
+            .node();
+          
+          if (cardContainer) {
+            const root = createRoot(cardContainer);
+            root.render(
+              <GradientCardMoneyIn
+                width={barWidth}
+                height={barHeight}
+                topGradientColor={gradientSettingsMoneyIn.topGradientColor}
+                bottomGradientColor={gradientSettingsMoneyIn.bottomGradientColor}
+                topGlowColor={gradientSettingsMoneyIn.topGlowColor}
+                bottomGlowColor={gradientSettingsMoneyIn.bottomGlowColor}
+                topGlowOpacity={gradientSettingsMoneyIn.topGlowOpacity}
+                bottomGlowOpacity={gradientSettingsMoneyIn.bottomGlowOpacity}
+                topBlurIntensity={gradientSettingsMoneyIn.topBlurIntensity}
+                bottomBlurIntensity={gradientSettingsMoneyIn.bottomBlurIntensity}
+                topGlowSize={gradientSettingsMoneyIn.topGlowSize}
+                bottomGlowSize={gradientSettingsMoneyIn.bottomGlowSize}
+                topGlowOffset={gradientSettingsMoneyIn.topGlowOffset}
+                bottomGlowOffset={gradientSettingsMoneyIn.bottomGlowOffset}
+              />
+            );
+          }
+        }
+      });
+    }
+
+  }, [data, dimensions, gradientSettingsMoneyOut, gradientSettingsMoneyIn]);
 
   return (
     <div className="bg-white" ref={containerRef}>
-      {/* Legend */}
-      <div className="flex items-center gap-6 mb-6">
-        <div className="flex items-center gap-2">
-          <div 
-            className="w-3 h-3 rounded-sm" 
-            style={{ backgroundColor: '#b6a8ff' }}
-          />
-          <span className="text-sm font-medium text-gray-700">Money In</span>
+      {/* Legend with Frequency Dropdown */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <div 
+              className="w-3 h-3 rounded-sm" 
+              style={{ backgroundColor: gradientSettingsMoneyIn?.topGradientColor || '#b6a8ff' }}
+            />
+            <span className="text-sm font-medium text-gray-700">Money In</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div 
+              className="w-3 h-3 rounded-sm" 
+              style={{ backgroundColor: gradientSettingsMoneyOut?.baseColor || '#1e1b4b' }}
+            />
+            <span className="text-sm font-medium text-gray-700">Money Out</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div 
-            className="w-3 h-3 rounded-sm" 
-            style={{ backgroundColor: '#1e1b4b' }}
+        {onCadenceChange && (
+          <Dropdown 
+            value={cadence} 
+            onChange={onCadenceChange} 
+            selectionStart={selectionStart} 
+            selectionEnd={selectionEnd} 
           />
-          <span className="text-sm font-medium text-gray-700">Money Out</span>
-        </div>
+        )}
       </div>
       
       {/* Chart */}
-      <div className="w-full">
+      <div className="w-full relative">
         <svg ref={svgRef} className="w-full h-auto" style={{ minWidth: '600px' }} />
+        {/* Money Out gradient bars overlay */}
+        <div 
+          ref={gradientContainerMoneyOutRef} 
+          style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            width: '100%', 
+            height: '100%',
+            pointerEvents: 'none'
+          }} 
+        />
+        {/* Money In gradient bars overlay */}
+        <div 
+          ref={gradientContainerMoneyInRef} 
+          style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            width: '100%', 
+            height: '100%',
+            pointerEvents: 'none'
+          }} 
+        />
       </div>
     </div>
   );

@@ -1,15 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import PeriodDropdown, { type TimePeriod } from './PeriodDropdown';
 import TimelineRange, { type ComparisonMode, type TimeRange } from './TimelineRange';
-import Dropdown, { type Cadence } from './Dropdown';
+import { type Cadence } from './Dropdown';
 import FinancialSegmentedControl from './FinancialSegmentedControl';
 import ComparisonDropdown from './ComparisonDropdown';
 import SidebarNav, { type SidebarSection } from './SidebarNav';
 import { type Scale } from './SegmentedControl';
 import CashFlowBarChart from './CashFlowBarChart';
 import GlobalNav from './GlobalNav';
+import Scorecard, { type Insight } from './Scorecard';
+import DualGradientPlayground from './DualGradientPlayground';
+import { type GradientSettings, type GradientSettingsMoneyIn } from './GradientPlayground';
 import { useTimeRangeStore } from './store';
-import { generateSampleData, aggregateMonthly } from './utils';
+import { generateSampleData, aggregateByCadence } from './utils';
 
 function startOfMonth(d: Date): Date {
   const n = new Date(d);
@@ -84,6 +87,86 @@ function App() {
   const [activePath, setActivePath] = useState('/insights');
   const [collapsedIds, setCollapsedIds] = useState<string[]>([]);
 
+  // Money Out gradient settings state
+  const [gradientSettingsMoneyOut, setGradientSettingsMoneyOut] = useState<GradientSettings>({
+    width: 87,
+    height: 179,
+    baseColor: '#383255',
+    topGlowColor: '#FC92B4',
+    bottomGlowColor: '#335C6B',
+    topGlowOpacity: 0.35,
+    bottomGlowOpacity: 1.0,
+    topBlurIntensity: 1.0,
+    bottomBlurIntensity: 1.0,
+    topGlowSize: 0.6,
+    bottomGlowSize: 0.8,
+    topGlowOffset: 0,
+    bottomGlowOffset: 0,
+  });
+
+  // Money In gradient settings state
+  const [gradientSettingsMoneyIn, setGradientSettingsMoneyIn] = useState<GradientSettingsMoneyIn>({
+    width: 88,
+    height: 250,
+    topGradientColor: '#D1E1E8',
+    bottomGradientColor: '#C3C0DF',
+    topGlowColor: '#9CB4E8',
+    bottomGlowColor: '#77C599',
+    topGlowOpacity: 1.0,
+    bottomGlowOpacity: 0.8,
+    topBlurIntensity: 1.0,
+    bottomBlurIntensity: 0.8,
+    topGlowSize: 1.0,
+    bottomGlowSize: 0.9,
+    topGlowOffset: 0,
+    bottomGlowOffset: 0,
+  });
+
+  const handleMoneyOutChange = useCallback((newSettings: Partial<GradientSettings>) => {
+    setGradientSettingsMoneyOut(prev => ({ ...prev, ...newSettings }));
+  }, []);
+
+  const handleMoneyInChange = useCallback((newSettings: Partial<GradientSettingsMoneyIn>) => {
+    setGradientSettingsMoneyIn(prev => ({ ...prev, ...newSettings }));
+  }, []);
+
+  const handleMoneyOutReset = useCallback(() => {
+    setGradientSettingsMoneyOut({
+      width: 87,
+      height: 179,
+      baseColor: '#383255',
+      topGlowColor: '#FC92B4',
+      bottomGlowColor: '#335C6B',
+      topGlowOpacity: 0.35,
+      bottomGlowOpacity: 1.0,
+      topBlurIntensity: 1.0,
+      bottomBlurIntensity: 1.0,
+      topGlowSize: 0.6,
+      bottomGlowSize: 0.8,
+      topGlowOffset: 0,
+      bottomGlowOffset: 0,
+    });
+  }, []);
+
+  const handleMoneyInReset = useCallback(() => {
+    setGradientSettingsMoneyIn({
+      width: 88,
+      height: 250,
+      topGradientColor: '#D1E1E8',
+      bottomGradientColor: '#C3C0DF',
+      topGlowColor: '#9CB4E8',
+      bottomGlowColor: '#77C599',
+      topGlowOpacity: 1.0,
+      bottomGlowOpacity: 0.8,
+      topBlurIntensity: 1.0,
+      bottomBlurIntensity: 0.8,
+      topGlowSize: 1.0,
+      bottomGlowSize: 0.9,
+      topGlowOffset: 0,
+      bottomGlowOffset: 0,
+    });
+  }, []);
+
   // Use the current date as reference (you can change this to any date)
   const referenceDate = useMemo(() => new Date('2025-09-23'), []); // Using Sept 23, 2025 as "today"
   
@@ -96,23 +179,17 @@ function App() {
   // Get committed time range from store
   const committedTimeRange = useTimeRangeStore((s: { timeRange: { start: Date; end: Date } | null }) => s.timeRange);
   
-  // Filter and aggregate data based on committed time range
+  // Filter and aggregate data based on committed time range and cadence
   const chartData = useMemo(() => {
-    const monthly = aggregateMonthly(sampleData, committedTimeRange);
+    const aggregated = aggregateByCadence(sampleData, committedTimeRange, cadence);
     
     // Convert to format expected by D3 chart
-    return monthly.map(m => {
-      const [year, monthNum] = m.month.split('-');
-      const date = new Date(parseInt(year), parseInt(monthNum) - 1);
-      const monthName = date.toLocaleDateString('en-US', { month: 'short' });
-      
-      return {
-        month: monthName,
-        moneyIn: m.moneyIn,
-        moneyOut: -m.moneyOut // D3 chart expects negative values
-      };
-    });
-  }, [sampleData, committedTimeRange]);
+    return aggregated.map(item => ({
+      month: item.label, // Use the label for display
+      moneyIn: item.moneyIn,
+      moneyOut: -item.moneyOut // D3 chart expects negative values
+    }));
+  }, [sampleData, committedTimeRange, cadence]);
 
   // Rail dates that can be shifted
   const [railStart, setRailStart] = useState<Date>(new Date('2023-11-01'));
@@ -387,6 +464,22 @@ function App() {
     console.log('Navigate to:', href);
   }, []);
 
+  // Sample data for Scorecard
+  const sampleInsights: Insight[] = useMemo(() => [
+    {
+      id: '1',
+      type: 'negative',
+      title: 'Spike in spend on software',
+      description: 'Cursor spend in September totaled –$5,987, which is an increase by +15% MoM from –$5,009 in August.'
+    },
+    {
+      id: '2',
+      type: 'negative',
+      title: 'Increased Credit spend',
+      description: 'Credit card spend saw an increase of 8% from $3,490 in August to $3,798 in September.'
+    }
+  ], []);
+
   return (
     <div className="min-h-screen bg-white flex">
       {/* Sidebar */}
@@ -410,7 +503,7 @@ function App() {
         
         <div className="px-6 py-6">
           <h1 className="text-3xl font-semibold text-gray-900 mb-4">Insights</h1>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-0">
             <FinancialSegmentedControl />
             <div className="flex items-center gap-3">
               <PeriodDropdown value={timePeriod} onChange={handleTimePeriodChange} referenceDate={referenceDate} customDateRange={customDateRange} />
@@ -420,7 +513,6 @@ function App() {
                 forceOpen={forceOpenComparison}
                 onOpenChange={handleComparisonOpenChange}
               />
-              <Dropdown value={cadence} onChange={handleCadenceChange} selectionStart={valueStart} selectionEnd={valueEnd} />
             </div>
           </div>
         </div>
@@ -525,33 +617,72 @@ function App() {
           </div>
         </div>
 
-        {/* Cash Flow Chart Section */}
+        {/* Content Section - Side by side layout */}
         <div className="px-6 py-8">
-          {chartData.length === 0 ? (
-            <div className="flex h-96 items-center justify-center text-gray-500 border rounded-xl bg-white">
-              <div className="text-center">
-                <svg
-                  className="mx-auto h-12 w-12 text-gray-400 mb-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
-                <p className="text-lg font-medium">No data in the selected range</p>
-                <p className="text-sm text-gray-400 mt-1">
-                  Try selecting a different time period on the timeline above
-                </p>
-              </div>
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            {/* Scorecard - Left side */}
+            <div className="xl:col-span-4">
+              <Scorecard
+                netCashflow="$132,403.08"
+                moneyIn="$12,500"
+                moneyOut="–$5,892"
+                lastUpdated="Updated Sept 19 • 3:27PM"
+                insights={sampleInsights}
+              />
             </div>
-          ) : (
-            <CashFlowBarChart data={chartData} height={500} />
-          )}
+
+            {/* Cash Flow Chart Section - Right side */}
+            <div className="xl:col-span-8">
+              {chartData.length === 0 ? (
+                <div className="flex h-96 items-center justify-center text-gray-500 border rounded-xl bg-white">
+                  <div className="text-center">
+                    <svg
+                      className="mx-auto h-12 w-12 text-gray-400 mb-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                      />
+                    </svg>
+                    <p className="text-lg font-medium">No data in the selected range</p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Try selecting a different time period on the timeline above
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <CashFlowBarChart 
+                  data={chartData} 
+                  height={500} 
+                  cadence={cadence}
+                  onCadenceChange={handleCadenceChange}
+                  selectionStart={valueStart}
+                  selectionEnd={valueEnd}
+                  gradientSettingsMoneyOut={gradientSettingsMoneyOut}
+                  gradientSettingsMoneyIn={gradientSettingsMoneyIn}
+                />
+              )}
+            </div>
+          </div>
+          
+          {/* Interactive Gradient Playground */}
+          <div className="mt-12">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-6">Gradient Playground</h2>
+            <p className="text-sm text-gray-600 mb-4">Adjust the gradient controls below to modify the appearance of bars in the chart above.</p>
+            <DualGradientPlayground
+              moneyOutSettings={gradientSettingsMoneyOut}
+              moneyInSettings={gradientSettingsMoneyIn}
+              onMoneyOutChange={handleMoneyOutChange}
+              onMoneyInChange={handleMoneyInChange}
+              onMoneyOutReset={handleMoneyOutReset}
+              onMoneyInReset={handleMoneyInReset}
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -36,11 +36,14 @@ export type CashFlowRecord = {
   moneyOut: number;
 };
 
-export type MonthlyData = {
-  month: string; // "2025-01" format
+export type AggregatedData = {
+  period: string; // Format depends on cadence: "2025-01" for monthly, "2025-Q1" for quarterly, "2025" for yearly, "2025-01-15" for daily
+  label: string; // Display label: "Jan", "Q1 2025", "2025", "Jan 15"
   moneyIn: number;
   moneyOut: number;
 };
+
+export type MonthlyData = AggregatedData; // Keep for backward compatibility
 
 export function aggregateMonthly(
   data: CashFlowRecord[],
@@ -78,7 +81,154 @@ export function aggregateMonthly(
     }))
     .sort((a, b) => (a.month < b.month ? -1 : 1));
 
+  return result.map(item => ({
+    ...item,
+    period: item.month,
+    label: new Date(item.month + '-01').toLocaleDateString('en-US', { month: 'short' })
+  }));
+}
+
+export function aggregateDaily(
+  data: CashFlowRecord[],
+  range: DateRange | null
+): AggregatedData[] {
+  // Filter by range if provided
+  const filtered = range
+    ? data.filter((r) => {
+        const t = new Date(r.date).getTime();
+        return t >= range.start.getTime() && t <= range.end.getTime();
+      })
+    : data;
+
+  // Group by date
+  const map = new Map<string, { moneyIn: number; moneyOut: number }>();
+  
+  for (const record of filtered) {
+    const d = new Date(record.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    
+    if (!map.has(key)) {
+      map.set(key, { moneyIn: 0, moneyOut: 0 });
+    }
+    
+    const bucket = map.get(key)!;
+    bucket.moneyIn += record.moneyIn;
+    bucket.moneyOut += record.moneyOut;
+  }
+
+  // Convert to array and sort
+  const result = Array.from(map.entries())
+    .map(([period, values]) => {
+      const date = new Date(period);
+      return {
+        period,
+        label: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        ...values,
+      };
+    })
+    .sort((a, b) => (a.period < b.period ? -1 : 1));
+
   return result;
+}
+
+export function aggregateQuarterly(
+  data: CashFlowRecord[],
+  range: DateRange | null
+): AggregatedData[] {
+  // Filter by range if provided
+  const filtered = range
+    ? data.filter((r) => {
+        const t = new Date(r.date).getTime();
+        return t >= range.start.getTime() && t <= range.end.getTime();
+      })
+    : data;
+
+  // Group by year-quarter
+  const map = new Map<string, { moneyIn: number; moneyOut: number }>();
+  
+  for (const record of filtered) {
+    const d = new Date(record.date);
+    const quarter = Math.floor(d.getMonth() / 3) + 1;
+    const key = `${d.getFullYear()}-Q${quarter}`;
+    
+    if (!map.has(key)) {
+      map.set(key, { moneyIn: 0, moneyOut: 0 });
+    }
+    
+    const bucket = map.get(key)!;
+    bucket.moneyIn += record.moneyIn;
+    bucket.moneyOut += record.moneyOut;
+  }
+
+  // Convert to array and sort
+  const result = Array.from(map.entries())
+    .map(([period, values]) => ({
+      period,
+      label: period, // "2025-Q1" format
+      ...values,
+    }))
+    .sort((a, b) => (a.period < b.period ? -1 : 1));
+
+  return result;
+}
+
+export function aggregateYearly(
+  data: CashFlowRecord[],
+  range: DateRange | null
+): AggregatedData[] {
+  // Filter by range if provided
+  const filtered = range
+    ? data.filter((r) => {
+        const t = new Date(r.date).getTime();
+        return t >= range.start.getTime() && t <= range.end.getTime();
+      })
+    : data;
+
+  // Group by year
+  const map = new Map<string, { moneyIn: number; moneyOut: number }>();
+  
+  for (const record of filtered) {
+    const d = new Date(record.date);
+    const key = `${d.getFullYear()}`;
+    
+    if (!map.has(key)) {
+      map.set(key, { moneyIn: 0, moneyOut: 0 });
+    }
+    
+    const bucket = map.get(key)!;
+    bucket.moneyIn += record.moneyIn;
+    bucket.moneyOut += record.moneyOut;
+  }
+
+  // Convert to array and sort
+  const result = Array.from(map.entries())
+    .map(([period, values]) => ({
+      period,
+      label: period, // "2025" format
+      ...values,
+    }))
+    .sort((a, b) => (a.period < b.period ? -1 : 1));
+
+  return result;
+}
+
+export function aggregateByCadence(
+  data: CashFlowRecord[],
+  range: DateRange | null,
+  cadence: 'days' | 'monthly' | 'quarterly' | 'yearly'
+): AggregatedData[] {
+  switch (cadence) {
+    case 'days':
+      return aggregateDaily(data, range);
+    case 'monthly':
+      return aggregateMonthly(data, range);
+    case 'quarterly':
+      return aggregateQuarterly(data, range);
+    case 'yearly':
+      return aggregateYearly(data, range);
+    default:
+      return aggregateMonthly(data, range);
+  }
 }
 
 // Generate sample data covering 18 months

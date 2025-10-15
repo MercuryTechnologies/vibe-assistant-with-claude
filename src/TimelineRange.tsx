@@ -202,17 +202,17 @@ function generateTicks(startDate: Date, endDate: Date, scale: Scale) {
 }
 
 // Space out labels to avoid overlap
-function filterBySpacing(points: { x: number; idx: number }[], minPx: number) {
-  const keptIdx = new Set<number>();
-  let lastX = -Infinity;
-  for (const p of points) {
-    if (p.x - lastX >= minPx) {
-      keptIdx.add(p.idx);
-      lastX = p.x;
-    }
-  }
-  return keptIdx;
-}
+// function filterBySpacing(points: { x: number; idx: number }[], minPx: number) {
+//   const keptIdx = new Set<number>();
+//   let lastX = -Infinity;
+//   for (const p of points) {
+//     if (p.x - lastX >= minPx) {
+//       keptIdx.add(p.idx);
+//       lastX = p.x;
+//     }
+//   }
+//   return keptIdx;
+// }
 
 const TimelineRange: React.FC<TimelineRangeProps> = ({
   scale,
@@ -251,7 +251,7 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
   const dbg = useCallback((label: string, data?: unknown) => {
     if (!DEBUG_SELECTION) return;
     console.log(`[sel] ${label}`, data ?? '');
-  }, []);
+  }, [DEBUG_SELECTION]);
 
 
   // Resize observer for width
@@ -447,7 +447,7 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
         onChange(clampedStart, clampedEnd);
       }
     }
-  }, [dragState, dragStart, startDate, endDate, railWidth, scale, minUnit, valueStart, valueEnd, onChange, localX, updateCreatePreview]);
+  }, [dragState, dragStart, startDate, endDate, railWidth, scale, minUnit, valueStart, valueEnd, onChange, localX, updateCreatePreview, maxDate]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     dbg('Pointer up', { dragState });
@@ -575,7 +575,7 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
         onChange(clampedStart, clampedEnd);
       }
     }
-  }, [scale, valueStart, valueEnd, minUnit, startDate, endDate, onChange]);
+  }, [scale, valueStart, valueEnd, minUnit, startDate, endDate, onChange, dbg, dragState, maxDate]);
 
   // Decide which ticks provide bottom labels based on scale
   const bottomLabelTicks = useMemo(() => {
@@ -677,6 +677,9 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
       onMouseMove={handleMouseMove}
       tabIndex={0}
       role="slider"
+      aria-valuenow={Math.round((valueStart.getTime() - startDate.getTime()) / (endDate.getTime() - startDate.getTime()) * 100)}
+      aria-valuemin={0}
+      aria-valuemax={100}
       aria-valuetext={`${valueStart.toLocaleDateString()} to ${valueEnd.toLocaleDateString()}`}
       data-state={dragState}
     >

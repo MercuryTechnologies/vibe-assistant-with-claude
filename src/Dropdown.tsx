@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-export type Cadence = 'days' | 'monthly' | 'yearly';
+export type Cadence = 'days' | 'monthly' | 'quarterly' | 'yearly';
 
 interface DropdownProps {
   value: Cadence;
@@ -14,39 +14,69 @@ const Dropdown: React.FC<DropdownProps> = ({ value, onChange, className = '', se
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Calculate if selection is 30 days or less
-  const isSelectionShort = React.useMemo(() => {
-    if (!selectionStart || !selectionEnd) return false;
-    const daysDiff = Math.ceil((selectionEnd.getTime() - selectionStart.getTime()) / (1000 * 60 * 60 * 24));
-    return daysDiff <= 30;
-  }, [selectionStart, selectionEnd]);
-
-  // Filter options based on selection length
-  const options: { value: Cadence; label: string }[] = React.useMemo(() => {
-    const baseOptions = [
-      { value: 'monthly' as Cadence, label: 'Monthly' },
-      { value: 'yearly' as Cadence, label: 'Yearly' }
-    ];
-
-    // Only show Days option if selection is 30 days or less
-    if (isSelectionShort) {
-      return [
-        { value: 'days' as Cadence, label: 'Days' },
-        ...baseOptions
-      ];
+  // Calculate time range characteristics
+  const timeRangeInfo = React.useMemo(() => {
+    if (!selectionStart || !selectionEnd) {
+      return { daysDiff: 0, monthsDiff: 0, yearsDiff: 0 };
     }
 
-    return baseOptions;
-  }, [isSelectionShort]);
+    const daysDiff = Math.ceil((selectionEnd.getTime() - selectionStart.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Calculate months difference more accurately
+    const monthsDiff = (selectionEnd.getFullYear() - selectionStart.getFullYear()) * 12 + 
+                       (selectionEnd.getMonth() - selectionStart.getMonth()) + 
+                       (selectionEnd.getDate() >= selectionStart.getDate() ? 0 : -1);
+    
+    // Calculate years difference
+    const yearsDiff = selectionEnd.getFullYear() - selectionStart.getFullYear() + 
+                      (selectionEnd.getMonth() > selectionStart.getMonth() || 
+                       (selectionEnd.getMonth() === selectionStart.getMonth() && selectionEnd.getDate() >= selectionStart.getDate()) ? 0 : -1);
+
+    return { daysDiff, monthsDiff, yearsDiff };
+  }, [selectionStart, selectionEnd]);
+
+  // Filter options based on time range
+  const options: { value: Cadence; label: string }[] = React.useMemo(() => {
+    const availableOptions: { value: Cadence; label: string }[] = [];
+
+    // Days: Show if selection is 60 days or less
+    if (timeRangeInfo.daysDiff <= 60) {
+      availableOptions.push({ value: 'days' as Cadence, label: 'Days' });
+    }
+
+    // Monthly: Show if selection spans at least 1 month but less than 24 months
+    if (timeRangeInfo.monthsDiff >= 1 && timeRangeInfo.monthsDiff < 24) {
+      availableOptions.push({ value: 'monthly' as Cadence, label: 'Monthly' });
+    }
+
+    // Quarterly: Show if selection spans at least 3 months
+    if (timeRangeInfo.monthsDiff >= 3) {
+      availableOptions.push({ value: 'quarterly' as Cadence, label: 'Quarterly' });
+    }
+
+    // Yearly: Show if selection spans multiple years or more than 12 months
+    if (timeRangeInfo.yearsDiff >= 1 || timeRangeInfo.monthsDiff >= 12) {
+      availableOptions.push({ value: 'yearly' as Cadence, label: 'Yearly' });
+    }
+
+    // Fallback to monthly if no options are available
+    if (availableOptions.length === 0) {
+      availableOptions.push({ value: 'monthly' as Cadence, label: 'Monthly' });
+    }
+
+    return availableOptions;
+  }, [timeRangeInfo]);
 
   const selectedOption = options.find(opt => opt.value === value) || options[0];
 
-  // Auto-switch away from 'days' if selection becomes too long
+  // Auto-switch to available option if current selection is not available
   useEffect(() => {
-    if (value === 'days' && !isSelectionShort) {
-      onChange('monthly'); // Switch to monthly when days is no longer available
+    const currentValueAvailable = options.some(opt => opt.value === value);
+    if (!currentValueAvailable && options.length > 0) {
+      // Switch to the first available option
+      onChange(options[0].value);
     }
-  }, [value, isSelectionShort, onChange]);
+  }, [value, options, onChange]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
