@@ -1,15 +1,49 @@
 import React from 'react';
 
-// Arrow icons for insights
+// Arrow icons for insights (black trend arrows, not chevrons)
 const ArrowUpIcon = () => (
-  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-    <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L10 4.414 4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+  <svg
+    className="w-4 h-4"
+    viewBox="0 0 20 20"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.5}
+  >
+    {/* Vertical stem */}
+    <path
+      d="M10 15V5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    {/* Arrow head */}
+    <path
+      d="M5.5 9.5L10 5l4.5 4.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
 const ArrowDownIcon = () => (
-  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-    <path fillRule="evenodd" d="M16.707 10.293a1 1 0 010 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 111.414-1.414L10 15.586l5.293-5.293a1 1 0 011.414 0z" clipRule="evenodd" />
+  <svg
+    className="w-4 h-4"
+    viewBox="0 0 20 20"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.5}
+  >
+    {/* Vertical stem */}
+    <path
+      d="M10 5v10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    {/* Arrow head */}
+    <path
+      d="M5.5 10.5L10 15l4.5-4.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
@@ -24,7 +58,6 @@ export interface ScorecardProps {
   netCashflow: string;
   moneyIn: string;
   moneyOut: string;
-  lastUpdated: string;
   insights: Insight[];
 }
 
@@ -32,32 +65,41 @@ const Scorecard: React.FC<ScorecardProps> = ({
   netCashflow,
   moneyIn,
   moneyOut,
-  lastUpdated,
   insights
 }) => {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+    <div className="bg-white border border-gray-200 rounded-xl p-6">
       {/* Net Cashflow */}
       <div className="mb-6">
-        <h2 className="text-sm font-medium text-gray-600 mb-2">Net Cashflow</h2>
-        <div className="text-4xl font-bold text-gray-900">{netCashflow}</div>
+        <h2 className="text-sm font-medium text-gray-600 mb-1">Net Cashflow</h2>
+        <div
+          className="text-4xl font-bold text-gray-900"
+          style={{ letterSpacing: '-0.01em' }}
+        >
+          {netCashflow}
+        </div>
       </div>
 
       {/* Money In and Money Out */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-        <div>
+      <div className="flex gap-6 mb-6 pb-6 border-b border-gray-100">
+        <div className="w-1/2">
           <h3 className="text-sm font-medium text-gray-600 mb-1">Money in</h3>
-          <div className="text-2xl font-semibold text-gray-900">{moneyIn}</div>
+          <div
+            className="text-2xl font-semibold text-gray-900"
+            style={{ letterSpacing: '-0.01em' }}
+          >
+            {moneyIn}
+          </div>
         </div>
-        <div>
+        <div className="w-1/2">
           <h3 className="text-sm font-medium text-gray-600 mb-1">Money out</h3>
-          <div className="text-2xl font-semibold text-gray-900">{moneyOut}</div>
+          <div
+            className="text-2xl font-semibold text-gray-900"
+            style={{ letterSpacing: '-0.01em' }}
+          >
+            {moneyOut}
+          </div>
         </div>
-      </div>
-
-      {/* Last Updated */}
-      <div className="mb-6 pb-6 border-b border-gray-100">
-        <p className="text-sm text-gray-500">{lastUpdated}</p>
       </div>
 
       {/* Insights */}
@@ -65,18 +107,18 @@ const Scorecard: React.FC<ScorecardProps> = ({
         {insights.map((insight) => (
           <div key={insight.id} className="flex items-start gap-3">
             {/* Arrow Icon */}
-            <div className={`flex-shrink-0 mt-0.5 ${
-              insight.type === 'positive' 
-                ? 'text-green-600' 
-                : 'text-red-600'
-            }`}>
+            <div
+              className="flex-shrink-0 mt-[2px] text-gray-900"
+            >
               {insight.type === 'positive' ? <ArrowUpIcon /> : <ArrowDownIcon />}
             </div>
             
             {/* Insight Content */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-900 leading-relaxed">
-                <span className="font-semibold">{insight.title}:</span>{' '}
+              <p className="text-sm font-semibold text-gray-900 leading-snug">
+                {insight.title}
+              </p>
+              <p className="mt-1 text-sm text-gray-500 leading-relaxed">
                 {insight.description}
               </p>
             </div>

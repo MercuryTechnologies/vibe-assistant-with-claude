@@ -22,6 +22,15 @@ interface CashFlowBarChartProps {
   selectionEnd?: Date;
   gradientSettingsMoneyOut?: GradientSettings;
   gradientSettingsMoneyIn?: GradientSettingsMoneyIn;
+  categoryLabel?: string; // Label for the category type (e.g., "Month", "Account", "To/From", "Method")
+}
+
+interface TooltipData {
+  x: number;
+  y: number;
+  category: string;
+  moneyIn: number;
+  moneyOut: number;
 }
 
 // Sample data matching the design
@@ -46,13 +55,15 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
   selectionStart,
   selectionEnd,
   gradientSettingsMoneyOut,
-  gradientSettingsMoneyIn
+  gradientSettingsMoneyIn,
+  categoryLabel = 'Month'
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const gradientContainerMoneyOutRef = useRef<HTMLDivElement>(null);
   const gradientContainerMoneyInRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
+  const [tooltip, setTooltip] = useState<TooltipData | null>(null);
 
   // Handle responsive sizing
   const updateDimensions = useCallback(() => {
@@ -104,24 +115,22 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
       .domain([-scaledMaxValue, scaledMaxValue])
       .range([chartHeight, 0]);
 
+    // Determine Y-axis ticks dynamically so they always span full chart height
+    const tickCount = 6;
+    const customTicks = d3.ticks(-scaledMaxValue, scaledMaxValue, tickCount);
+    const zeroLineY = yScale(0);
+    const tickPositions = customTicks.map(tick => yScale(tick));
+
     // Create dot grid background
     const dotSpacing = 20; // 20px spacing between dots
     const dotRadius = 1; // Reduced to 1px radius (2px diameter)
-    
-    // Get Y-axis tick positions for darker dots
-    const yAxisTicks = [-15000, -10000, -5000, 0, 5000, 10000, 15000]; // Use same custom ticks
     
     // Create dots across the entire chart area
     for (let x = 0; x <= chartWidth; x += dotSpacing) {
       for (let y = 0; y <= chartHeight; y += dotSpacing) {
         // Check if this row aligns with a Y-axis tick
-        const yValue = yScale.invert(y);
-        // Use a more precise tolerance based on pixel positioning
-        const isYAxisRow = yAxisTicks.some(tick => {
-          const tickY = yScale(tick);
-          return Math.abs(y - tickY) < dotSpacing / 2; // Within half a dot spacing
-        });
-        const isZeroLine = Math.abs(yValue) < scaledMaxValue * 0.02; // Check if this is the zero line
+        const isYAxisRow = tickPositions.some(tickY => Math.abs(y - tickY) < dotSpacing / 2);
+        const isZeroLine = Math.abs(y - zeroLineY) < dotSpacing / 2; // Check if this is the zero line
         
         chart.append('circle')
           .attr('cx', x)
@@ -132,8 +141,7 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
       }
     }
 
-    // Y-axis with labels (custom tick values including 15k increments)
-    const customTicks = [-15000, -10000, -5000, 0, 5000, 10000, 15000];
+    // Y-axis with labels using the same dynamic tick values
     const yAxisLabels = d3.axisLeft(yScale)
       .tickFormat(d => {
         const val = d as number;
@@ -253,6 +261,42 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
       }
     });
 
+    // Create invisible hover rectangles for tooltip interaction
+    data.forEach(d => {
+      const x = xScale(d.month)!;
+      const barWidth = xScale.bandwidth();
+      
+      // Calculate the full height of the bar pair (from top of money in to bottom of money out)
+      const topY = d.moneyIn > 0 ? yScale(d.moneyIn) : yScale(0);
+      const bottomY = d.moneyOut < 0 ? yScale(d.moneyOut) : yScale(0);
+      const fullHeight = bottomY - topY;
+      
+      chart.append('rect')
+        .attr('class', 'hover-rect')
+        .attr('x', x)
+        .attr('y', topY)
+        .attr('width', barWidth)
+        .attr('height', fullHeight)
+        .style('fill', 'transparent')
+        .style('cursor', 'pointer')
+        .on('mouseenter', function(event: MouseEvent) {
+          const rect = (event.currentTarget as SVGRectElement).getBoundingClientRect();
+          const containerRect = containerRef.current?.getBoundingClientRect();
+          if (containerRect) {
+            setTooltip({
+              x: rect.left - containerRect.left + barWidth / 2,
+              y: topY + margin.top - 10,
+              category: d.month,
+              moneyIn: d.moneyIn,
+              moneyOut: d.moneyOut
+            });
+          }
+        })
+        .on('mouseleave', function() {
+          setTooltip(null);
+        });
+    });
+
     // Add zero line with reduced opacity
     chart.append('line')
       .attr('x1', 0)
@@ -362,7 +406,7 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
       });
     }
 
-  }, [data, dimensions, gradientSettingsMoneyOut, gradientSettingsMoneyIn]);
+  }, [data, dimensions, gradientSettingsMoneyOut, gradientSettingsMoneyIn, categoryLabel]);
 
   return (
     <div className="bg-white" ref={containerRef}>
@@ -421,6 +465,56 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
             pointerEvents: 'none'
           }} 
         />
+        {/* Tooltip */}
+        {tooltip && (
+          <div
+            className="absolute z-50 pointer-events-none"
+            style={{
+              left: tooltip.x,
+              top: tooltip.y,
+              transform: 'translate(-50%, -100%)'
+            }}
+          >
+            <div className="bg-gray-900 text-white rounded-lg shadow-lg px-3 py-2 text-sm whitespace-nowrap">
+              <div className="font-medium text-gray-300 mb-1.5 text-xs uppercase tracking-wide">
+                {categoryLabel}: {tooltip.category}
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-2 h-2 rounded-sm flex-shrink-0" 
+                    style={{ backgroundColor: gradientSettingsMoneyIn?.topGradientColor || '#b6a8ff' }}
+                  />
+                  <span className="text-gray-400">Money In:</span>
+                  <span className="font-medium text-green-400">
+                    ${Math.abs(tooltip.moneyIn).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-2 h-2 rounded-sm flex-shrink-0" 
+                    style={{ backgroundColor: gradientSettingsMoneyOut?.baseColor || '#1e1b4b' }}
+                  />
+                  <span className="text-gray-400">Money Out:</span>
+                  <span className="font-medium text-red-400">
+                    –${Math.abs(tooltip.moneyOut).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+              {/* Tooltip arrow */}
+              <div 
+                className="absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-full"
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderLeft: '6px solid transparent',
+                  borderRight: '6px solid transparent',
+                  borderTop: '6px solid #111827'
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

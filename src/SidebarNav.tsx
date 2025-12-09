@@ -60,7 +60,7 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
   };
 
   return (
-    <aside className="w-60 min-w-60 max-w-60 bg-[#FAFAFB] border-r border-[#ECEEF0] flex flex-col">
+    <aside className="w-60 min-w-60 max-w-60 bg-[#FAFAFB] border-r border-[#ECEEF0] flex flex-col fixed top-0 left-0 h-screen overflow-y-auto">
       {/* Org switcher */}
       <div className="px-3 py-4">
         <div className="flex items-center justify-between">

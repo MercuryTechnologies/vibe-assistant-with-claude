@@ -13,6 +13,7 @@ import DualGradientPlayground from './DualGradientPlayground';
 import { type GradientSettings, type GradientSettingsMoneyIn } from './GradientPlayground';
 import { useTimeRangeStore } from './store';
 import { generateSampleData, aggregateByCadence } from './utils';
+import TransactionsPage from './TransactionsPage';
 
 function startOfMonth(d: Date): Date {
   const n = new Date(d);
@@ -477,11 +478,17 @@ function App() {
       type: 'negative',
       title: 'Increased Credit spend',
       description: 'Credit card spend saw an increase of 8% from $3,490 in August to $3,798 in September.'
+    },
+    {
+      id: '3',
+      type: 'positive',
+      title: '12% revenue growth',
+      description: 'From August to September revenue increased from $12,459 to $12,950.'
     }
   ], []);
 
   return (
-    <div className="min-h-screen bg-white flex">
+    <div className="min-h-screen bg-white">
       {/* Sidebar */}
       <SidebarNav
         orgName="Maker Inc."
@@ -493,7 +500,7 @@ function App() {
       />
       
       {/* Main content */}
-      <div className="flex-1">
+      <div className="ml-60">
         {/* Global Navigation */}
         <GlobalNav 
           initials="EH"
@@ -501,11 +508,16 @@ function App() {
           onNotificationsClick={() => console.log('Notifications clicked')}
         />
         
+        {/* Render page based on activePath */}
+        {activePath === '/transactions' ? (
+          <TransactionsPage />
+        ) : (
+        <>
         <div className="px-6 py-6">
           <h1 className="text-3xl font-semibold text-gray-900 mb-4">Insights</h1>
           <div className="flex items-center justify-between mb-0">
             <FinancialSegmentedControl />
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <PeriodDropdown value={timePeriod} onChange={handleTimePeriodChange} referenceDate={referenceDate} customDateRange={customDateRange} />
               <ComparisonDropdown 
                 value={comparisonMode} 
@@ -513,6 +525,30 @@ function App() {
                 forceOpen={forceOpenComparison}
                 onOpenChange={handleComparisonOpenChange}
               />
+              <button
+                type="button"
+                className="ml-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                aria-label="Settings"
+              >
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    d="M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M4.75 10a5.25 5.25 0 0 1 .07-.86l-1.44-1.1a.75.75 0 0 1-.18-1.02l1.5-2.6a.75.75 0 0 1 .96-.32l1.7.68a5.3 5.3 0 0 1 1.5-.86l.26-1.8A.75.75 0 0 1 9.97 1h3.06a.75.75 0 0 1 .74.62l.27 1.8c.54.2 1.04.49 1.5.86l1.7-.68a.75.75 0 0 1 .96.32l1.5 2.6a.75.75 0 0 1-.18 1.02l-1.44 1.1c.05.28.08.57.08.86 0 .29-.03.58-.08.86l1.44 1.1a.75.75 0 0 1 .18 1.02l-1.5 2.6a.75.75 0 0 1-.96.32l-1.7-.68a5.3 5.3 0 0 1-1.5.86l-.27 1.8a.75.75 0 0 1-.74.62H9.97a.75.75 0 0 1-.74-.62l-.26-1.8a5.3 5.3 0 0 1-1.5-.86l-1.7.68a.75.75 0 0 1-.96-.32l-1.5-2.6a.75.75 0 0 1 .18-1.02l1.44-1.1A5.3 5.3 0 0 1 4.75 10Z"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -626,7 +662,6 @@ function App() {
                 netCashflow="$132,403.08"
                 moneyIn="$12,500"
                 moneyOut="–$5,892"
-                lastUpdated="Updated Sept 19 • 3:27PM"
                 insights={sampleInsights}
               />
             </div>
@@ -665,6 +700,7 @@ function App() {
                   selectionEnd={valueEnd}
                   gradientSettingsMoneyOut={gradientSettingsMoneyOut}
                   gradientSettingsMoneyIn={gradientSettingsMoneyIn}
+                  categoryLabel={cadence === 'days' ? 'Day' : cadence === 'monthly' ? 'Month' : cadence === 'quarterly' ? 'Quarter' : 'Year'}
                 />
               )}
             </div>
@@ -684,6 +720,8 @@ function App() {
             />
           </div>
         </div>
+        </>
+        )}
       </div>
     </div>
   );
