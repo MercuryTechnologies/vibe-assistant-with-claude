@@ -101,14 +101,17 @@ export const borderRadius = {
   full: '9999px',
 } as const;
 
-// Avatar color palette for To/From icons
+// Avatar color palette for To/From icons (based on Figma DSAvatar component)
+// Default uses a sage/mint green background matching the Figma design
 export const avatarColors: Record<string, { bg: string; text: string }> = {
-  M: { bg: '#E5E7EB', text: '#374151' },
-  P: { bg: '#DBEAFE', text: '#1D4ED8' },
-  LE: { bg: '#FEF3C7', text: '#D97706' },
-  D7: { bg: '#DBEAFE', text: '#1D4ED8' },
-  OS: { bg: '#D1FAE5', text: '#059669' },
-  TJ: { bg: '#FEE2E2', text: '#DC2626' },
-  MB: { bg: '#E0E7FF', text: '#4338CA' },
-  default: { bg: '#F3F4F6', text: '#6B7280' },
+  // Sage/mint variants (primary palette from Figma)
+  M: { bg: '#DBE5E0', text: '#374151' },
+  P: { bg: '#D4E4ED', text: '#1E3A5F' },
+  LE: { bg: '#E8E4D9', text: '#5C4A1F' },
+  D7: { bg: '#D4E4ED', text: '#1E3A5F' },
+  OS: { bg: '#D1E5DC', text: '#1F5C3D' },
+  TJ: { bg: '#EBDCDC', text: '#8B3A3A' },
+  MB: { bg: '#DFE0EB', text: '#3D3F6B' },
+  // Default: light sage/mint background (matching Figma Trx › 0 style)
+  default: { bg: '#DBE5E0', text: '#374151' },
 };

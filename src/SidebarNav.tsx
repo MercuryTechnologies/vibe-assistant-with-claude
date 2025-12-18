@@ -24,25 +24,25 @@ interface SidebarNavProps {
   onNavigate: (href: string) => void;
 }
 
-// Default Font Awesome icon classes (using available outline/regular icons)
+// Font Awesome 6 icon classes mapped to item IDs
 const getIconClass = (itemId: string): string => {
   const iconMap: Record<string, string> = {
-    'home': 'far fa-home',
-    'tasks': 'fas fa-list-check', // tasks icon doesn't exist in regular
-    'transactions': 'fas fa-exchange-alt', // exchange-alt doesn't exist in regular
-    'insights': 'fas fa-chart-line', // chart-line doesn't exist in regular
-    'payments': 'far fa-credit-card',
-    'cards': 'far fa-credit-card',
-    'capital': 'fas fa-dollar-sign', // coins doesn't exist in regular
-    'accounts': 'far fa-building',
-    'bill-pay': 'far fa-file-alt', // file-invoice-dollar doesn't exist in regular
-    'invoicing': 'far fa-file-alt', // file-invoice doesn't exist in regular
-    'reimbursements': 'far fa-file-alt', // receipt doesn't exist in regular
-    'accounting': 'fas fa-calculator', // calculator doesn't exist in regular
-    'transfers': 'fas fa-arrow-right', // arrow-right doesn't exist in regular
-    'wires': 'fas fa-network-wired', // network-wired doesn't exist in regular
+    'home': 'fa-solid fa-house',
+    'tasks': 'fa-solid fa-inbox',
+    'transactions': 'fa-solid fa-list',
+    'insights': 'fa-solid fa-chart-column',
+    'payments': 'fa-solid fa-arrow-right-arrow-left',
+    'cards': 'fa-solid fa-credit-card',
+    'capital': 'fa-solid fa-chart-line',
+    'accounts': 'fa-solid fa-building-columns',
+    'bill-pay': 'fa-solid fa-envelope-open-text',
+    'invoicing': 'fa-solid fa-file-invoice-dollar',
+    'reimbursements': 'fa-solid fa-money-bill-transfer',
+    'accounting': 'fa-solid fa-book-open',
+    'transfers': 'fa-solid fa-arrow-right',
+    'wires': 'fa-solid fa-globe',
   };
-  return iconMap[itemId] || 'far fa-circle';
+  return iconMap[itemId] || 'fa-solid fa-circle';
 };
 
 const SidebarNav: React.FC<SidebarNavProps> = ({
@@ -60,186 +60,157 @@ const SidebarNav: React.FC<SidebarNavProps> = ({
   };
 
   return (
-    <aside className="w-60 min-w-60 max-w-60 bg-[#FAFAFB] border-r border-[#ECEEF0] flex flex-col fixed top-0 left-0 h-screen overflow-y-auto">
+    <aside className="w-[216px] min-w-[216px] max-w-[216px] bg-[#f9f9fb] border-r border-[rgba(112,115,147,0.1)] flex flex-col fixed top-0 left-0 h-screen overflow-y-auto">
       {/* Org switcher */}
-      <div className="px-3 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {/* Avatar */}
-            <div className="w-6 h-6 rounded-full bg-white border border-[#ECEEF0] flex items-center justify-center overflow-hidden">
-              <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                <i className="fas fa-building text-gray-400 text-xs"></i>
+      <div className="py-3 border-b border-[rgba(112,115,147,0.1)]">
+        <div className="px-3">
+          <div className="flex items-center justify-between pl-1 pr-2 py-1 rounded-lg">
+            <div className="flex items-center gap-2">
+              {/* Logo */}
+              <div className="w-8 h-8 rounded bg-white border border-[rgba(112,115,147,0.06)] flex items-center justify-center p-1.5">
+                <svg viewBox="0 0 24 24" fill="none" className="w-full h-full">
+                  <circle cx="12" cy="12" r="10" stroke="#71718e" strokeWidth="1.5" fill="none"/>
+                  <path d="M12 6v6l4 2" stroke="#71718e" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
               </div>
+              
+              {/* Org name */}
+              <span className="text-[15px] leading-6 text-[#41415a] font-normal">{orgName}</span>
             </div>
             
-            {/* Org name */}
-            <span className="text-sm font-medium text-[#2B2E33]">{orgName}</span>
+            {/* Up/down chevron */}
+            <div className="w-5 h-5 flex items-center justify-center text-[#70707d]">
+              <i className="fa-solid fa-sort text-[11px]"></i>
+            </div>
           </div>
-          
-          {/* Dropdown chevron */}
-          <button
-            className="w-7 h-7 flex items-center justify-center text-[#7A7F87] hover:text-[#2B2E33] hover:bg-[#F2F3F7] rounded transition-colors"
-            aria-label="Switch organization"
-          >
-            <i className="fas fa-chevron-down text-xs"></i>
-          </button>
         </div>
       </div>
 
       {/* Navigation sections */}
-      <nav className="flex-1 px-3 pb-4">
+      <nav className="flex-1 pt-6">
         {sections.map((section, sectionIndex) => (
-          <div key={section.id} className={sectionIndex > 0 ? 'mt-4' : ''}>
+          <div key={section.id} className={`flex flex-col gap-1 ${sectionIndex > 0 ? 'mt-6' : ''}`}>
             {/* Section header */}
             {section.label && (
-              <h3 className="text-[13px] font-medium text-[#7A7F87] tracking-[0.2px] mb-2 mt-4 first:mt-0">
-                {section.label}
-              </h3>
+              <div className="px-5 py-2">
+                <span className="text-[13px] leading-5 text-[#70707d] tracking-[0.1px]">
+                  {section.label}
+                </span>
+              </div>
             )}
             
             {/* Section items */}
-            <div className="space-y-1">
-              {section.items.map((item) => {
-                const isActive = item.href === activePath;
-                const hasActiveChild = isChildActive(item);
-                const isCollapsed = collapsedIds.includes(item.id);
-                const isGroup = item.items && item.items.length > 0;
-                
-                // Determine colors based on state
-                const getItemColors = () => {
-                  if (isActive) {
-                    return {
-                      text: 'text-[#695CF6] font-medium',
-                      icon: 'text-[#695CF6]',
-                      bg: 'bg-[#EEF0FF]',
-                    };
-                  }
-                  
-                  if (hasActiveChild) {
-                    return {
-                      text: 'text-[#695CF6] font-medium',
-                      icon: 'text-[#695CF6]',
-                      bg: 'bg-transparent',
-                    };
-                  }
-                  
-                  return {
-                    text: 'text-[#2B2E33] hover:text-[#2B2E33]',
-                    icon: 'text-[#7A7F87] hover:text-[#2B2E33]',
-                    bg: 'bg-transparent hover:bg-[#F2F3F7]',
-                  };
-                };
-
-                const colors = getItemColors();
-
-                return (
-                  <div key={item.id}>
+            {section.items.map((item) => {
+              const isActive = item.href === activePath;
+              const hasActiveChild = isChildActive(item);
+              const isCollapsed = collapsedIds.includes(item.id);
+              const isGroup = item.items && item.items.length > 0;
+              
+              return (
+                <div key={item.id} className="px-3">
+                  {isGroup ? (
+                    // Expandable group item
                     <button
-                      onClick={() => {
-                        if (isGroup) {
-                          onToggleGroup(item.id);
-                        } else if (item.href) {
-                          onNavigate(item.href);
-                        }
-                      }}
+                      onClick={() => onToggleGroup(item.id)}
                       className={`
-                        w-full flex items-center justify-between h-10 px-[10px] pr-[10px] 
-                        rounded transition-all duration-150 text-sm font-medium
-                        ${colors.bg} ${colors.text}
-                        cursor-pointer
+                        w-full flex items-center justify-between rounded-lg cursor-pointer
+                        ${hasActiveChild ? 'bg-[#f2f2f7]' : 'hover:bg-[#f2f2f7]'}
                       `}
-                      aria-expanded={isGroup ? !isCollapsed : undefined}
-                      aria-haspopup={isGroup ? 'true' : undefined}
-                      role={isGroup ? 'button' : 'menuitem'}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 pl-2 pr-1 py-1.5">
                         {/* Icon */}
-                        <div className={`w-[18px] h-[18px] flex items-center justify-center ${colors.icon} transition-colors duration-150`}>
-                          <i className={item.icon || getIconClass(item.id)}></i>
+                        <div className={`w-6 h-6 flex items-center justify-center ${hasActiveChild ? 'text-[#4d68eb]' : 'text-[#71718e]'}`}>
+                          <i className={`${item.icon || getIconClass(item.id)} text-[13px]`}></i>
                         </div>
                         
                         {/* Label */}
-                        <span>{item.label}</span>
+                        <span className={`text-[15px] leading-6 ${hasActiveChild ? 'text-[#1f1f30] font-demi' : 'text-[#41415a]'}`}>
+                          {item.label}
+                        </span>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        {/* Badge */}
-                        {item.badgeCount && (
-                          <div className="bg-[#EEF0FF] text-[#695CF6] text-xs font-medium px-2 py-1 rounded min-w-[20px] h-[20px] flex items-center justify-center">
-                            {item.badgeCount}
-                          </div>
-                        )}
-                        
-                        {/* Chevron for groups */}
-                        {isGroup && (
-                          <div className={`w-4 h-4 flex items-center justify-center transition-transform duration-150 ${colors.icon} ${!isCollapsed ? 'rotate-90' : ''}`}>
-                            <i className="fas fa-chevron-right text-xs"></i>
-                          </div>
-                        )}
+                      {/* Chevron */}
+                      <div className="w-9 h-full flex items-center justify-center text-[#71718e]">
+                        <i className={`fa-solid ${isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'} text-[13px]`}></i>
                       </div>
                     </button>
-
-                    {/* Collapsible children */}
-                    {isGroup && (
-                      <div
-                        className={`overflow-hidden transition-all duration-200 ${
-                          isCollapsed ? 'h-0 opacity-0' : 'h-auto opacity-100'
-                        }`}
-                        aria-hidden={isCollapsed}
-                      >
-                        <div className="mt-1 space-y-1">
-                          {item.items?.map((childItem) => {
-                            const childIsActive = childItem.href === activePath;
-                            
-                            // Child item colors
-                            const childColors = childIsActive ? {
-                              text: 'text-[#695CF6] font-medium',
-                              icon: 'text-[#695CF6]',
-                              bg: 'bg-[#EEF0FF]',
-                            } : {
-                              text: 'text-[#2B2E33] hover:text-[#2B2E33]',
-                              icon: 'text-[#7A7F87] hover:text-[#2B2E33]',
-                              bg: 'bg-transparent hover:bg-[#F2F3F7]',
-                            };
-
-                            return (
-                              <button
-                                key={childItem.id}
-                                onClick={() => childItem.href && onNavigate(childItem.href)}
-                                className={`
-                                  w-full flex items-center justify-between h-10 pl-[28px] pr-[10px] 
-                                  rounded transition-all duration-150 text-sm font-medium
-                                  ${childColors.bg} ${childColors.text}
-                                  cursor-pointer
-                                `}
-                                role="menuitem"
-                              >
-                                <div className="flex items-center gap-3">
-                                  {/* Icon */}
-                                  <div className={`w-[18px] h-[18px] flex items-center justify-center ${childColors.icon} transition-colors duration-150`}>
-                                    <i className={childItem.icon || getIconClass(childItem.id)}></i>
-                                  </div>
-                                  
-                                  {/* Label */}
-                                  <span>{childItem.label}</span>
-                                </div>
-
-                                {/* Badge */}
-                                {childItem.badgeCount && (
-                                  <div className="bg-[#EEF0FF] text-[#695CF6] text-xs font-medium px-2 py-1 rounded min-w-[20px] h-[20px] flex items-center justify-center">
-                                    {childItem.badgeCount}
-                                  </div>
-                                )}
-                              </button>
-                            );
-                          })}
+                  ) : (
+                    // Regular nav item
+                    <button
+                      onClick={() => item.href && onNavigate(item.href)}
+                      className={`
+                        w-full flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer
+                        ${isActive ? 'bg-[#f2f2f7]' : 'hover:bg-[#f2f2f7]'}
+                      `}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Icon */}
+                        <div className={`w-6 h-6 flex items-center justify-center ${isActive ? 'text-[#4d68eb]' : 'text-[#71718e]'}`}>
+                          <i className={`${item.icon || getIconClass(item.id)} text-[13px]`}></i>
                         </div>
+                        
+                        {/* Label */}
+                        <span className={`text-[15px] leading-6 ${isActive ? 'text-[#1f1f30] font-demi' : 'text-[#41415a]'}`}>
+                          {item.label}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+
+                      {/* Badge */}
+                      {item.badgeCount !== undefined && (
+                        <div className="bg-[#e8e8ee] text-[#41415a] text-[12px] leading-5 px-1.5 min-w-[20px] h-5 flex items-center justify-center rounded">
+                          {item.badgeCount}
+                        </div>
+                      )}
+                    </button>
+                  )}
+
+                  {/* Collapsible children for groups */}
+                  {isGroup && (
+                    <div
+                      className={`overflow-hidden transition-all duration-200 ${
+                        isCollapsed ? 'max-h-0 opacity-0' : 'max-h-96 opacity-100'
+                      }`}
+                    >
+                      <div className="mt-1">
+                        {item.items?.map((childItem) => {
+                          const childIsActive = childItem.href === activePath;
+                          
+                          return (
+                            <button
+                              key={childItem.id}
+                              onClick={() => childItem.href && onNavigate(childItem.href)}
+                              className={`
+                                w-full flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer
+                                ${childIsActive ? 'bg-[#f2f2f7]' : 'hover:bg-[#f2f2f7]'}
+                              `}
+                            >
+                              <div className="flex items-center gap-3">
+                                {/* Icon */}
+                                <div className={`w-6 h-6 flex items-center justify-center ${childIsActive ? 'text-[#4d68eb]' : 'text-[#71718e]'}`}>
+                                  <i className={`${childItem.icon || getIconClass(childItem.id)} text-[13px]`}></i>
+                                </div>
+                                
+                                {/* Label */}
+                                <span className={`text-[15px] leading-6 ${childIsActive ? 'text-[#1f1f30] font-demi' : 'text-[#41415a]'}`}>
+                                  {childItem.label}
+                                </span>
+                              </div>
+
+                              {/* Badge */}
+                              {childItem.badgeCount !== undefined && (
+                                <div className="bg-[#e8e8ee] text-[#41415a] text-[12px] leading-5 px-1.5 min-w-[20px] h-5 flex items-center justify-center rounded">
+                                  {childItem.badgeCount}
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ))}
       </nav>

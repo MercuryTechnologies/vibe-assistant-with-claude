@@ -98,13 +98,14 @@ const Dropdown: React.FC<DropdownProps> = ({ value, onChange, className = '', se
     <div ref={dropdownRef} className={`relative ${className}`}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between px-2 py-1 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[110px]"
+        className="flex items-center justify-between h-8 pl-2 pr-3 bg-white border border-[rgba(112,115,147,0.16)] rounded-lg text-[15px] leading-6 text-[#363644] hover:bg-[rgba(112,115,147,0.06)] focus:outline-none focus:ring-2 focus:ring-[rgba(82,102,235,0.5)] min-w-[110px] transition-colors"
+        style={{ fontFamily: "'Arcadia Text', sans-serif" }}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
         <span>{selectedOption.label}</span>
         <svg
-          className={`ml-1 h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`ml-2 h-4 w-4 transition-transform text-[#70707d] ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -114,14 +115,20 @@ const Dropdown: React.FC<DropdownProps> = ({ value, onChange, className = '', se
       </button>
 
       {isOpen && (
-        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded shadow-lg">
+        <div 
+          className="absolute z-50 mt-1 w-full bg-white rounded-lg p-1"
+          style={{
+            boxShadow: '0px 14px 20px 0px rgba(4, 4, 52, 0.02), 0px 8px 12px 0px rgba(14, 14, 45, 0.08), 0px 0px 1px 0px rgba(175, 178, 206, 0.9), 0px 1px 4px 0px rgba(183, 187, 219, 0.14)',
+          }}
+        >
           {options.map((option) => (
             <button
               key={option.value}
               onClick={() => handleSelect(option.value)}
-              className={`w-full px-2 py-1 text-left text-sm hover:bg-gray-100 first:rounded-t last:rounded-b ${
-                option.value === value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+              className={`w-full pl-2 pr-3 py-2 text-left text-[15px] leading-6 rounded hover:bg-[rgba(112,115,147,0.06)] transition-colors ${
+                option.value === value ? 'bg-[rgba(112,115,147,0.06)] text-[#363644]' : 'text-[#363644]'
               }`}
+              style={{ fontFamily: "'Arcadia Text', sans-serif" }}
               role="option"
               aria-selected={option.value === value}
             >

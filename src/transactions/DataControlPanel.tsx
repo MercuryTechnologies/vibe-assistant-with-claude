@@ -68,20 +68,36 @@ const categories = [
   'Travel & Transportation',
 ];
 
-// Generate dates spanning the last 30 days for better scatter plot visualization
+// Reference date for data generation - use current date
+const getReferenceDate = (): Date => new Date();
+
+// Generate dates spanning 24 months back from current date
 const generateDateRange = (): string[] => {
   const dates: string[] = [];
-  const today = new Date();
+  const endDate = getReferenceDate();
+  const startDate = new Date(endDate);
+  startDate.setMonth(startDate.getMonth() - 24); // Go back 24 months
+  startDate.setDate(1); // Start from beginning of that month
   
-  for (let i = 30; i >= 0; i--) {
-    const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
-    dates.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+  // Generate one date per day for the entire range
+  const currentDate = new Date(startDate);
+  while (currentDate <= endDate) {
+    // Store as ISO date string (YYYY-MM-DD)
+    dates.push(currentDate.toISOString().split('T')[0]);
+    currentDate.setDate(currentDate.getDate() + 1);
   }
   
   return dates;
 };
 
-const dates = generateDateRange();
+// Regenerate dates on each call to ensure freshness
+const getAllDates = (): string[] => generateDateRange();
+
+// Helper to format ISO date for display
+export const formatDateForDisplay = (isoDate: string): string => {
+  const date = new Date(isoDate);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
 
 export interface DataControlSettings {
   transactionCount: number;
@@ -100,27 +116,29 @@ export interface DataControlSettings {
 }
 
 const defaultSettings: DataControlSettings = {
-  transactionCount: 50,
+  transactionCount: 800, // Plenty of data for 24 months - about 1 transaction per day
   minAmount: 1,
   maxAmount: 60000,
   includeNegative: true,
   negativeRatio: 40,
-  merchantVariety: 10,
-  accountVariety: 3,
-  methodVariety: 6,
+  merchantVariety: 15,
+  accountVariety: 4,
+  methodVariety: 8,
   includeCategories: true,
-  categoryRatio: 30,
+  categoryRatio: 40,
   autoAppliedRatio: 60,
   includeFailed: true,
-  failedRatio: 5,
+  failedRatio: 3,
 };
 
-// Maximum transactions per day
-const MAX_TRANSACTIONS_PER_DAY = 2;
+// Maximum transactions per day (increased for longer date range)
+const MAX_TRANSACTIONS_PER_DAY = 5;
 
 // Generate random transactions based on settings
+// Dates are in ISO format (YYYY-MM-DD) spanning 24 months back from current date
 export const generateTransactions = (settings: DataControlSettings): Transaction[] => {
   const transactions: Transaction[] = [];
+  const allDates = getAllDates(); // Get fresh date range based on current date
   
   // Select merchants based on variety setting
   const selectedMerchants = merchants.slice(0, Math.min(settings.merchantVariety, merchants.length));
@@ -129,11 +147,11 @@ export const generateTransactions = (settings: DataControlSettings): Transaction
   
   // Track transactions per date to limit to MAX_TRANSACTIONS_PER_DAY
   const dateCount: Record<string, number> = {};
-  dates.forEach(d => { dateCount[d] = 0; });
+  allDates.forEach(d => { dateCount[d] = 0; });
   
   // Get available dates (those with fewer than MAX_TRANSACTIONS_PER_DAY)
   const getAvailableDates = (): string[] => {
-    return dates.filter(d => dateCount[d] < MAX_TRANSACTIONS_PER_DAY);
+    return allDates.filter(d => dateCount[d] < MAX_TRANSACTIONS_PER_DAY);
   };
   
   for (let i = 0; i < settings.transactionCount; i++) {
@@ -143,15 +161,13 @@ export const generateTransactions = (settings: DataControlSettings): Transaction
     
     // Pick a date from available dates (those with < MAX_TRANSACTIONS_PER_DAY)
     const availableDates = getAvailableDates();
+    let date: string;
     if (availableDates.length === 0) {
-      // All dates are full, skip remaining transactions or expand date range
-      // For now, we'll just use a random date (exceeding the limit)
-      const date = dates[Math.floor(Math.random() * dates.length)];
-      dateCount[date]++;
+      // All dates are full, just use a random date
+      date = allDates[Math.floor(Math.random() * allDates.length)];
+    } else {
+      date = availableDates[Math.floor(Math.random() * availableDates.length)];
     }
-    const date = availableDates.length > 0 
-      ? availableDates[Math.floor(Math.random() * availableDates.length)]
-      : dates[Math.floor(Math.random() * dates.length)];
     dateCount[date]++;
     
     // Generate amount
@@ -188,8 +204,8 @@ export const generateTransactions = (settings: DataControlSettings): Transaction
     const hasAttachment = Math.random() > 0.9;
     
     transactions.push({
-      id: `gen-${i}-${Date.now()}`,
-      date,
+      id: `gen-${i}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      date, // ISO format: YYYY-MM-DD
       toFrom: merchant,
       amount,
       account,
@@ -202,15 +218,15 @@ export const generateTransactions = (settings: DataControlSettings): Transaction
   }
   
   // Sort transactions by date descending (newest first)
-  // Parse date string to actual Date object for proper sorting
-  const parseDate = (dateStr: string): Date => {
-    const currentYear = new Date().getFullYear();
-    return new Date(`${dateStr} ${currentYear}`);
-  };
-  
-  transactions.sort((a, b) => parseDate(b.date).getTime() - parseDate(a.date).getTime());
+  // ISO date strings sort correctly with string comparison
+  transactions.sort((a, b) => b.date.localeCompare(a.date));
   
   return transactions;
+};
+
+// Generate initial transactions for app startup
+export const generateInitialTransactions = (): Transaction[] => {
+  return generateTransactions(defaultSettings);
 };
 
 interface DataControlPanelProps {
@@ -218,9 +234,18 @@ interface DataControlPanelProps {
   onClose: () => void;
   onApply: (transactions: Transaction[]) => void;
   currentCount: number;
+  showGradientPlayground?: boolean;
+  onToggleGradientPlayground?: (show: boolean) => void;
 }
 
-const DataControlPanel: React.FC<DataControlPanelProps> = ({ isOpen, onClose, onApply, currentCount }) => {
+const DataControlPanel: React.FC<DataControlPanelProps> = ({ 
+  isOpen, 
+  onClose, 
+  onApply, 
+  currentCount,
+  showGradientPlayground = false,
+  onToggleGradientPlayground
+}) => {
   const [settings, setSettings] = useState<DataControlSettings>({
     ...defaultSettings,
     transactionCount: currentCount,
@@ -294,16 +319,16 @@ const DataControlPanel: React.FC<DataControlPanelProps> = ({ isOpen, onClose, on
             </div>
             <input
               type="range"
-              min="1"
-              max="100"
+              min="10"
+              max="500"
               value={settings.transactionCount}
               onChange={(e) => handleChange('transactionCount', parseInt(e.target.value))}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
             />
             <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>1</span>
-              <span>50</span>
-              <span>100</span>
+              <span>10</span>
+              <span>250</span>
+              <span>500</span>
             </div>
           </div>
 
@@ -512,6 +537,27 @@ const DataControlPanel: React.FC<DataControlPanelProps> = ({ isOpen, onClose, on
               )}
             </div>
           </div>
+
+          {/* Display Options */}
+          {onToggleGradientPlayground && (
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-gray-700 block">Display Options</label>
+              
+              {/* Gradient Playground Toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-gray-500">Show Gradient Playground</span>
+                  <p className="text-[10px] text-gray-400">Customize chart bar gradients</p>
+                </div>
+                <button
+                  onClick={() => onToggleGradientPlayground(!showGradientPlayground)}
+                  className={`w-10 h-6 rounded-full transition-colors ${showGradientPlayground ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${showGradientPlayground ? 'translate-x-5' : 'translate-x-1'}`} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Footer */}

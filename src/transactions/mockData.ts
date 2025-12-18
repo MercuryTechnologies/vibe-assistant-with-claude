@@ -2,7 +2,7 @@
 
 export interface Transaction {
   id: string;
-  date: string;
+  date: string; // ISO format: YYYY-MM-DD (e.g., "2025-01-15")
   toFrom: {
     name: string;
     initials: string;
@@ -22,10 +22,12 @@ export interface Transaction {
   status?: 'completed' | 'failed' | 'pending';
 }
 
+// Legacy sample transactions - now generated dynamically via generateInitialTransactions()
+// Keeping for reference but these are no longer used
 export const transactions: Transaction[] = [
   {
     id: '1',
-    date: 'Dec 8',
+    date: '2025-09-08',
     toFrom: { name: 'Mercury Working Capital', initials: 'M', icon: 'mercury' },
     amount: -2200.00,
     account: 'Ops / Payroll',
@@ -34,7 +36,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: '2',
-    date: 'Dec 8',
+    date: '2025-09-08',
     toFrom: { name: 'Payment from NASA', initials: 'P' },
     amount: 418.00,
     account: 'AR',
@@ -43,7 +45,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: '3',
-    date: 'Dec 8',
+    date: '2025-09-07',
     toFrom: { name: 'Payment from Acme Corp', initials: 'P' },
     amount: 200.00,
     account: 'AR',
@@ -52,7 +54,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: '4',
-    date: 'Dec 8',
+    date: '2025-09-07',
     toFrom: { name: 'To Ops / Payroll', initials: 'M', icon: 'mercury' },
     amount: -54810.16,
     account: 'AR',
@@ -61,7 +63,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: '5',
-    date: 'Dec 8',
+    date: '2025-09-06',
     toFrom: { name: 'From AR', initials: 'M', icon: 'mercury' },
     amount: 54810.16,
     account: 'Ops / Payroll',
@@ -70,7 +72,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: '6',
-    date: 'Dec 8',
+    date: '2025-09-06',
     toFrom: { name: "Lily's Eatery", initials: 'LE' },
     amount: 0.93,
     account: 'Ops / Payroll',
@@ -81,7 +83,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: '7',
-    date: 'Dec 8',
+    date: '2025-09-05',
     toFrom: { name: 'Deli 77', initials: 'D7' },
     amount: 6.91,
     account: 'Credit account',
@@ -90,7 +92,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: '8',
-    date: 'Dec 8',
+    date: '2025-09-05',
     toFrom: { name: 'Deli 77', initials: 'D7' },
     amount: 23.28,
     account: 'Ops / Payroll',
@@ -99,7 +101,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: '9',
-    date: 'Dec 8',
+    date: '2025-09-04',
     toFrom: { name: 'Office Stop Co.', initials: 'OS' },
     amount: -287.89,
     account: 'Ops / Payroll',
@@ -109,7 +111,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: '10',
-    date: 'Dec 8',
+    date: '2025-09-04',
     toFrom: { name: "Trader John's", initials: 'TJ' },
     amount: 53.49,
     account: 'Credit account',
@@ -118,7 +120,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: '11',
-    date: 'Dec 8',
+    date: '2025-09-03',
     toFrom: { name: 'Office Stop Co.', initials: 'OS' },
     amount: -662.70,
     account: 'Credit account',
@@ -127,7 +129,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: '12',
-    date: 'Dec 8',
+    date: '2025-09-03',
     toFrom: { name: 'Office Stop Co.', initials: 'OS' },
     amount: 563.94,
     account: 'Credit account',
@@ -136,7 +138,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: '13',
-    date: 'Dec 8',
+    date: '2025-09-02',
     toFrom: { name: 'The Plant Organic Cafe', initials: 'P' },
     amount: -14.21,
     account: 'Ops / Payroll',
@@ -147,7 +149,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: '14',
-    date: 'Dec 8',
+    date: '2025-09-02',
     toFrom: { name: "Trader John's", initials: 'TJ' },
     amount: -11.82,
     account: 'Ops / Payroll',
@@ -156,7 +158,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: '15',
-    date: 'Dec 8',
+    date: '2025-09-01',
     toFrom: { name: 'Milgram Brokerage', initials: 'MB' },
     amount: 2760.75,
     account: 'Ops / Payroll',
@@ -165,7 +167,7 @@ export const transactions: Transaction[] = [
   },
   {
     id: '16',
-    date: 'Dec 8',
+    date: '2025-09-01',
     toFrom: { name: 'Monarch Books', initials: 'MB' },
     amount: 49.36,
     account: 'Ops / Payroll',

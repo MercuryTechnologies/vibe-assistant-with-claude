@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Arcadia Variable Fonts */
+@font-face {
+  font-family: 'Arcadia Display';
+  src: url('./fonts/ArcadiaDisplay-Variable.woff2') format('woff2'),
+       url('./fonts/ArcadiaDisplay-Variable.woff') format('woff');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Arcadia Text';
+  src: url('./fonts/ArcadiaText-Variable.woff2') format('woff2'),
+       url('./fonts/ArcadiaText-Variable.woff') format('woff');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --bg: #ffffff;
   --line-minor: #EDEEF1;
@@ -14,16 +33,208 @@
   --orange: #EA580C;
   --overlay-outside: rgba(255,255,255,0.65);
   --radius: 0.5rem;
+
+  /* Design System Text Colors */
+  --ds-text-title: #1e1e2a;
+  --ds-text-default: #363644;
+  --ds-text-secondary: #535461;
+}
+
+/* ============================================
+   SEMANTIC TYPOGRAPHY STYLES
+   Based on Design System - Web (Figma)
+   ============================================ */
+
+/* Title Styles */
+.title-hero {
+  font-family: 'Arcadia Display', sans-serif;
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 44px;
+  letter-spacing: 0;
+  color: var(--ds-text-title);
+}
+
+.title-main {
+  font-family: 'Arcadia Display', sans-serif;
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 36px;
+  letter-spacing: 0;
+  color: var(--ds-text-title);
+}
+
+.title-secondary {
+  font-family: 'Arcadia Display', sans-serif;
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 28px;
+  letter-spacing: 0;
+  color: var(--ds-text-title);
+}
+
+.title-minor {
+  font-family: 'Arcadia Display', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 28px;
+  letter-spacing: 0;
+  color: var(--ds-text-title);
+}
+
+.title-eyebrow {
+  font-family: 'Arcadia Display', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ds-text-title);
+}
+
+/* Body Styles */
+.body-lg {
+  font-family: 'Arcadia Text', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 28px;
+  letter-spacing: 0;
+  color: var(--ds-text-default);
+}
+
+.body-lg-demi {
+  font-family: 'Arcadia Text', sans-serif;
+  font-size: 17px;
+  font-weight: 480;
+  line-height: 28px;
+  letter-spacing: 0;
+  color: var(--ds-text-default);
+}
+
+.body-default {
+  font-family: 'Arcadia Text', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--ds-text-default);
+}
+
+.body-default-demi {
+  font-family: 'Arcadia Text', sans-serif;
+  font-size: 15px;
+  font-weight: 480;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--ds-text-default);
+}
+
+.body-secondary {
+  font-family: 'Arcadia Text', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--ds-text-secondary);
+}
+
+.body-secondary-demi {
+  font-family: 'Arcadia Text', sans-serif;
+  font-size: 14px;
+  font-weight: 480;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--ds-text-secondary);
+}
+
+/* Label & Small Text Styles */
+.text-label {
+  font-family: 'Arcadia Text', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  color: var(--ds-text-secondary);
+}
+
+.text-label-demi {
+  font-family: 'Arcadia Text', sans-serif;
+  font-size: 13px;
+  font-weight: 480;
+  line-height: 20px;
+  letter-spacing: 0.2px;
+  color: var(--ds-text-secondary);
+}
+
+.text-tiny {
+  font-family: 'Arcadia Text', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0.2px;
+  color: var(--ds-text-secondary);
+}
+
+.text-tiny-demi {
+  font-family: 'Arcadia Text', sans-serif;
+  font-size: 12px;
+  font-weight: 480;
+  line-height: 20px;
+  letter-spacing: 0.2px;
+  color: var(--ds-text-secondary);
+}
+
+.text-micro {
+  font-family: 'Arcadia Text', sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  color: var(--ds-text-secondary);
+}
+
+.text-micro-demi {
+  font-family: 'Arcadia Text', sans-serif;
+  font-size: 10px;
+  font-weight: 480;
+  line-height: 20px;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  color: var(--ds-text-secondary);
 }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+  font-family: 'Arcadia Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
     Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial,
-    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--bg);
+}
+
+/* Heading Element Defaults */
+h1, h2, h3 {
+  font-family: 'Arcadia Display', sans-serif;
+  font-weight: 400;
+  color: var(--ds-text-title);
+  margin: 0;
+}
+
+h1 {
+  font-size: 34px;
+  line-height: 44px;
+}
+
+h2 {
+  font-size: 28px;
+  line-height: 36px;
+}
+
+h3 {
+  font-size: 19px;
+  line-height: 28px;
 }
 
 #root {

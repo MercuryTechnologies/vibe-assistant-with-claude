@@ -47,19 +47,38 @@ const SIZING = {
   tooltipPadding: { x: 12, y: 8 },
   tooltipBorderRadius: 6,
   tooltipOffset: 8,          // vertical offset from dot
-  numBands: 6,               // number of time segments
-  yAxisTicks: 3,             // number of Y-axis ticks
+  numBands: 4,               // number of time segments (max 4 for readability)
 } as const;
+
+/**
+ * Calculate optimal number of Y-axis ticks based on viewport width
+ * Smaller viewports get fewer labels for better readability
+ */
+const getYAxisTickCount = (width: number): number => {
+  if (width < 400) return 2;
+  if (width < 600) return 3;
+  if (width < 900) return 4;
+  return 5;
+};
 
 // ============================================================================
 // HELPERS
 // ============================================================================
 
 /**
- * Parse a date string like "Dec 8" into a Date object
- * Assumes current year for the parsed date
+ * Parse a date string into a Date object
+ * Supports both ISO format (YYYY-MM-DD) and display format (Dec 8)
  */
 const parseTransactionDate = (dateStr: string): Date => {
+  // Check if it's ISO format (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const parsed = new Date(dateStr);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  
+  // Fall back to display format parsing (Dec 8)
   const currentYear = new Date().getFullYear();
   const parsed = new Date(`${dateStr}, ${currentYear}`);
   
@@ -270,17 +289,20 @@ const TransactionScatterPlot: React.FC<TransactionScatterPlotProps> = ({
     return bands;
   }, [dateExtent]);
 
-  // Generate Y-axis ticks (3 evenly spaced values)
+  // Generate Y-axis ticks (evenly spaced values, excluding $0)
+  // Number of ticks is determined by viewport width for better readability
   const yAxisTicks = useMemo(() => {
     const yMax = maxAbsAmount * 1.15; // Match the scale domain
+    const tickCount = getYAxisTickCount(dimensions.width);
     const ticks: number[] = [];
     
-    for (let i = 0; i < SIZING.yAxisTicks; i++) {
-      ticks.push((yMax * i) / (SIZING.yAxisTicks - 1));
+    // Start from i=1 to skip the $0 tick, generate tickCount-1 visible ticks
+    for (let i = 1; i <= tickCount; i++) {
+      ticks.push((yMax * i) / tickCount);
     }
     
     return ticks;
-  }, [maxAbsAmount]);
+  }, [maxAbsAmount, dimensions.width]);
 
   // Handle resize
   useEffect(() => {

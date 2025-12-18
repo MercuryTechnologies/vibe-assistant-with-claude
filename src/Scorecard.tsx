@@ -68,34 +68,31 @@ const Scorecard: React.FC<ScorecardProps> = ({
   insights
 }) => {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6">
+    <div className="bg-white rounded-xl min-w-[240px] w-full px-6">
       {/* Net Cashflow */}
-      <div className="mb-6">
-        <h2 className="text-sm font-medium text-gray-600 mb-1">Net Cashflow</h2>
+      <div className="mb-6 w-full">
+        <h2 className="text-label mb-1 w-full">Net Cashflow</h2>
         <div
-          className="text-4xl font-bold text-gray-900"
-          style={{ letterSpacing: '-0.01em' }}
+          className="text-4xl font-bold text-gray-900 whitespace-nowrap tracking-[-0.03em]"
         >
           {netCashflow}
         </div>
       </div>
 
-      {/* Money In and Money Out */}
+      {/* Money In and Money Out - Side by Side */}
       <div className="flex gap-6 mb-6 pb-6 border-b border-gray-100">
-        <div className="w-1/2">
-          <h3 className="text-sm font-medium text-gray-600 mb-1">Money in</h3>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-label mb-1">Money in</h3>
           <div
-            className="text-2xl font-semibold text-gray-900"
-            style={{ letterSpacing: '-0.01em' }}
+            className="text-2xl font-semibold text-gray-900 whitespace-nowrap tracking-[-0.03em]"
           >
             {moneyIn}
           </div>
         </div>
-        <div className="w-1/2">
-          <h3 className="text-sm font-medium text-gray-600 mb-1">Money out</h3>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-label mb-1">Money out</h3>
           <div
-            className="text-2xl font-semibold text-gray-900"
-            style={{ letterSpacing: '-0.01em' }}
+            className="text-2xl font-semibold text-gray-900 whitespace-nowrap tracking-[-0.03em]"
           >
             {moneyOut}
           </div>

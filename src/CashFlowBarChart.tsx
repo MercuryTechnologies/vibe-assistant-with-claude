@@ -5,6 +5,8 @@ import GradientCard from './GradientCard';
 import GradientCardMoneyIn from './GradientCardMoneyIn';
 import { type GradientSettings, type GradientSettingsMoneyIn } from './GradientPlayground';
 import { createRoot } from 'react-dom/client';
+import ChartOptionsDropdown from './ChartOptionsDropdown';
+import { useAppStore } from './store';
 
 interface CashFlowData {
   month: string; // Keep as "month" for backward compatibility, but represents any time period
@@ -49,7 +51,7 @@ const defaultData: CashFlowData[] = [
 const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({ 
   data = defaultData, 
   width, 
-  height = 500,
+  height = 480,
   cadence = 'monthly',
   onCadenceChange,
   selectionStart,
@@ -59,13 +61,19 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
   categoryLabel = 'Month'
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const deltaLineSvgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const gradientContainerMoneyOutRef = useRef<HTMLDivElement>(null);
   const gradientContainerMoneyInRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
+  const gradientRootsRef = useRef<Array<ReturnType<typeof createRoot>>>([]);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 480 });
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
+  const [hoveredMonth, setHoveredMonth] = useState<string | null>(null);
+  
+  // Get chart options from store
+  const chartOptions = useAppStore((s) => s.chartOptions);
 
-  // Handle responsive sizing
+  // Handle responsive sizing with debounce to prevent rapid re-renders
   const updateDimensions = useCallback(() => {
     if (containerRef.current) {
       const containerWidth = containerRef.current.offsetWidth;
@@ -78,15 +86,66 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
 
   useEffect(() => {
     updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
+    
+    // Debounce resize to prevent rapid re-renders that cause DOM conflicts
+    let resizeTimeout: NodeJS.Timeout;
+    const debouncedResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(updateDimensions, 150);
+    };
+    
+    window.addEventListener('resize', debouncedResize);
+    return () => {
+      window.removeEventListener('resize', debouncedResize);
+      clearTimeout(resizeTimeout);
+    };
   }, [updateDimensions]);
 
+  // Cleanup React roots on unmount
   useEffect(() => {
-    if (!svgRef.current || !data.length) return;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/fa9275e2-70e9-43ca-a419-11bef518d4c6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CashFlowBarChart.tsx:88',message:'Component mounted',data:{rootCount:gradientRootsRef.current.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-H5'})}).catch(()=>{});
+    // #endregion
+    return () => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/fa9275e2-70e9-43ca-a419-11bef518d4c6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CashFlowBarChart.tsx:92',message:'Component unmounting - cleanup starting',data:{rootCount:gradientRootsRef.current.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+      // #endregion
+      gradientRootsRef.current.forEach((root, idx) => {
+        try {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/fa9275e2-70e9-43ca-a419-11bef518d4c6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CashFlowBarChart.tsx:97',message:'Unmounting root',data:{idx},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+          // #endregion
+          root.unmount();
+        } catch (e) {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/fa9275e2-70e9-43ca-a419-11bef518d4c6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CashFlowBarChart.tsx:102',message:'Root unmount error',data:{idx,error:String(e)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+          // #endregion
+        }
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    const svgElement = svgRef.current;
+    const gradientOutElement = gradientContainerMoneyOutRef.current;
+    const gradientInElement = gradientContainerMoneyInRef.current;
+    
+    if (!svgElement || !data.length) return;
+
+    // Safe DOM cleanup function
+    const safeRemoveChildren = (element: Element | null) => {
+      if (!element) return;
+      try {
+        while (element.firstChild) {
+          element.removeChild(element.firstChild);
+        }
+      } catch (e) {
+        // Ignore DOM manipulation errors during React reconciliation
+      }
+    };
 
     // Clear previous chart
-    d3.select(svgRef.current).selectAll('*').remove();
+    safeRemoveChildren(svgElement);
 
     // Chart dimensions and margins (24px padding + space for labels)
     const margin = { top: 20, right: 40, bottom: 50, left: 80 };
@@ -94,7 +153,7 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
     const chartHeight = dimensions.height - margin.top - margin.bottom;
 
     // Create SVG
-    const svg = d3.select(svgRef.current)
+    const svg = d3.select(svgElement)
       .attr('width', dimensions.width)
       .attr('height', dimensions.height);
 
@@ -219,9 +278,12 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
             .style('opacity', 0); // Hidden placeholder
         } else {
           chart.append('path')
+            .attr('class', 'bar-money-in')
+            .attr('data-month', d.month)
             .attr('d', pathData)
             .style('fill', moneyInIsLarger ? '#b6a8ff' : '#d1d5db')
-            .style('opacity', 1);
+            .style('opacity', 1)
+            .style('transition', 'opacity 0.2s ease');
         }
       }
 
@@ -254,9 +316,12 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
             .style('opacity', 0); // Hidden placeholder
         } else {
           chart.append('path')
+            .attr('class', 'bar-money-out')
+            .attr('data-month', d.month)
             .attr('d', pathData)
             .style('fill', !moneyInIsLarger ? '#1e1b4b' : '#d1d5db')
-            .style('opacity', 1);
+            .style('opacity', 1)
+            .style('transition', 'opacity 0.2s ease');
         }
       }
     });
@@ -291,9 +356,11 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
               moneyOut: d.moneyOut
             });
           }
+          setHoveredMonth(d.month);
         })
         .on('mouseleave', function() {
           setTooltip(null);
+          setHoveredMonth(null);
         });
     });
 
@@ -307,10 +374,34 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
       .style('stroke-width', 1)
       .style('opacity', 0.4); // Reduced opacity by 60%
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/fa9275e2-70e9-43ca-a419-11bef518d4c6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CashFlowBarChart.tsx:345',message:'Chart effect - cleaning up roots BEFORE D3 remove',data:{rootCount:gradientRootsRef.current.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-H2'})}).catch(()=>{});
+    // #endregion
+    // Clean up old React roots before creating new ones
+    gradientRootsRef.current.forEach((root, idx) => {
+      try {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/fa9275e2-70e9-43ca-a419-11bef518d4c6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CashFlowBarChart.tsx:352',message:'Effect unmounting root',data:{idx},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+        // #endregion
+        root.unmount();
+      } catch (e) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/fa9275e2-70e9-43ca-a419-11bef518d4c6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CashFlowBarChart.tsx:357',message:'Effect root unmount error',data:{idx,error:String(e)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+        // #endregion
+      }
+    });
+    gradientRootsRef.current = [];
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/fa9275e2-70e9-43ca-a419-11bef518d4c6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CashFlowBarChart.tsx:364',message:'Chart effect - clearing D3 containers AFTER root unmount',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1-H2'})}).catch(()=>{});
+    // #endregion
+    // Always clear gradient containers first using safe cleanup
+    safeRemoveChildren(gradientOutElement);
+    safeRemoveChildren(gradientInElement);
+
     // Render Money Out gradient bars using React components
-    if (gradientSettingsMoneyOut && gradientContainerMoneyOutRef.current) {
-      const gradientContainer = d3.select(gradientContainerMoneyOutRef.current);
-      gradientContainer.selectAll('*').remove();
+    if (gradientSettingsMoneyOut && gradientOutElement) {
+      const gradientContainer = d3.select(gradientOutElement);
       
       data.forEach(d => {
         if (d.moneyOut < 0) {
@@ -323,6 +414,8 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
           
           // Create a container for the gradient card
           const cardContainer = gradientContainer.append('div')
+            .attr('data-month', d.month)
+            .attr('class', 'gradient-bar-money-out')
             .style('position', 'absolute')
             .style('left', `${margin.left + x}px`)
             .style('top', `${topPosition}px`)
@@ -330,10 +423,15 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
             .style('height', `${barHeight}px`)
             .style('overflow', 'hidden')
             .style('border-radius', '0 0 6px 6px')
+            .style('transition', 'opacity 0.2s ease')
             .node();
           
           if (cardContainer) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/fa9275e2-70e9-43ca-a419-11bef518d4c6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CashFlowBarChart.tsx:405',message:'Creating MoneyOut root',data:{month:d.month,currentRootCount:gradientRootsRef.current.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+            // #endregion
             const root = createRoot(cardContainer);
+            gradientRootsRef.current.push(root);
             root.render(
               <GradientCard
                 width={barWidth}
@@ -357,9 +455,8 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
     }
 
     // Render Money In gradient bars using React components
-    if (gradientSettingsMoneyIn && gradientContainerMoneyInRef.current) {
-      const gradientContainer = d3.select(gradientContainerMoneyInRef.current);
-      gradientContainer.selectAll('*').remove();
+    if (gradientSettingsMoneyIn && gradientInElement) {
+      const gradientContainer = d3.select(gradientInElement);
       
       data.forEach(d => {
         if (d.moneyIn > 0) {
@@ -372,6 +469,8 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
           
           // Create a container for the gradient card
           const cardContainer = gradientContainer.append('div')
+            .attr('data-month', d.month)
+            .attr('class', 'gradient-bar-money-in')
             .style('position', 'absolute')
             .style('left', `${margin.left + x}px`)
             .style('top', `${topPosition}px`)
@@ -379,10 +478,15 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
             .style('height', `${barHeight}px`)
             .style('overflow', 'hidden')
             .style('border-radius', '6px 6px 0 0')
+            .style('transition', 'opacity 0.2s ease')
             .node();
           
           if (cardContainer) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/fa9275e2-70e9-43ca-a419-11bef518d4c6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CashFlowBarChart.tsx:460',message:'Creating MoneyIn root',data:{month:d.month,currentRootCount:gradientRootsRef.current.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+            // #endregion
             const root = createRoot(cardContainer);
+            gradientRootsRef.current.push(root);
             root.render(
               <GradientCardMoneyIn
                 width={barWidth}
@@ -406,11 +510,213 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
       });
     }
 
+    // Return cleanup function using captured references
+    return () => {
+      // Clean up React roots first (before removing DOM elements)
+      gradientRootsRef.current.forEach((root) => {
+        try {
+          root.unmount();
+        } catch (e) {
+          // Ignore unmount errors
+        }
+      });
+      gradientRootsRef.current = [];
+      
+      // Safe cleanup of DOM using captured references
+      safeRemoveChildren(svgElement);
+      safeRemoveChildren(gradientOutElement);
+      safeRemoveChildren(gradientInElement);
+    };
+
   }, [data, dimensions, gradientSettingsMoneyOut, gradientSettingsMoneyIn, categoryLabel]);
+
+  // Effect to render delta line in overlay SVG (on top of bars)
+  useEffect(() => {
+    const svgElement = deltaLineSvgRef.current;
+    if (!svgElement || !data.length) return;
+
+    // Safe cleanup function
+    const clearDeltaLine = () => {
+      try {
+        // Remove children one by one to avoid removeChild errors
+        while (svgElement.firstChild) {
+          svgElement.removeChild(svgElement.firstChild);
+        }
+      } catch (e) {
+        // Ignore DOM manipulation errors during React reconciliation
+      }
+    };
+
+    // Clear previous delta line
+    clearDeltaLine();
+
+    if (!chartOptions.showCashflowLine) return clearDeltaLine;
+
+    // Chart dimensions and margins (must match main chart)
+    const margin = { top: 20, right: 40, bottom: 50, left: 80 };
+    const chartWidth = dimensions.width - margin.left - margin.right;
+    const chartHeight = dimensions.height - margin.top - margin.bottom;
+
+    // Create SVG
+    const svg = d3.select(svgElement)
+      .attr('width', dimensions.width)
+      .attr('height', dimensions.height);
+
+    // Create chart group with same transform as main chart
+    const chart = svg.append('g')
+      .attr('transform', `translate(${margin.left}, ${margin.top})`);
+
+    // Recreate scales (must match main chart)
+    const xScale = d3.scaleBand()
+      .domain(data.map(d => d.month))
+      .range([0, chartWidth])
+      .padding(0.3);
+
+    const maxValue = d3.max(data, d => Math.max(Math.abs(d.moneyIn), Math.abs(d.moneyOut))) || 15000;
+    const scaledMaxValue = maxValue * 1.3;
+    const yScale = d3.scaleLinear()
+      .domain([-scaledMaxValue, scaledMaxValue])
+      .range([chartHeight, 0]);
+
+    // Calculate delta values (moneyIn + moneyOut since moneyOut is negative)
+    const deltaData = data.map(d => ({
+      month: d.month,
+      delta: d.moneyIn + d.moneyOut
+    }));
+
+    // Create gradient definition for the line stroke
+    const defs = svg.append('defs');
+    
+    // Calculate the actual Y coordinate of the zero line in user space
+    const zeroY = margin.top + yScale(0);
+    const topY = margin.top; // Top of chart area
+    const bottomY = margin.top + chartHeight; // Bottom of chart area
+    
+    // Create vertical gradient for the line (blue above zero, red below)
+    // Using userSpaceOnUse so gradient is based on actual coordinates, not path bounding box
+    const lineGradient = defs.append('linearGradient')
+      .attr('id', 'delta-line-gradient')
+      .attr('gradientUnits', 'userSpaceOnUse')
+      .attr('x1', 0)
+      .attr('y1', topY)
+      .attr('x2', 0)
+      .attr('y2', bottomY);
+    
+    // Calculate zero line position as percentage of chart height
+    const zeroLinePercent = ((zeroY - topY) / (bottomY - topY)) * 100;
+    
+    // Blue color for positive values (above zero)
+    lineGradient.append('stop')
+      .attr('offset', '0%')
+      .attr('stop-color', '#4F46E5'); // Indigo blue
+    
+    lineGradient.append('stop')
+      .attr('offset', `${zeroLinePercent}%`)
+      .attr('stop-color', '#4F46E5'); // Indigo blue at zero
+    
+    lineGradient.append('stop')
+      .attr('offset', `${zeroLinePercent}%`)
+      .attr('stop-color', '#E879A9'); // Pink/red at zero
+    
+    // Red/pink color for negative values (below zero)
+    lineGradient.append('stop')
+      .attr('offset', '100%')
+      .attr('stop-color', '#BE3A5C'); // Darker red/pink
+
+    // Create line generator
+    const lineGenerator = d3.line<{ month: string; delta: number }>()
+      .x(d => (xScale(d.month) || 0) + xScale.bandwidth() / 2)
+      .y(d => yScale(d.delta))
+      .curve(d3.curveLinear);
+
+    // Draw the delta line
+    chart.append('path')
+      .datum(deltaData)
+      .attr('class', 'delta-line')
+      .attr('fill', 'none')
+      .attr('stroke', 'url(#delta-line-gradient)')
+      .attr('stroke-width', 2)
+      .attr('d', lineGenerator);
+
+    // Add dots at each data point
+    deltaData.forEach(d => {
+      const x = (xScale(d.month) || 0) + xScale.bandwidth() / 2;
+      const y = yScale(d.delta);
+      const isPositive = d.delta >= 0;
+      const dotColor = isPositive ? '#4F46E5' : '#BE3A5C';
+      
+      // White background circle
+      chart.append('circle')
+        .attr('class', 'delta-dot-bg')
+        .attr('cx', x)
+        .attr('cy', y)
+        .attr('r', 4)
+        .style('fill', 'white');
+      
+      // Inner colored dot
+      chart.append('circle')
+        .attr('class', 'delta-dot')
+        .attr('cx', x)
+        .attr('cy', y)
+        .attr('r', 2)
+        .style('fill', dotColor);
+    });
+
+    // Return cleanup function
+    return clearDeltaLine;
+
+  }, [data, dimensions, chartOptions.showCashflowLine]);
+
+  // Effect to handle hover opacity changes
+  useEffect(() => {
+    if (!svgRef.current) return;
+
+    const svg = d3.select(svgRef.current);
+    
+    // Update SVG bars opacity
+    svg.selectAll('.bar-money-in, .bar-money-out').each(function() {
+      const element = d3.select(this);
+      const month = element.attr('data-month');
+      if (hoveredMonth === null) {
+        element.style('opacity', 1);
+      } else {
+        element.style('opacity', month === hoveredMonth ? 1 : 0.1);
+      }
+    });
+
+    // Update gradient containers opacity
+    if (gradientContainerMoneyOutRef.current) {
+      d3.select(gradientContainerMoneyOutRef.current)
+        .selectAll('.gradient-bar-money-out')
+        .each(function() {
+          const element = d3.select(this);
+          const month = element.attr('data-month');
+          if (hoveredMonth === null) {
+            element.style('opacity', 1);
+          } else {
+            element.style('opacity', month === hoveredMonth ? 1 : 0.1);
+          }
+        });
+    }
+
+    if (gradientContainerMoneyInRef.current) {
+      d3.select(gradientContainerMoneyInRef.current)
+        .selectAll('.gradient-bar-money-in')
+        .each(function() {
+          const element = d3.select(this);
+          const month = element.attr('data-month');
+          if (hoveredMonth === null) {
+            element.style('opacity', 1);
+          } else {
+            element.style('opacity', month === hoveredMonth ? 1 : 0.1);
+          }
+        });
+    }
+  }, [hoveredMonth]);
 
   return (
     <div className="bg-white" ref={containerRef}>
-      {/* Legend with Frequency Dropdown */}
+      {/* Legend with Frequency Dropdown and Chart Options */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
@@ -427,20 +733,39 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
             />
             <span className="text-sm font-medium text-gray-700">Money Out</span>
           </div>
+          {chartOptions.showCashflowLine && (
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-3 h-0.5 rounded-full" 
+                style={{ background: 'linear-gradient(90deg, #4F46E5 50%, #BE3A5C 50%)' }}
+              />
+              <span className="text-sm font-medium text-gray-700">Delta</span>
+            </div>
+          )}
         </div>
-        {onCadenceChange && (
-          <Dropdown 
-            value={cadence} 
-            onChange={onCadenceChange} 
-            selectionStart={selectionStart} 
-            selectionEnd={selectionEnd} 
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {onCadenceChange && (
+            <Dropdown 
+              value={cadence} 
+              onChange={onCadenceChange} 
+              selectionStart={selectionStart} 
+              selectionEnd={selectionEnd} 
+            />
+          )}
+          <ChartOptionsDropdown />
+        </div>
       </div>
       
       {/* Chart */}
       <div className="w-full relative">
-        <svg ref={svgRef} className="w-full h-auto" style={{ minWidth: '600px' }} />
+        {/* CSS to hide bars when showBars is false */}
+        <style>{`
+          .bars-hidden .bar-money-in,
+          .bars-hidden .bar-money-out {
+            display: none !important;
+          }
+        `}</style>
+        <svg ref={svgRef} className={`w-full h-auto ${!chartOptions.showBars ? 'bars-hidden' : ''}`} style={{ minWidth: '600px' }} />
         {/* Money Out gradient bars overlay */}
         <div 
           ref={gradientContainerMoneyOutRef} 
@@ -450,7 +775,8 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
             left: 0, 
             width: '100%', 
             height: '100%',
-            pointerEvents: 'none'
+            pointerEvents: 'none',
+            display: chartOptions.showBars ? 'block' : 'none'
           }} 
         />
         {/* Money In gradient bars overlay */}
@@ -462,7 +788,21 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
             left: 0, 
             width: '100%', 
             height: '100%',
-            pointerEvents: 'none'
+            pointerEvents: 'none',
+            display: chartOptions.showBars ? 'block' : 'none'
+          }} 
+        />
+        {/* Delta line overlay (rendered on top of bars) */}
+        <svg 
+          ref={deltaLineSvgRef}
+          style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            width: '100%', 
+            height: '100%',
+            pointerEvents: 'none',
+            minWidth: '600px'
           }} 
         />
         {/* Tooltip */}

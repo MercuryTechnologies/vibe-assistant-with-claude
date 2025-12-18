@@ -65,7 +65,7 @@ const TransactionsSummary: React.FC<TransactionsSummaryProps> = ({ collapsed = f
           <span className="text-[12px] text-gray-500 mb-0.5">
             {isHovering ? 'Cumulative net' : 'Net change this month'}
           </span>
-          <span className="text-[20px] font-semibold text-gray-900">
+          <span className="text-[20px] font-semibold text-gray-900 tracking-[-0.01em]">
             {isPositive ? '' : '–'}{formatCurrency(netChange)}
           </span>
         </div>
@@ -78,7 +78,7 @@ const TransactionsSummary: React.FC<TransactionsSummaryProps> = ({ collapsed = f
           />
           <div className="flex flex-col items-start">
             <span className="text-[12px] text-gray-500 mb-0.5">{isHovering ? 'Cumulative in' : 'Money in'}</span>
-            <span className="text-[16px] font-medium transition-all duration-150" style={{ color: '#0a5736' }}>
+            <span className="text-[16px] font-medium transition-all duration-150 tracking-[-0.01em]" style={{ color: '#0a5736' }}>
               {formatCurrency(moneyIn)}
             </span>
           </div>
@@ -92,7 +92,7 @@ const TransactionsSummary: React.FC<TransactionsSummaryProps> = ({ collapsed = f
           />
           <div className="flex flex-col items-start">
             <span className="text-[12px] text-gray-500 mb-0.5">{isHovering ? 'Cumulative out' : 'Money out'}</span>
-            <span className="text-[16px] font-medium transition-all duration-150" style={{ color: '#d03275' }}>
+            <span className="text-[16px] font-medium transition-all duration-150 tracking-[-0.01em]" style={{ color: '#d03275' }}>
               –{formatCurrency(moneyOut)}
             </span>
           </div>
@@ -109,7 +109,7 @@ const TransactionsSummary: React.FC<TransactionsSummaryProps> = ({ collapsed = f
         <span className="text-[12px] text-gray-500 mb-1">
           {isHovering ? 'Cumulative net' : 'Net change this month'}
         </span>
-        <span className="text-[24px] font-semibold text-gray-900">
+        <span className="text-[24px] font-semibold text-gray-900 tracking-[-0.01em]">
           {isPositive ? '' : '–'}{formatCurrency(netChange)}
         </span>
       </div>
@@ -124,7 +124,7 @@ const TransactionsSummary: React.FC<TransactionsSummaryProps> = ({ collapsed = f
           />
           <div className="flex flex-col">
             <span className="text-[12px] text-gray-500 mb-0.5">{isHovering ? 'Cumulative in' : 'Money in'}</span>
-            <span className="text-[16px] font-medium transition-all duration-150" style={{ color: '#0a5736' }}>
+            <span className="text-[16px] font-medium transition-all duration-150 tracking-[-0.01em]" style={{ color: '#0a5736' }}>
               {formatCurrency(moneyIn)}
             </span>
           </div>
@@ -138,7 +138,7 @@ const TransactionsSummary: React.FC<TransactionsSummaryProps> = ({ collapsed = f
           />
           <div className="flex flex-col">
             <span className="text-[12px] text-gray-500 mb-0.5">{isHovering ? 'Cumulative out' : 'Money out'}</span>
-            <span className="text-[16px] font-medium transition-all duration-150" style={{ color: '#d03275' }}>
+            <span className="text-[16px] font-medium transition-all duration-150 tracking-[-0.01em]" style={{ color: '#d03275' }}>
               –{formatCurrency(moneyOut)}
             </span>
           </div>

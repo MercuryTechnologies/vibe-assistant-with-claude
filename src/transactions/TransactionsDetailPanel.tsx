@@ -402,7 +402,7 @@ const TransactionsDetailPanel: React.FC<TransactionsDetailPanelProps> = ({
           <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-5 flex items-start justify-between rounded-t-xl">
             <h2 
               id="panel-title" 
-              className="text-[18px] font-medium text-gray-900 leading-tight"
+              className="text-[18px] font-medium text-gray-900 leading-tight tracking-[-0.01em]"
             >
               {transaction.toFrom.name}
             </h2>
@@ -419,10 +419,10 @@ const TransactionsDetailPanel: React.FC<TransactionsDetailPanelProps> = ({
           <div className="px-6 py-6 space-y-6">
             {/* Amount */}
             <div>
-              <span className="text-[32px] font-bold text-gray-900 leading-none">
+              <span className="text-[32px] font-bold text-gray-900 leading-none tracking-[-0.01em]">
                 {amount.dollars}
               </span>
-              <span className="text-[20px] font-medium text-gray-500">
+              <span className="text-[20px] font-medium text-gray-500 tracking-[-0.01em]">
                 .{amount.cents}
               </span>
             </div>

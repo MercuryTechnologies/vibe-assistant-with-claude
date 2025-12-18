@@ -401,7 +401,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Settings</h2>
+            <h2 className="text-lg font-semibold text-gray-900 tracking-[-0.01em]">Settings</h2>
             <button
               onClick={onClose}
               className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import PeriodDropdown, { type TimePeriod } from './PeriodDropdown';
 import TimelineRange, { type ComparisonMode, type TimeRange } from './TimelineRange';
 import { type Cadence } from './Dropdown';
@@ -11,9 +11,23 @@ import GlobalNav from './GlobalNav';
 import Scorecard, { type Insight } from './Scorecard';
 import DualGradientPlayground from './DualGradientPlayground';
 import { type GradientSettings, type GradientSettingsMoneyIn } from './GradientPlayground';
-import { useTimeRangeStore } from './store';
-import { generateSampleData, aggregateByCadence } from './utils';
+import { useAppStore } from './store';
+import { 
+  transactionsToCashFlow, 
+  aggregateByCadence, 
+  filterTransactionsByDateRange,
+  calculateTransactionsSummary,
+  formatCurrency 
+} from './utils';
 import TransactionsPage from './TransactionsPage';
+import InsightsBreakdown from './InsightsBreakdown';
+import HomePage from './HomePage';
+import { 
+  DataControlPanel, 
+  DataControlTrigger, 
+  generateInitialTransactions,
+  type Transaction 
+} from './transactions';
 
 function startOfMonth(d: Date): Date {
   const n = new Date(d);
@@ -50,27 +64,49 @@ function getDateRangeForPeriod(period: TimePeriod, referenceDate: Date = new Dat
     case 'ytd':
       // Year-to-date: From start of current year to today
       return [startOfYear(today), today];
-    case 'last3m':
+    case 'lastMonth': {
+      // Last month: Full previous month
+      const end = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59, 999); // Last day of previous month
+      const start = new Date(end.getFullYear(), end.getMonth(), 1, 0, 0, 0, 0);
+      return [start, end];
+    }
+    case 'lastQuarter': {
+      // Last quarter: Full previous quarter
+      const currentQuarter = Math.floor(today.getMonth() / 3);
+      const lastQuarter = currentQuarter === 0 ? 3 : currentQuarter - 1;
+      const lastQuarterYear = currentQuarter === 0 ? today.getFullYear() - 1 : today.getFullYear();
+      const start = new Date(lastQuarterYear, lastQuarter * 3, 1, 0, 0, 0, 0);
+      const end = new Date(lastQuarterYear, lastQuarter * 3 + 3, 0, 23, 59, 59, 999);
+      return [start, end];
+    }
+    case 'last30d': {
+      // Last 30 days
+      const start30d = new Date(today);
+      start30d.setDate(start30d.getDate() - 30);
+      start30d.setHours(0, 0, 0, 0);
+      return [start30d, today];
+    }
+    case 'last3m': {
       // Last 3 months: From 3 months ago to today
       const start3m = new Date(today);
       start3m.setMonth(start3m.getMonth() - 3);
-      start3m.setDate(1);
       start3m.setHours(0, 0, 0, 0);
       return [start3m, today];
-    case 'last6m':
+    }
+    case 'last6m': {
       // Last 6 months: From 6 months ago to today
       const start6m = new Date(today);
       start6m.setMonth(start6m.getMonth() - 6);
-      start6m.setDate(1);
       start6m.setHours(0, 0, 0, 0);
       return [start6m, today];
-    case 'last12m':
+    }
+    case 'last12m': {
       // Last 12 months: From 12 months ago to today
       const start12m = new Date(today);
       start12m.setMonth(start12m.getMonth() - 12);
-      start12m.setDate(1);
       start12m.setHours(0, 0, 0, 0);
       return [start12m, today];
+    }
     default:
       return [startOfMonth(today), today];
   }
@@ -84,9 +120,30 @@ function App() {
   const [viewportWidth, setViewportWidth] = useState<number>(window.innerWidth);
   const [forceOpenComparison, setForceOpenComparison] = useState<boolean>(false);
   
-  // Sidebar state
-  const [activePath, setActivePath] = useState('/insights');
-  const [collapsedIds, setCollapsedIds] = useState<string[]>([]);
+  // Sidebar state - initialize from URL or default to /home
+  const [activePath, setActivePath] = useState(() => {
+    const path = window.location.pathname;
+    return path && path !== '/' ? path : '/home';
+  });
+  const [collapsedIds, setCollapsedIds] = useState<string[]>(['payments']);
+
+  // Set initial URL if on root path
+  useEffect(() => {
+    if (window.location.pathname === '/' || window.location.pathname === '') {
+      window.history.replaceState({}, '', activePath);
+    }
+  }, []);
+
+  // Handle browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      setActivePath(path && path !== '/' ? path : '/home');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Money Out gradient settings state
   const [gradientSettingsMoneyOut, setGradientSettingsMoneyOut] = useState<GradientSettings>({
@@ -168,21 +225,52 @@ function App() {
     });
   }, []);
 
-  // Use the current date as reference (you can change this to any date)
-  const referenceDate = useMemo(() => new Date('2025-09-23'), []); // Using Sept 23, 2025 as "today"
+  // Use the current date as reference
+  const referenceDate = useMemo(() => new Date(), []); // Using actual current date as "today"
   
-  // Store access for committing time range
-  const setCommittedTimeRange = useTimeRangeStore((s: { setTimeRange: (r: { start: Date; end: Date } | null) => void }) => s.setTimeRange);
+  // Store access for time range and transactions
+  const setCommittedTimeRange = useAppStore((s) => s.setTimeRange);
+  const committedTimeRange = useAppStore((s) => s.timeRange);
+  const transactions = useAppStore((s) => s.transactions);
+  const setTransactions = useAppStore((s) => s.setTransactions);
   
-  // Sample data for the chart
-  const sampleData = useMemo(() => generateSampleData(), []);
+  // Data Control Panel state (shared across pages)
+  const [isControlPanelOpen, setIsControlPanelOpen] = useState(false);
   
-  // Get committed time range from store
-  const committedTimeRange = useTimeRangeStore((s: { timeRange: { start: Date; end: Date } | null }) => s.timeRange);
+  // Gradient Playground visibility state (hidden by default)
+  const [showGradientPlayground, setShowGradientPlayground] = useState(false);
+  
+  // Initialize transactions on first mount
+  useEffect(() => {
+    if (transactions.length === 0) {
+      const initialTransactions = generateInitialTransactions();
+      setTransactions(initialTransactions);
+    }
+  }, [transactions.length, setTransactions]);
+  
+  // Handle applying new transactions from DataControlPanel
+  const handleApplyData = useCallback((newTransactions: Transaction[]) => {
+    setTransactions(newTransactions);
+  }, [setTransactions]);
+  
+  // Convert transactions to cash flow records for charts
+  const cashFlowData = useMemo(() => {
+    return transactionsToCashFlow(transactions);
+  }, [transactions]);
+  
+  // Filter transactions by committed time range
+  const filteredTransactions = useMemo(() => {
+    return filterTransactionsByDateRange(transactions, committedTimeRange);
+  }, [transactions, committedTimeRange]);
+  
+  // Calculate summary values from filtered transactions
+  const transactionsSummary = useMemo(() => {
+    return calculateTransactionsSummary(filteredTransactions);
+  }, [filteredTransactions]);
   
   // Filter and aggregate data based on committed time range and cadence
   const chartData = useMemo(() => {
-    const aggregated = aggregateByCadence(sampleData, committedTimeRange, cadence);
+    const aggregated = aggregateByCadence(cashFlowData, committedTimeRange, cadence);
     
     // Convert to format expected by D3 chart
     return aggregated.map(item => ({
@@ -190,18 +278,26 @@ function App() {
       moneyIn: item.moneyIn,
       moneyOut: -item.moneyOut // D3 chart expects negative values
     }));
-  }, [sampleData, committedTimeRange, cadence]);
+  }, [cashFlowData, committedTimeRange, cadence]);
 
   // Rail dates that can be shifted
-  const [railStart, setRailStart] = useState<Date>(new Date('2023-11-01'));
+  const [railStart, setRailStart] = useState<Date>(() => {
+    // Default to January 1st of previous year
+    const now = new Date();
+    return new Date(now.getFullYear() - 1, 0, 1);
+  });
   const [railEnd, setRailEnd] = useState<Date>(() => {
     const threeMonthsAhead = new Date(referenceDate);
     threeMonthsAhead.setMonth(threeMonthsAhead.getMonth() + 3);
     return threeMonthsAhead;
   });
   
-  const [valueStart, setValueStart] = useState<Date>(new Date('2025-01-01'));
-  const [valueEnd, setValueEnd] = useState<Date>(new Date('2025-09-23'));
+  const [valueStart, setValueStart] = useState<Date>(() => {
+    // Default to Year to Date (January 1st of current year)
+    const now = new Date();
+    return new Date(now.getFullYear(), 0, 1);
+  });
+  const [valueEnd, setValueEnd] = useState<Date>(() => new Date());
   const markerDate = useMemo(() => referenceDate, [referenceDate]);
 
   // Handle viewport width changes
@@ -356,21 +452,21 @@ function App() {
 
   // Function to match date range to existing time periods
   const matchDateRangeToPeriod = useCallback((start: Date, end: Date): TimePeriod | null => {
-    const periods: TimePeriod[] = ['mtd', 'qtd', 'ytd', 'last3m', 'last6m', 'last12m'];
-    
+    const periods: TimePeriod[] = ['mtd', 'qtd', 'ytd', 'lastMonth', 'lastQuarter', 'last30d', 'last3m', 'last6m', 'last12m'];
+
     for (const period of periods) {
       const [expectedStart, expectedEnd] = getDateRangeForPeriod(period, referenceDate);
-      
+
       // Check if dates match (within a day tolerance)
       const startDiff = Math.abs(start.getTime() - expectedStart.getTime());
       const endDiff = Math.abs(end.getTime() - expectedEnd.getTime());
       const dayMs = 24 * 60 * 60 * 1000;
-      
+
       if (startDiff <= dayMs && endDiff <= dayMs) {
         return period;
       }
     }
-    
+
     return null;
   }, [referenceDate]);
 
@@ -415,37 +511,53 @@ function App() {
     setComparisonMode(mode);
   }, []);
 
-  // Sidebar data
+  // Timeline hover state for showing/hiding chevrons
+  const [isTimelineHovered, setIsTimelineHovered] = useState(false);
+  
+  // Scroll state for sticky header transformation
+  const [isScrolled, setIsScrolled] = useState(false);
+  const headerRef = useRef<HTMLDivElement>(null);
+  
+  // Track scroll position to show/hide minimized header (only on Insights page)
+  useEffect(() => {
+    if (activePath !== '/home' && activePath !== '/transactions') {
+      const handleScroll = () => {
+        // Trigger minimized header when scrolled past 80px
+        const scrollThreshold = 80;
+        setIsScrolled(window.scrollY > scrollThreshold);
+      };
+      
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      return () => window.removeEventListener('scroll', handleScroll);
+    } else {
+      // Reset scroll state when leaving Insights page
+      setIsScrolled(false);
+    }
+  }, [activePath]);
+
+  // Sidebar data - matching Figma design
   const sidebarSections: SidebarSection[] = useMemo(() => [
     {
       id: "main",
       items: [
-        { id: "home", label: "Home", href: "/home", icon: "far fa-home" },
-        { id: "tasks", label: "Tasks", href: "/tasks", badgeCount: 3, icon: "fas fa-list-check" },
-        { id: "transactions", label: "Transactions", href: "/transactions", icon: "fas fa-exchange-alt" },
-        { id: "insights", label: "Insights", href: "/insights", icon: "fas fa-chart-line" },
-        { 
-          id: "payments", 
-          label: "Payments",
-          icon: "far fa-credit-card",
-          items: [
-            { id: "transfers", label: "Transfers", href: "/payments/transfers", icon: "fas fa-arrow-right" },
-            { id: "wires", label: "Wires", href: "/payments/wires", icon: "fas fa-network-wired" },
-          ]
-        },
-        { id: "cards", label: "Cards", href: "/cards", icon: "far fa-credit-card" },
-        { id: "capital", label: "Capital", href: "/capital", icon: "fas fa-dollar-sign" },
-        { id: "accounts", label: "Accounts", href: "/accounts", icon: "far fa-building" },
+        { id: "home", label: "Home", href: "/home", icon: "fa-solid fa-house" },
+        { id: "tasks", label: "Tasks", href: "/tasks", badgeCount: 3, icon: "fa-solid fa-inbox" },
+        { id: "transactions", label: "Transactions", href: "/transactions", icon: "fa-solid fa-list" },
+        { id: "insights", label: "Insights", href: "/insights", icon: "fa-solid fa-chart-column" },
+        { id: "payments", label: "Payments", href: "/payments", icon: "fa-solid fa-arrow-right-arrow-left" },
+        { id: "cards", label: "Cards", href: "/cards", icon: "fa-solid fa-credit-card" },
+        { id: "capital", label: "Capital", href: "/capital", icon: "fa-solid fa-chart-line" },
+        { id: "accounts", label: "Accounts", href: "/accounts", icon: "fa-solid fa-building-columns" },
       ],
     },
     {
       id: "workflows",
       label: "Workflows",
       items: [
-        { id: "bill-pay", label: "Bill Pay", href: "/workflows/bill-pay", icon: "far fa-file-alt" },
-        { id: "invoicing", label: "Invoicing", href: "/workflows/invoicing", icon: "far fa-file-alt" },
-        { id: "reimbursements", label: "Reimbursements", href: "/workflows/reimbursements", icon: "far fa-file-alt" },
-        { id: "accounting", label: "Accounting", href: "/workflows/accounting", icon: "fas fa-calculator" },
+        { id: "bill-pay", label: "Bill Pay", href: "/workflows/bill-pay", icon: "fa-solid fa-envelope-open-text" },
+        { id: "invoicing", label: "Invoicing", href: "/workflows/invoicing", icon: "fa-solid fa-file-invoice-dollar" },
+        { id: "reimbursements", label: "Reimbursements", href: "/workflows/reimbursements", icon: "fa-solid fa-money-bill-transfer" },
+        { id: "accounting", label: "Accounting", href: "/workflows/accounting", icon: "fa-solid fa-book-open" },
       ],
     },
   ], []);
@@ -461,8 +573,7 @@ function App() {
 
   const handleNavigate = useCallback((href: string) => {
     setActivePath(href);
-    // eslint-disable-next-line no-console
-    console.log('Navigate to:', href);
+    window.history.pushState({}, '', href);
   }, []);
 
   // Sample data for Scorecard
@@ -500,7 +611,7 @@ function App() {
       />
       
       {/* Main content */}
-      <div className="ml-60">
+      <div className="ml-[216px]">
         {/* Global Navigation */}
         <GlobalNav 
           initials="EH"
@@ -509,55 +620,83 @@ function App() {
         />
         
         {/* Render page based on activePath */}
-        {activePath === '/transactions' ? (
+        {/* #region agent log */}
+        {(() => { fetch('http://127.0.0.1:7242/ingest/fa9275e2-70e9-43ca-a419-11bef518d4c6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:580',message:'Rendering page',data:{activePath},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{}); return null; })()}
+        {/* #endregion */}
+        {activePath === '/home' ? (
+          <HomePage />
+        ) : activePath === '/transactions' ? (
           <TransactionsPage />
         ) : (
         <>
-        <div className="px-6 py-6">
-          <h1 className="text-3xl font-semibold text-gray-900 mb-4">Insights</h1>
-          <div className="flex items-center justify-between mb-0">
-            <FinancialSegmentedControl />
-            <div className="flex items-center gap-2">
-              <PeriodDropdown value={timePeriod} onChange={handleTimePeriodChange} referenceDate={referenceDate} customDateRange={customDateRange} />
-              <ComparisonDropdown 
-                value={comparisonMode} 
-                onChange={setComparisonMode} 
-                forceOpen={forceOpenComparison}
-                onOpenChange={handleComparisonOpenChange}
-              />
-              <button
-                type="button"
-                className="ml-1 inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-                aria-label="Settings"
-              >
-                <svg
-                  className="h-4 w-4"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
+        {/* Sticky Insights Header - transforms layout on scroll, includes timeline */}
+        <div 
+          ref={headerRef}
+          className="sticky top-0 z-40 bg-white transition-all duration-300 ease-out relative"
+        >
+          {/* Header content - fixed height container for smooth transitions */}
+          <div 
+            className="px-6 relative transition-[height] duration-300 ease-out"
+            style={{
+              height: isScrolled ? '56px' : '104px',
+            }}
+          >
+            {/* Title - animates vertical position */}
+            <h1 
+              className="title-main absolute left-6 transition-all duration-300 ease-out"
+              style={{
+                top: isScrolled ? '12px' : '24px',
+              }}
+            >Insights</h1>
+            
+            {/* Controls row - contains both segmented control and dropdowns, always aligned */}
+            <div 
+              className="absolute left-6 right-6 flex items-center justify-between transition-all duration-300 ease-out z-20"
+              style={{
+                top: isScrolled ? '12px' : '64px',
+                paddingLeft: isScrolled ? '108px' : '0px',
+              }}
+            >
+              {/* Left: Segmented Control + Settings */}
+              <div className="flex items-center gap-2">
+                <FinancialSegmentedControl />
+                
+                {/* Settings button (vertical ellipsis) */}
+                <button
+                  type="button"
+                  className="w-8 h-8 rounded-full bg-[rgba(112,115,147,0.1)] flex items-center justify-center text-[#70707d] hover:bg-[rgba(112,115,147,0.15)] transition-colors"
+                  aria-label="More options"
                 >
-                  <path
-                    d="M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M4.75 10a5.25 5.25 0 0 1 .07-.86l-1.44-1.1a.75.75 0 0 1-.18-1.02l1.5-2.6a.75.75 0 0 1 .96-.32l1.7.68a5.3 5.3 0 0 1 1.5-.86l.26-1.8A.75.75 0 0 1 9.97 1h3.06a.75.75 0 0 1 .74.62l.27 1.8c.54.2 1.04.49 1.5.86l1.7-.68a.75.75 0 0 1 .96.32l1.5 2.6a.75.75 0 0 1-.18 1.02l-1.44 1.1c.05.28.08.57.08.86 0 .29-.03.58-.08.86l1.44 1.1a.75.75 0 0 1 .18 1.02l-1.5 2.6a.75.75 0 0 1-.96.32l-1.7-.68a5.3 5.3 0 0 1-1.5.86l-.27 1.8a.75.75 0 0 1-.74.62H9.97a.75.75 0 0 1-.74-.62l-.26-1.8a5.3 5.3 0 0 1-1.5-.86l-1.7.68a.75.75 0 0 1-.96-.32l-1.5-2.6a.75.75 0 0 1 .18-1.02l1.44-1.1A5.3 5.3 0 0 1 4.75 10Z"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="5" r="1.5" />
+                    <circle cx="12" cy="12" r="1.5" />
+                    <circle cx="12" cy="19" r="1.5" />
+                  </svg>
+                </button>
+              </div>
+              
+              {/* Right: Period and Comparison dropdowns */}
+              <div className="flex items-center gap-2">
+                <PeriodDropdown value={timePeriod} onChange={handleTimePeriodChange} referenceDate={referenceDate} customDateRange={customDateRange} />
+                <ComparisonDropdown 
+                  value={comparisonMode} 
+                  onChange={setComparisonMode} 
+                  forceOpen={forceOpenComparison}
+                  onOpenChange={handleComparisonOpenChange}
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Full width white background for timeline with bottom border */}
-        <div className="bg-white pt-4" style={{ borderBottom: '1px solid rgba(112, 115, 147, 0.1)' }}>
-          <div className="flex items-center">
+          {/* Timeline section - inside sticky header */}
+          <div className="bg-white border-b border-[rgba(112,115,147,0.1)] relative z-10">
+          <div 
+            className="flex items-center"
+            onMouseEnter={() => setIsTimelineHovered(true)}
+            onMouseLeave={() => setIsTimelineHovered(false)}
+          >
             {/* Left Arrow with padding */}
-            <div className="pl-6">
+            <div className="pl-6 relative z-10">
               {/* Always show left arrow since we can always go back in time */}
               <button
               onClick={() => {
@@ -571,7 +710,7 @@ function App() {
                 setRailStart(newRailStart);
                 setRailEnd(newRailEnd);
               }}
-              className="w-6 h-6 rounded-full transition-colors bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-gray-900 relative z-50 flex items-center justify-center"
+              className={`w-6 h-6 rounded-full transition-all duration-200 bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-gray-900 relative z-50 flex items-center justify-center ${isTimelineHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
               aria-label="Show earlier months"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -581,7 +720,7 @@ function App() {
             </div>
 
             {/* Timeline - full width */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0 relative" style={{ overflowX: 'clip' }}>
               <TimelineRange
                 scale={timelineScale}
                 startDate={railStart}
@@ -598,11 +737,27 @@ function App() {
                 onSelectionChange={handleSelectionChange}
                 onComparisonChange={handleComparisonChange}
               />
+              {/* Left fade gradient */}
+              <div 
+                className="absolute left-0 top-0 bottom-0 pointer-events-none z-10"
+                style={{
+                  width: '40px',
+                  background: 'linear-gradient(to right, white, transparent)'
+                }}
+              />
+              {/* Right fade gradient */}
+              <div 
+                className="absolute right-0 top-0 bottom-0 pointer-events-none z-10"
+                style={{
+                  width: '40px',
+                  background: 'linear-gradient(to left, white, transparent)'
+                }}
+              />
             </div>
 
             {/* Right Arrow with padding */}
-            <div className="pr-6">
-              {/* Right Arrow - Shows later time periods - only show if we can go forward */}
+            <div className="pr-6 relative z-10">
+              {/* Right Arrow - Shows later time periods - only show if we can go forward AND hovering */}
               {(() => {
               // Check if clicking the arrow would actually move the timeline
               const shiftAmount = cadence === 'yearly' ? 12 : 6; // months
@@ -610,10 +765,10 @@ function App() {
               const newRailEnd = new Date(railEnd);
               newRailStart.setMonth(newRailStart.getMonth() + shiftAmount);
               newRailEnd.setMonth(newRailEnd.getMonth() + shiftAmount);
-              
+
               // Don't allow going past the current reference date (today)
               const maxDate = new Date(referenceDate);
-              
+
               // Only show if the new rail end would be within the allowed range
               const canMoveForward = newRailEnd <= maxDate;
               console.log('Arrow visibility check:', {
@@ -632,16 +787,16 @@ function App() {
                   const newRailEnd = new Date(railEnd);
                   newRailStart.setMonth(newRailStart.getMonth() + shiftAmount);
                   newRailEnd.setMonth(newRailEnd.getMonth() + shiftAmount);
-                  
+
                   // Check if the new end would go beyond the current reference date
                   const maxDate = new Date(referenceDate);
-                  
+
                   if (newRailEnd <= maxDate) {
                     setRailStart(newRailStart);
                     setRailEnd(newRailEnd);
                   }
                 }}
-                className="w-6 h-6 rounded-full transition-colors bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-gray-900 relative z-50 flex items-center justify-center"
+                className={`w-6 h-6 rounded-full transition-all duration-200 bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-gray-900 relative z-50 flex items-center justify-center ${isTimelineHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                 aria-label="Show later months"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -651,23 +806,35 @@ function App() {
               )}
             </div>
           </div>
+          </div>
+          
+          {/* Bottom shadow - only visible when scrolled, extends beyond container */}
+          <div 
+            className={`absolute left-0 right-0 h-3 pointer-events-none transition-opacity duration-300 ${
+              isScrolled ? 'opacity-100' : 'opacity-0'
+            }`}
+            style={{
+              bottom: '-12px',
+              background: 'linear-gradient(to bottom, rgba(4,4,52,0.08) 0%, rgba(4,4,52,0.02) 40%, transparent 100%)',
+            }}
+          />
         </div>
 
         {/* Content Section - Side by side layout */}
-        <div className="px-6 py-8">
+        <div className="py-8">
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
             {/* Scorecard - Left side */}
-            <div className="xl:col-span-4">
+            <div className="xl:col-span-4 w-full px-0 h-[480px] overflow-auto">
               <Scorecard
-                netCashflow="$132,403.08"
-                moneyIn="$12,500"
-                moneyOut="–$5,892"
+                netCashflow={formatCurrency(transactionsSummary.netChange, true)}
+                moneyIn={formatCurrency(transactionsSummary.moneyIn)}
+                moneyOut={`–${formatCurrency(transactionsSummary.moneyOut)}`}
                 insights={sampleInsights}
               />
             </div>
 
             {/* Cash Flow Chart Section - Right side */}
-            <div className="xl:col-span-8">
+            <div className="xl:col-span-8 pr-6">
               {chartData.length === 0 ? (
                 <div className="flex h-96 items-center justify-center text-gray-500 border rounded-xl bg-white">
                   <div className="text-center">
@@ -684,7 +851,7 @@ function App() {
                         d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                       />
                     </svg>
-                    <p className="text-lg font-medium">No data in the selected range</p>
+                    <p className="text-lg font-medium tracking-[-0.01em]">No data in the selected range</p>
                     <p className="text-sm text-gray-400 mt-1">
                       Try selecting a different time period on the timeline above
                     </p>
@@ -693,7 +860,7 @@ function App() {
               ) : (
                 <CashFlowBarChart 
                   data={chartData} 
-                  height={500} 
+                  height={480} 
                   cadence={cadence}
                   onCadenceChange={handleCadenceChange}
                   selectionStart={valueStart}
@@ -705,24 +872,47 @@ function App() {
               )}
             </div>
           </div>
+
+          {/* Insights Breakdown Section */}
+          <InsightsBreakdown
+            moneyInTotal={formatCurrency(transactionsSummary.moneyIn)}
+            moneyOutTotal={`–${formatCurrency(transactionsSummary.moneyOut)}`}
+          />
           
-          {/* Interactive Gradient Playground */}
-          <div className="mt-12">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-6">Gradient Playground</h2>
-            <p className="text-sm text-gray-600 mb-4">Adjust the gradient controls below to modify the appearance of bars in the chart above.</p>
-            <DualGradientPlayground
-              moneyOutSettings={gradientSettingsMoneyOut}
-              moneyInSettings={gradientSettingsMoneyIn}
-              onMoneyOutChange={handleMoneyOutChange}
-              onMoneyInChange={handleMoneyInChange}
-              onMoneyOutReset={handleMoneyOutReset}
-              onMoneyInReset={handleMoneyInReset}
-            />
-          </div>
+          {/* Interactive Gradient Playground - hidden by default, toggleable via Data Control Panel */}
+          {showGradientPlayground && (
+            <div className="mt-12 px-6">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-6 tracking-[-0.01em]">Gradient Playground</h2>
+              <p className="text-sm text-gray-600 mb-4">Adjust the gradient controls below to modify the appearance of bars in the chart above.</p>
+              <DualGradientPlayground
+                moneyOutSettings={gradientSettingsMoneyOut}
+                moneyInSettings={gradientSettingsMoneyIn}
+                onMoneyOutChange={handleMoneyOutChange}
+                onMoneyInChange={handleMoneyInChange}
+                onMoneyOutReset={handleMoneyOutReset}
+                onMoneyInReset={handleMoneyInReset}
+              />
+            </div>
+          )}
         </div>
         </>
         )}
       </div>
+      
+      {/* Data Control Panel - Available on both pages */}
+      {(activePath === '/transactions' || activePath === '/insights') && (
+        <>
+          <DataControlTrigger onClick={() => setIsControlPanelOpen(true)} />
+          <DataControlPanel
+            isOpen={isControlPanelOpen}
+            onClose={() => setIsControlPanelOpen(false)}
+            onApply={handleApplyData}
+            currentCount={transactions.length}
+            showGradientPlayground={activePath === '/insights' ? showGradientPlayground : undefined}
+            onToggleGradientPlayground={activePath === '/insights' ? setShowGradientPlayground : undefined}
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -5,34 +5,18 @@ import {
   TransactionsCharts,
   TransactionsTable,
   TransactionsDetailPanel,
-  DataControlPanel,
-  DataControlTrigger,
   SettingsModal,
   defaultPageSettings,
-  generateTransactions,
   type Transaction,
   type PageSettings,
   type CategoryRule,
   type LineChartHoverData,
   type GroupByOption,
+  type AmountFilterValue,
+  type DateShortcut,
 } from './transactions';
-
-// Generate initial transactions once (50 by default)
-const initialTransactions = generateTransactions({
-  transactionCount: 50,
-  minAmount: 1,
-  maxAmount: 60000,
-  includeNegative: true,
-  negativeRatio: 40,
-  merchantVariety: 10,
-  accountVariety: 3,
-  methodVariety: 6,
-  includeCategories: true,
-  categoryRatio: 30,
-  autoAppliedRatio: 60,
-  includeFailed: true,
-  failedRatio: 5,
-});
+import { useAppStore } from './store';
+import { filterTransactionsByDateRange, dateShortcutToRange, customDateRangeToRange } from './utils';
 
 const TransactionsPage: React.FC = () => {
   // Page settings state
@@ -40,14 +24,20 @@ const TransactionsPage: React.FC = () => {
   const [isChartsExpanded, setIsChartsExpanded] = useState(settings.showChartsExpanded);
   
   // Modals state
-  const [isControlPanelOpen, setIsControlPanelOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   // Highlighted rule state (for navigating directly to a rule in settings)
   const [highlightedRuleId, setHighlightedRuleId] = useState<string | null>(null);
   
-  // Transactions state (200 by default)
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  // Get transactions from shared store
+  const allTransactions = useAppStore((s) => s.transactions);
+  const updateTransaction = useAppStore((s) => s.updateTransaction);
+  const committedTimeRange = useAppStore((s) => s.timeRange);
+  
+  // Filter transactions by the shared time range
+  const transactions = useMemo(() => {
+    return filterTransactionsByDateRange(allTransactions, committedTimeRange);
+  }, [allTransactions, committedTimeRange]);
   
   // Rules state (lifted from table to share with settings)
   const [rules, setRules] = useState<CategoryRule[]>([]);
@@ -70,47 +60,147 @@ const TransactionsPage: React.FC = () => {
   // Category filter state (multi-select)
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
 
+  // Keyword filter state (multi-select)
+  const [keywordFilter, setKeywordFilter] = useState<string[]>([]);
+
+  // Amount filter state
+  const [amountFilter, setAmountFilter] = useState<AmountFilterValue | null>(null);
+
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<{ shortcut: DateShortcut; from: string; to: string }>({
+    shortcut: 'all-time',
+    from: '',
+    to: '',
+  });
+
+  // Filter transactions by date filter (applied before other filters)
+  const dateFilteredTransactions = useMemo(() => {
+    // First apply the global time range from the timeline (if any)
+    let result = transactions;
+    
+    // Then apply the local date filter from the filter bar
+    if (dateFilter.shortcut === 'custom' && dateFilter.from && dateFilter.to) {
+      const range = customDateRangeToRange(dateFilter.from, dateFilter.to);
+      if (range) {
+        result = filterTransactionsByDateRange(result, range);
+      }
+    } else if (dateFilter.shortcut !== 'all-time') {
+      const range = dateShortcutToRange(dateFilter.shortcut);
+      if (range) {
+        result = filterTransactionsByDateRange(result, range);
+      }
+    }
+    
+    return result;
+  }, [transactions, dateFilter]);
+
   // Get unique categories from transactions for the filter dropdown
   const availableCategories = useMemo(() => {
     const categories = new Set<string>();
-    transactions.forEach(t => {
+    dateFilteredTransactions.forEach(t => {
       if (t.glCode) {
         categories.add(t.glCode);
       }
     });
     return Array.from(categories).sort();
-  }, [transactions]);
+  }, [dateFilteredTransactions]);
 
-  // Filter transactions by category (for charts and summary)
+  // Filter transactions by category, keywords, and amount (for charts and summary)
   const filteredTransactions = useMemo(() => {
-    if (!categoryFilter || categoryFilter.length === 0) return transactions;
+    let result = dateFilteredTransactions;
     
-    return transactions.filter(t => {
-      // Check if "Uncategorized" is selected and transaction has no category
-      if (categoryFilter.includes('Uncategorized') && !t.glCode) {
+    // Filter by category
+    if (categoryFilter && categoryFilter.length > 0) {
+      result = result.filter(t => {
+        // Check if "Uncategorized" is selected and transaction has no category
+        if (categoryFilter.includes('Uncategorized') && !t.glCode) {
+          return true;
+        }
+        // Check if transaction's category is in the selected categories
+        if (t.glCode && categoryFilter.includes(t.glCode)) {
+          return true;
+        }
+        return false;
+      });
+    }
+    
+    // Filter by keywords (search in toFrom name, account, glCode)
+    if (keywordFilter && keywordFilter.length > 0) {
+      result = result.filter(t => {
+        const searchableText = [
+          t.toFrom?.name,
+          t.account,
+          t.glCode,
+        ].filter(Boolean).join(' ').toLowerCase();
+        
+        return keywordFilter.some(keyword => 
+          searchableText.includes(keyword.toLowerCase())
+        );
+      });
+    }
+    
+    // Filter by amount
+    if (amountFilter) {
+      result = result.filter(t => {
+        const amount = t.amount;
+        
+        // Filter by direction
+        if (amountFilter.direction === 'in' && amount < 0) {
+          return false;
+        }
+        if (amountFilter.direction === 'out' && amount > 0) {
+          return false;
+        }
+        
+        // Use absolute value for amount comparisons
+        const absAmount = Math.abs(amount);
+        
+        // Filter by exact amount
+        if (amountFilter.exactAmount !== undefined && absAmount !== amountFilter.exactAmount) {
+          return false;
+        }
+        
+        // Filter by minimum amount
+        if (amountFilter.minAmount !== undefined && absAmount < amountFilter.minAmount) {
+          return false;
+        }
+        
+        // Filter by maximum amount
+        if (amountFilter.maxAmount !== undefined && absAmount > amountFilter.maxAmount) {
+          return false;
+        }
+        
         return true;
-      }
-      // Check if transaction's category is in the selected categories
-      if (t.glCode && categoryFilter.includes(t.glCode)) {
-        return true;
-      }
-      return false;
-    });
-  }, [transactions, categoryFilter]);
+      });
+    }
+    
+    return result;
+  }, [dateFilteredTransactions, categoryFilter, keywordFilter, amountFilter]);
 
   // Sync charts expanded state with settings
   useEffect(() => {
     setIsChartsExpanded(settings.showChartsExpanded);
   }, [settings.showChartsExpanded]);
 
-  const handleApplyData = (newTransactions: Transaction[]) => {
-    setTransactions(newTransactions);
-  };
-
   // Handle transaction updates from the table (e.g., category changes)
+  // We need to update the shared store
+  const setTransactions = useAppStore((s) => s.setTransactions);
+  
   const handleTransactionsChange = useCallback((updatedTransactions: Transaction[]) => {
-    setTransactions(updatedTransactions);
-  }, []);
+    // When transactions are updated, we need to merge with all transactions
+    // Find which transactions were changed and update them in the full list
+    const updatedIds = new Set(updatedTransactions.map(t => t.id));
+    const unchangedTransactions = allTransactions.filter(t => !updatedIds.has(t.id));
+    
+    // If the updated transactions are a subset (filtered view), merge back
+    if (updatedTransactions.length !== allTransactions.length) {
+      // Merge: keep unchanged transactions and add updated ones
+      setTransactions([...unchangedTransactions, ...updatedTransactions]);
+    } else {
+      // Full replacement
+      setTransactions(updatedTransactions);
+    }
+  }, [allTransactions, setTransactions]);
 
   // Handle rules updates from the table
   const handleRulesChange = useCallback((updatedRules: CategoryRule[]) => {
@@ -145,13 +235,13 @@ const TransactionsPage: React.FC = () => {
     setScrollToTransactionId(transactionId);
     setClickedTransactionId(transactionId);
     
-    // Find the transaction and open the detail panel
-    const transaction = transactions.find(t => t.id === transactionId);
+    // Find the transaction and open the detail panel (search in filtered transactions)
+    const transaction = dateFilteredTransactions.find(t => t.id === transactionId);
     if (transaction) {
       setSelectedTransaction(transaction);
       setIsDetailPanelOpen(true);
     }
-  }, [transactions]);
+  }, [dateFilteredTransactions]);
 
   // Handle scroll complete - clear scroll target but keep highlight
   const handleScrollComplete = useCallback(() => {
@@ -181,14 +271,8 @@ const TransactionsPage: React.FC = () => {
 
   // Handle category change from detail panel
   const handleDetailCategoryChange = useCallback((transactionId: string, category: string) => {
-    setTransactions(prev => 
-      prev.map(t => 
-        t.id === transactionId 
-          ? { ...t, glCode: category || undefined }
-          : t
-      )
-    );
-  }, []);
+    updateTransaction(transactionId, { glCode: category || undefined });
+  }, [updateTransaction]);
 
   // Handle viewing transactions for a specific category (from Settings modal)
   const handleViewCategoryTransactions = useCallback((category: string) => {
@@ -198,6 +282,25 @@ const TransactionsPage: React.FC = () => {
   // Handle category filter change (multi-select from dropdown)
   const handleCategoryFilterChange = useCallback((categories: string[]) => {
     setCategoryFilter(categories);
+  }, []);
+
+  // Handle keyword filter change (multi-select from dropdown)
+  const handleKeywordFilterChange = useCallback((keywords: string[]) => {
+    setKeywordFilter(keywords);
+  }, []);
+
+  // Handle amount filter change
+  const handleAmountFilterChange = useCallback((filter: AmountFilterValue | null) => {
+    setAmountFilter(filter);
+  }, []);
+
+  // Handle date filter change
+  const handleDateFilterChange = useCallback((filter: { shortcut: DateShortcut; from: string; to: string } | null) => {
+    if (filter) {
+      setDateFilter(filter);
+    } else {
+      setDateFilter({ shortcut: 'all-time', from: '', to: '' });
+    }
   }, []);
 
   // Handle clearing the category filter
@@ -223,7 +326,8 @@ const TransactionsPage: React.FC = () => {
       {/* Page Header */}
       <div className="px-6 pt-6 pb-2">
         <div className="flex items-center justify-between">
-          <h1 className="text-[24px] font-semibold text-gray-900">Transactions</h1>
+          <h1 className="title-main">Transactions</h1>
+{/* Match Receipts button hidden
           <div className="flex items-center gap-2">
             <button className="h-9 px-4 flex items-center gap-2 text-[13px] font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 hover:border-gray-300 transition-colors">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -232,6 +336,7 @@ const TransactionsPage: React.FC = () => {
               Match Receipts
             </button>
           </div>
+          */}
         </div>
       </div>
 
@@ -242,6 +347,12 @@ const TransactionsPage: React.FC = () => {
           categoryFilter={categoryFilter}
           onCategoryFilterChange={handleCategoryFilterChange}
           categories={availableCategories}
+          dateFilter={dateFilter}
+          onDateFilterChange={handleDateFilterChange}
+          keywordFilter={keywordFilter}
+          onKeywordFilterChange={handleKeywordFilterChange}
+          amountFilter={amountFilter || undefined}
+          onAmountFilterChange={handleAmountFilterChange}
         />
       </div>
 
@@ -315,7 +426,7 @@ const TransactionsPage: React.FC = () => {
       {/* Transactions Table */}
       <div>
         <TransactionsTable 
-          transactions={transactions} 
+          transactions={dateFilteredTransactions} 
           onTransactionsChange={handleTransactionsChange}
           columnVisibility={settings.columnVisibility}
           rules={rules}
@@ -330,17 +441,6 @@ const TransactionsPage: React.FC = () => {
         />
       </div>
 
-      {/* Data Control Panel Trigger Button */}
-      <DataControlTrigger onClick={() => setIsControlPanelOpen(true)} />
-
-      {/* Data Control Panel */}
-      <DataControlPanel
-        isOpen={isControlPanelOpen}
-        onClose={() => setIsControlPanelOpen(false)}
-        onApply={handleApplyData}
-        currentCount={transactions.length}
-      />
-
       {/* Settings Modal */}
       <SettingsModal
         isOpen={isSettingsOpen}
@@ -352,7 +452,7 @@ const TransactionsPage: React.FC = () => {
         onDeleteRule={handleDeleteRule}
         highlightedRuleId={highlightedRuleId}
         onClearHighlightedRule={() => setHighlightedRuleId(null)}
-        transactions={transactions}
+        transactions={dateFilteredTransactions}
         onViewCategoryTransactions={handleViewCategoryTransactions}
       />
 

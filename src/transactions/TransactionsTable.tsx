@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { transactions as initialTransactions, glCodeOptions as initialGlCodeOptions, type Transaction } from './mockData';
 import { avatarColors } from './tokens';
 import type { CategoryRule } from './SettingsModal';
+import { formatDateForDisplay } from './DataControlPanel';
 
 // Category option type
 interface CategoryOption {
@@ -290,7 +291,7 @@ const CreateRuleModal: React.FC<CreateRuleModalProps> = ({
                 </svg>
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Create Category Rule</h2>
+                <h2 className="text-lg font-semibold text-gray-900 tracking-[-0.01em]">Create Category Rule</h2>
                 <p className="text-sm text-gray-500">Automatically categorize matching transactions</p>
               </div>
             </div>
@@ -475,21 +476,39 @@ const formatAmount = (amount: number): { text: string; isNegative: boolean } => 
   };
 };
 
-// Avatar component for To/From column
+// Avatar component for To/From column (based on Figma DSAvatar component)
 interface AvatarProps {
   initials: string;
   icon?: string;
+  size?: 'small' | 'medium' | 'large';
 }
 
-const Avatar: React.FC<AvatarProps> = ({ initials, icon }) => {
-  const colors = avatarColors[initials] || avatarColors.default;
+const Avatar: React.FC<AvatarProps> = ({ initials, icon, size = 'large' }) => {
+  // Size mappings
+  const sizeClasses = {
+    small: 'w-6 h-6 text-[10px]',
+    medium: 'w-7 h-7 text-[11px]',
+    large: 'w-8 h-8 text-[12px]',
+  };
+  
+  // Get color based on initials - using a consistent sage/mint palette
+  const getAvatarColor = (init: string): { bg: string; text: string } => {
+    // Use custom colors if defined, otherwise use default sage color
+    if (avatarColors[init]) {
+      return avatarColors[init];
+    }
+    // Default: light sage/mint background with dark text (matching Figma design)
+    return { bg: '#DBE5E0', text: '#374151' };
+  };
+  
+  const colors = getAvatarColor(initials);
   
   if (icon === 'mercury') {
     return (
-      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200 flex-shrink-0">
-        <svg className="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="currentColor">
-          <circle cx="12" cy="12" r="10" fill="#E5E7EB" />
-          <path d="M8 12h8M12 8v8" stroke="#6B7280" strokeWidth="2" strokeLinecap="round" />
+      <div className={`${sizeClasses[size]} rounded-full bg-[#DBE5E0] flex items-center justify-center overflow-hidden flex-shrink-0`}>
+        <svg className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M12 8v8M8 12h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       </div>
     );
@@ -497,7 +516,7 @@ const Avatar: React.FC<AvatarProps> = ({ initials, icon }) => {
   
   return (
     <div 
-      className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0"
+      className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-medium flex-shrink-0 tracking-[0.2px]`}
       style={{ backgroundColor: colors.bg, color: colors.text }}
     >
       {initials}
@@ -568,7 +587,7 @@ const MethodCell: React.FC<MethodCellProps> = ({ method }) => {
   };
 
   return (
-    <div className="flex items-center text-[13px] text-gray-600 truncate">
+    <div className="flex items-center body-default truncate">
       {getIcon()}
       <span className="truncate">{getLabel()}</span>
     </div>
@@ -617,7 +636,7 @@ const AddCategoryModal: React.FC<AddCategoryModalProps> = ({ isOpen, onClose, on
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Add New Category</h2>
+            <h2 className="text-lg font-semibold text-gray-900 tracking-[-0.01em]">Add New Category</h2>
             <button
               onClick={onClose}
               className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -1480,7 +1499,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
                 ) : column.id === 'date' ? (
                   <button 
                     onClick={() => handleSort('date')}
-                    className="flex items-center gap-1 text-[12px] font-medium text-gray-500 hover:text-gray-700"
+                    className="flex items-center gap-1 text-label-demi text-[color:var(--ds-text-secondary)] hover:text-[color:var(--ds-text-default)]"
                   >
                     {column.label}
                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1488,7 +1507,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
                     </svg>
                   </button>
                 ) : (
-                  <div className={`text-[12px] font-medium text-gray-500 ${column.align === 'right' ? 'text-right pr-6' : column.align === 'center' ? 'text-center' : 'text-left'}`}>
+                  <div className={`text-label-demi text-[color:var(--ds-text-secondary)] ${column.align === 'right' ? 'text-right pr-6' : column.align === 'center' ? 'text-center' : 'text-left'}`}>
                     {column.label}
                   </div>
                 )}
@@ -1536,7 +1555,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
                 {/* Date */}
                 {columnVisibility.date && (
                   <td className="py-3" style={{ width: columnWidths['date'] }}>
-                    <span className="text-[13px] text-gray-600 truncate block">{transaction.date}</span>
+                    <span className="body-default truncate block">{formatDateForDisplay(transaction.date)}</span>
                   </td>
                 )}
                 
@@ -1548,7 +1567,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
                         initials={transaction.toFrom.initials} 
                         icon={transaction.toFrom.icon}
                       />
-                      <span className="text-[13px] text-gray-900 font-medium truncate">
+                      <span className="body-default-demi text-[color:var(--ds-text-title)] truncate">
                         {transaction.toFrom.name}
                       </span>
                       <StatusBadge status={transaction.status || 'completed'} />
@@ -1561,11 +1580,11 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
                   <td className="py-3 text-right pr-6" style={{ width: columnWidths['amount'] }}>
                     <span 
                       className={`
-                        text-[13px] font-medium
+                        body-default-demi
                         ${isFailed 
                           ? 'text-emerald-600 line-through' 
                           : amount.isNegative 
-                            ? 'text-gray-900' 
+                            ? 'text-[color:var(--ds-text-title)]' 
                             : 'text-emerald-600'
                         }
                       `}
@@ -1578,7 +1597,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
                 {/* Account */}
                 {columnVisibility.account && (
                   <td className="py-3" style={{ width: columnWidths['account'] }}>
-                    <span className="text-[13px] text-gray-600 truncate block">{transaction.account}</span>
+                    <span className="body-default truncate block">{transaction.account}</span>
                   </td>
                 )}
                 

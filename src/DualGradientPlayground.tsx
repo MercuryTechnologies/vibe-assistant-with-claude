@@ -28,7 +28,7 @@ const DualGradientPlayground: React.FC<DualGradientPlaygroundProps> = ({
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         {/* Money Out Controls */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Money Out</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 tracking-[-0.01em]">Money Out</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <button
@@ -255,7 +255,7 @@ const DualGradientPlayground: React.FC<DualGradientPlaygroundProps> = ({
 
         {/* Money In Controls */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Money In</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 tracking-[-0.01em]">Money In</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <button

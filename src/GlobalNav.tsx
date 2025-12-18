@@ -29,9 +29,9 @@ export default function GlobalNav({
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200">
+    <header className="w-full bg-white border-b border-gray-200">
       <div className="mx-auto w-full px-4 sm:px-6">
-        <div className="flex h-14 items-center justify-between gap-6">
+        <div className="flex h-16 items-center justify-between gap-6">
           {/* Search */}
           <div className="w-[450px]">
             <label className="relative block">

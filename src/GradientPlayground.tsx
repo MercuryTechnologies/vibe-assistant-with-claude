@@ -57,7 +57,7 @@ const GradientPlayground: React.FC<GradientPlaygroundProps> = ({ settings, onSet
       {/* Controls Panel */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 w-80 shadow-sm">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Gradient Controls</h3>
+          <h3 className="text-lg font-semibold text-gray-900 tracking-[-0.01em]">Gradient Controls</h3>
           <button
             onClick={onReset}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium"

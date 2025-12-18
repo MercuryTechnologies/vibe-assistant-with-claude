@@ -36,17 +36,10 @@ export function pxToDate(px: number, railStart: Date, railEnd: Date, railPx: num
 
 export function snap(date: Date, scale: Scale, edge: 'start' | 'end' = 'start'): Date {
   const d = new Date(date);
-  if (scale === 'year' || scale === 'quarter') {
-    d.setDate(1);
-    d.setHours(0, 0, 0, 0);
-    if (edge === 'end' && d.getTime() < date.getTime()) {
-      d.setMonth(d.getMonth() + 1);
-    }
-  } else {
-    d.setHours(0, 0, 0, 0);
-    if (edge === 'end' && d.getTime() < date.getTime()) {
-      d.setDate(d.getDate() + 1);
-    }
+  // Always snap to day boundaries regardless of scale
+  d.setHours(0, 0, 0, 0);
+  if (edge === 'end' && d.getTime() < date.getTime()) {
+    d.setDate(d.getDate() + 1);
   }
   return d;
 }
@@ -335,7 +328,7 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
   // Ticks
   const ticks = useMemo(() => generateTicks(startDate, endDate, scale), [startDate, endDate, scale]);
 
-  const minUnit = scale === 'year' ? 'month' : scale === 'quarter' ? 'quarter' : 'day';
+  const minUnit = 'day' as const; // Always allow day-level adjustments
 
   const localX = useCallback((e: React.PointerEvent) => {
     if (!containerRef.current) return 0;
@@ -589,34 +582,7 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
       }
     });
     
-    // For yearly cadence, apply responsive filtering based on width
-    if (scale === 'year' && railWidth > 0) {
-      const points = relevant.map((t, idx) => ({ 
-        x: dateToPx(t.date, startDate, endDate, railWidth), 
-        idx, 
-        tick: t 
-      }));
-      
-      // Calculate minimum spacing based on container width
-      const totalMonths = relevant.length;
-      const avgSpacing = railWidth / totalMonths;
-      
-      let filteredPoints;
-      if (avgSpacing < 40) {
-        // Very tight - show every 3rd month (Jan, Apr, Jul, Oct)
-        filteredPoints = points.filter((_, i) => i % 3 === 0);
-      } else if (avgSpacing < 60) {
-        // Moderately tight - show every 2nd month
-        filteredPoints = points.filter((_, i) => i % 2 === 0);
-      } else {
-        // Plenty of space - show all months
-        filteredPoints = points;
-      }
-      
-      return filteredPoints.map(p => ({ t: p.tick, idx: p.idx, x: p.x }));
-    }
-    
-    // For other scales, show all labels
+    // Show all labels
     const points = relevant.map((t, idx) => ({ x: dateToPx(t.date, startDate, endDate, railWidth), idx }));
     return relevant.map((t, idx) => ({ t, idx, x: points[idx]?.x ?? 0 }));
   }, [ticks, scale, startDate, endDate, railWidth]);
@@ -666,7 +632,8 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
       className="relative bg-white cursor-crosshair select-none"
       style={{ 
         height,
-        touchAction: 'none'
+        touchAction: 'none',
+        overflowX: 'clip'
       }}
       onKeyDown={handleKeyDown}
       onPointerDown={handleBackgroundPointerDown}
@@ -723,8 +690,8 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
           style={{
             left: `${markerPx}px`,
             width: '1px',
-            top: '-16px', // Extend to full container height
-            height: `calc(100% + 16px)`,
+            top: '0',
+            height: '100%',
             backgroundColor: '#F4A267'
           }}
         />
@@ -738,8 +705,8 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
             style={{
               left: `${hoverX}px`,
               width: '1px',
-              top: '-16px',
-              height: `calc(100% + 16px)`,
+              top: '0',
+              height: '100%',
               backgroundColor: '#D1D5DB' // Light gray
             }}
           />
@@ -767,8 +734,8 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
           style={{
             left: `${comparisonStartPx}px`,
             width: `${comparisonEndPx - comparisonStartPx}px`,
-            top: '-16px',
-            height: `calc(100% + 16px)`,
+            top: '0',
+            height: '100%',
             background: 'rgba(0, 0, 0, 0.08)',
             border: '1px solid #9CA3AF',
             borderRadius: '6px',
@@ -810,8 +777,8 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
           style={{
             left: `${selectionStartPx}px`,
             width: `${selectionEndPx - selectionStartPx}px`,
-            top: '-16px',
-            height: `calc(100% + 16px)`,
+            top: '0',
+            height: '100%',
             background: 'rgba(59, 130, 246, 0.12)',
             border: '1.5px solid #3B82F6',
             borderRadius: '6px',
@@ -848,8 +815,8 @@ const TimelineRange: React.FC<TimelineRangeProps> = ({
           style={{
             left: `${dateToPx(previewSelection.start, startDate, endDate, railWidth)}px`,
             width: `${dateToPx(previewSelection.end, startDate, endDate, railWidth) - dateToPx(previewSelection.start, startDate, endDate, railWidth)}px`,
-            top: '-16px',
-            height: `calc(100% + 16px)`,
+            top: '0',
+            height: '100%',
             background: 'rgba(59, 130, 246, 0.12)',
             border: '1.5px solid #3B82F6',
             borderRadius: '6px',

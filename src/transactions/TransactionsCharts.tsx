@@ -90,22 +90,31 @@ const GroupByDropdown: React.FC<GroupByDropdownProps> = ({ value, onChange }) =>
   );
 };
 
+// Helper to format ISO date for bar chart display
+const formatDateForBarChart = (isoDate: string): string => {
+  const date = new Date(isoDate);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
 // Helper to aggregate transactions by a given property - returns incoming and outgoing separately
 const aggregateByProperty = (transactions: Transaction[], groupBy: GroupByOption): { name: string; fullName: string; incoming: number; outgoing: number }[] => {
-  const aggregated: Record<string, { incoming: number; outgoing: number }> = {};
+  const aggregated: Record<string, { incoming: number; outgoing: number; sortKey: string }> = {};
   
   transactions.forEach(t => {
     // Skip failed transactions
     if (t.status === 'failed') return;
     
     let key: string;
+    let sortKey: string;
     
     switch (groupBy) {
       case 'toFrom':
         key = t.toFrom.name;
+        sortKey = key;
         break;
       case 'account':
         key = t.account;
+        sortKey = key;
         break;
       case 'method':
         if (t.method.type === 'card') {
@@ -117,20 +126,25 @@ const aggregateByProperty = (transactions: Transaction[], groupBy: GroupByOption
         } else {
           key = 'Transfer';
         }
+        sortKey = key;
         break;
       case 'category':
         key = t.glCode || 'Uncategorized';
+        sortKey = key;
         break;
       case 'date':
-        key = t.date;
+        // Format ISO date for display but keep original for sorting
+        key = formatDateForBarChart(t.date);
+        sortKey = t.date; // Keep ISO for sorting
         break;
       default:
         key = 'Other';
+        sortKey = key;
     }
     
     // Initialize if not exists
     if (!aggregated[key]) {
-      aggregated[key] = { incoming: 0, outgoing: 0 };
+      aggregated[key] = { incoming: 0, outgoing: 0, sortKey };
     }
     
     // Separate incoming (positive) and outgoing (negative)
@@ -161,6 +175,12 @@ export interface LineChartHoverData {
   moneyOut: number;
 }
 
+// Helper to format ISO date for display
+const formatDateForLineChart = (isoDate: string): string => {
+  const date = new Date(isoDate);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
 // Line Chart Component using D3 - shows cumulative money in/out by date
 interface LineChartD3Props {
   transactions: Transaction[];
@@ -173,41 +193,43 @@ const LineChartD3: React.FC<LineChartD3Props> = ({ transactions, onHover }) => {
 
   // Compute cumulative data by date
   const lineData = useMemo(() => {
-    // Get unique dates and sort them
-    const dateOrder = ['Dec 1', 'Dec 2', 'Dec 3', 'Dec 4', 'Dec 5', 'Dec 6', 'Dec 7', 'Dec 8'];
-    
     // Aggregate by date
     const byDate: Record<string, { moneyIn: number; moneyOut: number }> = {};
     
     transactions.forEach(t => {
       if (t.status === 'failed') return;
       
-      if (!byDate[t.date]) {
-        byDate[t.date] = { moneyIn: 0, moneyOut: 0 };
+      // Use the ISO date as key
+      const dateKey = t.date;
+      
+      if (!byDate[dateKey]) {
+        byDate[dateKey] = { moneyIn: 0, moneyOut: 0 };
       }
       
       if (t.amount >= 0) {
-        byDate[t.date].moneyIn += t.amount;
+        byDate[dateKey].moneyIn += t.amount;
       } else {
-        byDate[t.date].moneyOut += Math.abs(t.amount);
+        byDate[dateKey].moneyOut += Math.abs(t.amount);
       }
     });
+    
+    // Get unique dates and sort them (ISO format sorts correctly)
+    const sortedDates = Object.keys(byDate).sort();
     
     // Create cumulative data
     let cumulativeIn = 0;
     let cumulativeOut = 0;
     
-    return dateOrder
-      .filter(date => byDate[date]) // Only include dates that have data
-      .map(date => {
-        cumulativeIn += byDate[date]?.moneyIn || 0;
-        cumulativeOut += byDate[date]?.moneyOut || 0;
-        return {
-          date,
-          moneyIn: cumulativeIn,
-          moneyOut: cumulativeOut,
-        };
-      });
+    return sortedDates.map(date => {
+      cumulativeIn += byDate[date]?.moneyIn || 0;
+      cumulativeOut += byDate[date]?.moneyOut || 0;
+      return {
+        date: formatDateForLineChart(date), // Format for display
+        isoDate: date, // Keep original for sorting
+        moneyIn: cumulativeIn,
+        moneyOut: cumulativeOut,
+      };
+    });
   }, [transactions]);
 
   useEffect(() => {
@@ -420,20 +442,36 @@ const LineChartD3: React.FC<LineChartD3Props> = ({ transactions, onHover }) => {
       .selectAll('text')
       .attr('dx', -8)
       .attr('fill', '#374151')
-      .attr('font-family', 'Arcadia Text, sans-serif')
+      .attr('font-family', 'Inter, sans-serif')
       .attr('font-size', '13px')
       .attr('font-weight', '400')
       .attr('letter-spacing', '0.1px');
 
-    // X Axis
+    // X Axis - limit to maximum 4 evenly spaced labels
+    const maxXTicks = 4;
+    const tickIndices: number[] = [];
+    if (lineData.length <= maxXTicks) {
+      // Show all ticks if we have 4 or fewer data points
+      for (let i = 0; i < lineData.length; i++) {
+        tickIndices.push(i);
+      }
+    } else {
+      // Calculate evenly spaced indices for 4 ticks
+      for (let i = 0; i < maxXTicks; i++) {
+        const index = Math.round((i * (lineData.length - 1)) / (maxXTicks - 1));
+        tickIndices.push(index);
+      }
+    }
+    const xTickValues = tickIndices.map(i => lineData[i].date);
+
     g.append('g')
       .attr('transform', `translate(0,${innerHeight})`)
-      .call(d3.axisBottom(xScale).tickSize(0))
+      .call(d3.axisBottom(xScale).tickSize(0).tickValues(xTickValues))
       .call(g => g.select('.domain').remove())
       .selectAll('text')
       .attr('dy', 8)
       .attr('fill', '#374151')
-      .attr('font-family', 'Arcadia Text, sans-serif')
+      .attr('font-family', 'Inter, sans-serif')
       .attr('font-size', '13px')
       .attr('font-weight', '400')
       .attr('letter-spacing', '0.1px')
@@ -666,7 +704,7 @@ const BarChartD3: React.FC<BarChartD3Props> = ({ data, categoryLabel = 'Category
     xAxis.selectAll('text')
       .attr('dy', 8)
       .attr('fill', '#374151')
-      .attr('font-family', 'Arcadia Text, sans-serif')
+      .attr('font-family', 'Inter, sans-serif')
       .attr('font-size', '13px')
       .attr('font-weight', '400')
       .attr('letter-spacing', '0.1px')
@@ -694,7 +732,7 @@ const BarChartD3: React.FC<BarChartD3Props> = ({ data, categoryLabel = 'Category
       .selectAll('text')
       .attr('dx', -5)
       .attr('fill', '#374151')
-      .attr('font-family', 'Arcadia Text, sans-serif')
+      .attr('font-family', 'Inter, sans-serif')
       .attr('font-size', '13px')
       .attr('font-weight', '400')
       .attr('letter-spacing', '0.1px');
