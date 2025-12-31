@@ -28,6 +28,7 @@ import {
   generateInitialTransactions,
   type Transaction 
 } from './transactions';
+import { ChatPage, FloatingChat, useChatStore } from './chat';
 
 function startOfMonth(d: Date): Date {
   const n = new Date(d);
@@ -125,7 +126,19 @@ function App() {
     const path = window.location.pathname;
     return path && path !== '/' ? path : '/home';
   });
+  
+  // URL query params for page-specific filters
+  const [urlParams, setUrlParams] = useState(() => {
+    return new URLSearchParams(window.location.search);
+  });
   const [collapsedIds, setCollapsedIds] = useState<string[]>(['payments']);
+  
+  // Chat store - for managing conversations and floating state
+  const startNewConversation = useChatStore((state) => state.startNewConversation);
+  const isFloating = useChatStore((state) => state.isFloating);
+  const setFloating = useChatStore((state) => state.setFloating);
+  const hasActiveConversation = useChatStore((state) => state.messages.length > 0);
+  const clearConversation = useChatStore((state) => state.clearConversation);
 
   // Set initial URL if on root path
   useEffect(() => {
@@ -572,9 +585,43 @@ function App() {
   }, []);
 
   const handleNavigate = useCallback((href: string) => {
-    setActivePath(href);
+    // Parse the href to separate path and query params
+    const url = new URL(href, window.location.origin);
+    const path = url.pathname;
+    const params = url.searchParams;
+    
+    // If navigating away from chat while there's an active conversation, show floating chat
+    if (activePath === '/chat' && path !== '/chat' && hasActiveConversation) {
+      setFloating(true);
+    }
+    // If navigating back to chat, hide floating chat
+    if (path === '/chat') {
+      setFloating(false);
+    }
+    setActivePath(path);
+    setUrlParams(params);
     window.history.pushState({}, '', href);
-  }, []);
+  }, [activePath, hasActiveConversation, setFloating]);
+  
+  // Handle starting a new chat conversation
+  const handleStartChat = useCallback((initialMessage: string) => {
+    startNewConversation(initialMessage);
+    setActivePath('/chat');
+    window.history.pushState({}, '', '/chat');
+  }, [startNewConversation]);
+  
+  // Handle floating chat expand (go back to full chat page)
+  const handleExpandChat = useCallback(() => {
+    setFloating(false);
+    setActivePath('/chat');
+    window.history.pushState({}, '', '/chat');
+  }, [setFloating]);
+  
+  // Handle floating chat close (clear conversation)
+  const handleCloseChat = useCallback(() => {
+    setFloating(false);
+    clearConversation();
+  }, [setFloating, clearConversation]);
 
   // Sample data for Scorecard
   const sampleInsights: Insight[] = useMemo(() => [
@@ -600,7 +647,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Sidebar */}
+      {/* Sidebar - always visible */}
       <SidebarNav
         orgName="Maker Inc."
         sections={sidebarSections}
@@ -623,10 +670,12 @@ function App() {
         {/* #region agent log */}
         {(() => { fetch('http://127.0.0.1:7242/ingest/fa9275e2-70e9-43ca-a419-11bef518d4c6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:580',message:'Rendering page',data:{activePath},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{}); return null; })()}
         {/* #endregion */}
-        {activePath === '/home' ? (
-          <HomePage />
+        {activePath === '/chat' ? (
+          <ChatPage onNavigate={handleNavigate} />
+        ) : activePath === '/home' ? (
+          <HomePage onStartChat={handleStartChat} />
         ) : activePath === '/transactions' ? (
-          <TransactionsPage />
+          <TransactionsPage urlFilter={urlParams.get('filter') || undefined} />
         ) : (
         <>
         {/* Sticky Insights Header - transforms layout on scroll, includes timeline */}
@@ -912,6 +961,15 @@ function App() {
             onToggleGradientPlayground={activePath === '/insights' ? setShowGradientPlayground : undefined}
           />
         </>
+      )}
+      
+      {/* Floating Chat - shown when navigated away from chat with active conversation */}
+      {isFloating && activePath !== '/chat' && (
+        <FloatingChat
+          onNavigate={handleNavigate}
+          onClose={handleCloseChat}
+          onExpand={handleExpandChat}
+        />
       )}
     </div>
   );

@@ -1159,11 +1159,16 @@ interface SearchResultItemProps {
   icon?: 'square' | 'rounded';
   title: string;
   subtitle: string;
+  onClick?: () => void;
 }
 
-function SearchResultItem({ icon = 'square', title, subtitle }: SearchResultItemProps) {
+function SearchResultItem({ icon = 'square', title, subtitle, onClick }: SearchResultItemProps) {
   return (
-    <div className="flex gap-[10px] items-center px-[12px] py-[12px] rounded-[8px] hover:bg-[rgba(112,115,147,0.05)] cursor-pointer transition-colors">
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex gap-[10px] items-center px-[12px] py-[12px] rounded-[8px] hover:bg-[rgba(112,115,147,0.05)] cursor-pointer transition-colors w-full text-left"
+    >
       <div 
         className={`w-[24px] h-[24px] bg-[rgba(112,115,147,0.16)] shrink-0 ${
           icon === 'rounded' ? 'rounded-[12px]' : 'rounded-[4px]'
@@ -1177,33 +1182,71 @@ function SearchResultItem({ icon = 'square', title, subtitle }: SearchResultItem
           {subtitle}
         </p>
       </div>
-    </div>
+    </button>
   );
 }
 
 // Ask Anything Input Component
 interface AskAnythingInputProps {
   isFocused?: boolean;
+  onStartChat: (initialMessage: string) => void;
 }
 
-function AskAnythingInput({ isFocused: controlledFocused }: AskAnythingInputProps) {
+function AskAnythingInput({ isFocused: controlledFocused, onStartChat }: AskAnythingInputProps) {
   const [isFocused, setIsFocused] = useState(controlledFocused ?? false);
   const [inputValue, setInputValue] = useState('');
   const inputRef = React.useRef<HTMLInputElement>(null);
   
-  // Sample search results
+  // Prefill options that start a chat
   const searchResults = [
-    { icon: 'square' as const, title: 'Wires on Mercury', subtitle: 'Start a new ask with our agent' },
-    { icon: 'square' as const, title: 'Canceling a payment you just sent', subtitle: 'Mercury Help Center' },
-    { icon: 'rounded' as const, title: 'Recent wire transactions', subtitle: '/transactions' },
-    { icon: 'rounded' as const, title: 'Send a wire', subtitle: '/send-money' },
+    { icon: 'square' as const, title: "What's my Cashflow?", subtitle: 'View your financial insights', initialMessage: "What's my cashflow looking like?" },
+    { icon: 'square' as const, title: 'Canceling a payment you just sent', subtitle: 'Mercury Help Center', initialMessage: 'How do I cancel a payment I just sent?' },
+    { icon: 'rounded' as const, title: 'Recent wire transactions', subtitle: 'View in transactions', initialMessage: 'Show me my recent wire transactions' },
+    { icon: 'rounded' as const, title: 'Send a wire', subtitle: 'Go to payments', initialMessage: 'I want to send a wire payment' },
   ];
+
+  // Handle selecting a prefill option
+  const handleSelectOption = (initialMessage: string) => {
+    setIsFocused(false);
+    onStartChat(initialMessage);
+  };
+
+  // Handle submitting custom input
+  const handleSubmit = () => {
+    if (inputValue.trim()) {
+      setIsFocused(false);
+      onStartChat(inputValue.trim());
+      setInputValue('');
+    }
+  };
 
   // Focus input when expanded
   React.useEffect(() => {
     if (isFocused && inputRef.current) {
       inputRef.current.focus();
     }
+  }, [isFocused]);
+  
+  // Global keyboard listener - focus input when user starts typing
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if already focused or if user is in another input
+      if (isFocused) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      
+      // Expand and focus the input for printable characters
+      if (e.key.length === 1) {
+        setIsFocused(true);
+        // Small delay to ensure the input is rendered and focused
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 50);
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isFocused]);
 
   return (
@@ -1294,6 +1337,7 @@ function AskAnythingInput({ isFocused: controlledFocused }: AskAnythingInputProp
                         icon={result.icon}
                         title={result.title}
                         subtitle={result.subtitle}
+                        onClick={() => handleSelectOption(result.initialMessage)}
                       />
                     ))}
                   </div>
@@ -1332,6 +1376,12 @@ function AskAnythingInput({ isFocused: controlledFocused }: AskAnythingInputProp
                             // Small delay to allow clicking on results
                             setTimeout(() => setIsFocused(false), 150);
                           }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && inputValue.trim()) {
+                              e.preventDefault();
+                              handleSubmit();
+                            }
+                          }}
                           className={`text-[18.75px] leading-[30px] text-[#363644] placeholder-[#9d9da8] outline-none bg-transparent transition-all duration-300 ease-out ${
                             isFocused ? 'flex-1 w-full' : 'flex-1'
                           }`}
@@ -1356,7 +1406,9 @@ function AskAnythingInput({ isFocused: controlledFocused }: AskAnythingInputProp
                         {/* Send Button */}
                         <button
                           type="button"
-                          className="w-[40px] h-[40px] rounded-full bg-[#5266eb] flex items-center justify-center text-white hover:bg-[#4255d9] transition-colors"
+                          onClick={handleSubmit}
+                          disabled={!inputValue.trim()}
+                          className="w-[40px] h-[40px] rounded-full bg-[#5266eb] flex items-center justify-center text-white hover:bg-[#4255d9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           aria-label="Send"
                         >
                           <svg className="w-[16px] h-[16px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -1428,7 +1480,11 @@ function AskAnythingInput({ isFocused: controlledFocused }: AskAnythingInputProp
 }
 
 // Main HomePage Component
-export default function HomePage() {
+interface HomePageProps {
+  onStartChat?: (initialMessage: string) => void;
+}
+
+export default function HomePage({ onStartChat }: HomePageProps) {
   const [viewMode, setViewMode] = useState<string>('Cashflow');
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('YTD');
   const [cadence, setCadence] = useState<Cadence>('monthly');
@@ -1907,7 +1963,7 @@ export default function HomePage() {
       </div>
       
       {/* Ask Anything Input */}
-      <AskAnythingInput />
+      <AskAnythingInput onStartChat={onStartChat || (() => {})} />
     </div>
   );
 }

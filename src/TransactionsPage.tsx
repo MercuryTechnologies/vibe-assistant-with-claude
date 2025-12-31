@@ -18,7 +18,11 @@ import {
 import { useAppStore } from './store';
 import { filterTransactionsByDateRange, dateShortcutToRange, customDateRangeToRange } from './utils';
 
-const TransactionsPage: React.FC = () => {
+interface TransactionsPageProps {
+  urlFilter?: string  // Filter from URL query param (e.g., 'wire')
+}
+
+const TransactionsPage: React.FC<TransactionsPageProps> = ({ urlFilter }) => {
   // Page settings state
   const [settings, setSettings] = useState<PageSettings>(defaultPageSettings);
   const [isChartsExpanded, setIsChartsExpanded] = useState(settings.showChartsExpanded);
@@ -28,6 +32,9 @@ const TransactionsPage: React.FC = () => {
   
   // Highlighted rule state (for navigating directly to a rule in settings)
   const [highlightedRuleId, setHighlightedRuleId] = useState<string | null>(null);
+  
+  // Track if we've applied the initial URL filter
+  const [initialFilterApplied, setInitialFilterApplied] = useState(false);
   
   // Get transactions from shared store
   const allTransactions = useAppStore((s) => s.transactions);
@@ -302,6 +309,29 @@ const TransactionsPage: React.FC = () => {
       setDateFilter({ shortcut: 'all-time', from: '', to: '' });
     }
   }, []);
+  
+  // Apply URL filter on mount (e.g., ?filter=wire)
+  useEffect(() => {
+    if (urlFilter && !initialFilterApplied) {
+      setInitialFilterApplied(true);
+      
+      // Map URL filter to keyword filter
+      const filterKeywordMap: Record<string, string[]> = {
+        'wire': ['wire'],
+        'ach': ['ach'],
+        'card': ['card'],
+        'stripe': ['stripe'],
+      };
+      
+      const keywords = filterKeywordMap[urlFilter.toLowerCase()];
+      if (keywords) {
+        // Use a slight delay to allow the page to render first
+        setTimeout(() => {
+          setKeywordFilter(keywords);
+        }, 100);
+      }
+    }
+  }, [urlFilter, initialFilterApplied]);
 
   // Handle clearing the category filter
   const handleClearCategoryFilter = useCallback(() => {
