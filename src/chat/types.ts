@@ -89,6 +89,29 @@ export interface SupportHandoffMetadata {
 }
 
 /**
+ * A transaction row in a table
+ */
+export interface TransactionTableRow {
+  id: string
+  counterparty: string
+  amount: number
+  date: string
+  category?: string
+  type?: string
+  dashboardLink: string
+}
+
+/**
+ * Metadata for transaction table display
+ */
+export interface TransactionTableMetadata {
+  title?: string           // e.g., "Your top expenses this month"
+  rows: TransactionTableRow[]
+  showCategory?: boolean   // Whether to show category column
+  showType?: boolean       // Whether to show transaction type column
+}
+
+/**
  * Combined metadata that can be attached to assistant messages
  */
 export interface MessageMetadata {
@@ -97,6 +120,7 @@ export interface MessageMetadata {
   action?: ActionMetadata
   link?: LinkMetadata
   supportHandoff?: SupportHandoffMetadata
+  transactionTable?: TransactionTableMetadata
 }
 
 /**
@@ -217,10 +241,10 @@ export interface PrefillOption {
  */
 export const DEFAULT_PREFILL_OPTIONS: PrefillOption[] = [
   {
-    title: "What's my Cashflow?",
-    subtitle: 'Ask about your financial insights',
+    title: "What's my cash flow?",
+    subtitle: 'View your financial insights',
     icon: 'square',
-    initialMessage: "What's my cashflow?",
+    initialMessage: "What's my cash flow?",
   },
   {
     title: 'Canceling a payment you just sent',

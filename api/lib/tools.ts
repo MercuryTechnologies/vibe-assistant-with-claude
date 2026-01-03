@@ -59,7 +59,8 @@ export const MERCURY_TOOLS = [
         },
         kind: {
           type: 'string',
-          description: 'Filter by transaction type (e.g., externalTransfer, debitCardTransaction)'
+          enum: ['wire', 'domesticWire', 'internationalWire', 'externalTransfer', 'debitCardTransaction', 'creditCardTransaction', 'ach'],
+          description: 'Filter by transaction type. Use "wire" to get both domestic and international wire transfers.'
         },
         start_date: {
           type: 'string',
@@ -144,6 +145,45 @@ export const MERCURY_TOOLS = [
     input_schema: {
       type: 'object',
       properties: {},
+      required: []
+    }
+  },
+  {
+    name: 'get_insights_data',
+    description: 'Get cashflow insights and financial summary for a time period. Returns money in, money out, net change, trend direction, and spending breakdown by category. Use this when users ask about their cashflow, spending patterns, or financial overview.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        period: {
+          type: 'string',
+          enum: ['current_month', 'last_month', 'last_30_days', 'last_90_days', 'ytd'],
+          description: 'Time period for the insights data (default: current_month)'
+        }
+      },
+      required: []
+    }
+  },
+  {
+    name: 'get_top_transactions',
+    description: 'Get the top/biggest transactions by amount. Use this when users ask about their biggest expenses, largest payments, or top transactions. Returns a formatted table of transactions.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        direction: {
+          type: 'string',
+          enum: ['out', 'in', 'all'],
+          description: 'Filter by money direction: "out" for expenses/payments, "in" for income/deposits, "all" for both. Default is "out" for expense queries.'
+        },
+        limit: {
+          type: 'number',
+          description: 'Number of transactions to return (default: 5, max: 10)'
+        },
+        period: {
+          type: 'string',
+          enum: ['last_7_days', 'last_30_days', 'last_month', 'last_90_days'],
+          description: 'Time period to search within (default: last_30_days)'
+        }
+      },
       required: []
     }
   },

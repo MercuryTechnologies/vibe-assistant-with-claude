@@ -6,12 +6,79 @@
 import React from 'react'
 import { ChatMessage as ChatMessageType, MessageMetadata } from './types'
 import ActionCard from './ActionCard'
+import TransactionTable from './TransactionTable'
 import { useChatStore } from './useChatStore'
 
 interface ChatMessageProps {
   message: ChatMessageType
   onNavigate?: (url: string, navigationMeta?: MessageMetadata['navigation']) => void
   onUndo?: (actionType: string, targetId: string) => void
+}
+
+/**
+ * Check if a paragraph is a markdown table
+ */
+function isMarkdownTable(paragraph: string): boolean {
+  const lines = paragraph.split('\n').filter(l => l.trim())
+  if (lines.length < 2) return false
+  
+  // Check if lines start and contain pipes
+  const hasPipes = lines.every(line => line.includes('|'))
+  // Check for separator row (|---|---|)
+  const hasSeparator = lines.some(line => /^\|?[\s-:|]+\|?$/.test(line.trim()))
+  
+  return hasPipes && hasSeparator
+}
+
+/**
+ * Parse a markdown table into a React table element
+ */
+function parseMarkdownTable(paragraph: string, key: number): React.ReactNode {
+  const lines = paragraph.split('\n').filter(l => l.trim())
+  
+  // Filter out separator row and parse cells
+  const dataRows = lines.filter(line => !/^\|?[\s-:|]+\|?$/.test(line.trim()))
+  
+  if (dataRows.length === 0) return null
+  
+  const parseRow = (line: string): string[] => {
+    return line
+      .split('|')
+      .map(cell => cell.trim())
+      .filter((cell, idx, arr) => idx > 0 && idx < arr.length - 1 || cell) // Handle edge pipes
+  }
+  
+  const headerCells = parseRow(dataRows[0])
+  const bodyRows = dataRows.slice(1).map(parseRow)
+  
+  return (
+    <div key={key} className="my-3 overflow-hidden rounded-lg border border-[rgba(112,115,147,0.16)] bg-white">
+      <div className="overflow-x-auto">
+        <table className="w-full text-[14px]">
+          <thead>
+            <tr className="border-b border-[rgba(112,115,147,0.12)] bg-[#fafafc]">
+              {headerCells.map((cell, idx) => (
+                <th key={idx} className="px-3 py-2 text-left font-medium text-[#6e6e80] text-[12px] uppercase tracking-wide">
+                  {cell}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {bodyRows.map((row, rowIdx) => (
+              <tr key={rowIdx} className="border-b border-[rgba(112,115,147,0.06)] last:border-b-0 hover:bg-[#f8f8fa]">
+                {row.map((cell, cellIdx) => (
+                  <td key={cellIdx} className="px-3 py-2.5 text-[#1e1e2a]">
+                    {parseInlineFormatting(cell)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
 }
 
 /**
@@ -24,6 +91,11 @@ function parseMarkdown(text: string): React.ReactNode {
   const paragraphs = text.split(/\n\n+/)
   
   return paragraphs.map((paragraph, pIdx) => {
+    // Check if this is a markdown table
+    if (isMarkdownTable(paragraph)) {
+      return parseMarkdownTable(paragraph, pIdx)
+    }
+    
     // Check if this is a list
     const lines = paragraph.split('\n')
     const isUnorderedList = lines.every(line => /^[-•*]\s/.test(line.trim()) || line.trim() === '')
@@ -134,10 +206,14 @@ export default function ChatMessage({ message, onNavigate, onUndo }: ChatMessage
   const isNavigationComplete = useChatStore((state) => state.isNavigationComplete)
   const markNavigationComplete = useChatStore((state) => state.markNavigationComplete)
   
+  const handleViewTransaction = (url: string) => {
+    onNavigate?.(url)
+  }
+  
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
       <div
-        className={`max-w-[80%] ${
+        className={`max-w-[85%] ${
           isUser
             ? 'bg-[#f2f2f7] rounded-[20px] rounded-br-[4px]'
             : 'bg-[#fafafc] border border-[rgba(112,115,147,0.12)] rounded-[20px] rounded-bl-[4px]'
@@ -161,8 +237,18 @@ export default function ChatMessage({ message, onNavigate, onUndo }: ChatMessage
           )}
         </div>
         
+        {/* Transaction table for assistant messages */}
+        {!isUser && message.metadata?.transactionTable && (
+          <div className="px-3 pb-2">
+            <TransactionTable
+              data={message.metadata.transactionTable}
+              onViewTransaction={handleViewTransaction}
+            />
+          </div>
+        )}
+        
         {/* Action card for assistant messages with metadata */}
-        {!isUser && message.metadata && (
+        {!isUser && message.metadata && (message.metadata.navigation || message.metadata.action || message.metadata.formPrefill || message.metadata.supportHandoff || message.metadata.link) && (
           <div className="px-4 pb-3">
             <ActionCard
               messageId={message.id}

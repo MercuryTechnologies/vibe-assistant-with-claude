@@ -11,7 +11,11 @@ import {
   MOCK_CATEGORIES,
   MOCK_ORGANIZATION,
   NAVIGATION_URLS,
-  FORM_URLS
+  FORM_URLS,
+  // Shared data functions (from src/shared/mockData.ts)
+  getSharedInsightsData,
+  getSharedTopTransactions,
+  transformSharedTransactions
 } from './mock-data'
 import { MessageMetadata } from './types'
 
@@ -23,6 +27,23 @@ export interface ToolResult {
 }
 
 type ToolInput = Record<string, unknown>
+
+/**
+ * Format transaction type for display
+ */
+function formatTransactionType(kind: string): string {
+  const typeMap: Record<string, string> = {
+    domesticWire: 'Wire',
+    internationalWire: 'Intl Wire',
+    externalTransfer: 'Transfer',
+    debitCardTransaction: 'Debit',
+    creditCardTransaction: 'Credit',
+    ach: 'ACH',
+    check: 'Check',
+    internalTransfer: 'Internal',
+  }
+  return typeMap[kind] || kind
+}
 
 export async function executeTool(
   toolName: string,
@@ -66,7 +87,17 @@ export async function executeTool(
         results = results.filter(t => t.status === input.status)
       }
       if (input.kind) {
-        results = results.filter(t => t.kind === input.kind)
+        const kindFilter = (input.kind as string).toLowerCase()
+        // Handle wire-related queries by matching both domesticWire and internationalWire
+        if (kindFilter === 'wire' || kindFilter.includes('wire')) {
+          results = results.filter(t => 
+            t.kind === 'domesticWire' || 
+            t.kind === 'internationalWire' ||
+            (t.bankDescription && t.bankDescription.toLowerCase().includes('wire'))
+          )
+        } else {
+          results = results.filter(t => t.kind === input.kind)
+        }
       }
       if (input.start_date) {
         const start = new Date(input.start_date as string)
@@ -77,11 +108,46 @@ export async function executeTool(
         results = results.filter(t => t.postedAt && new Date(t.postedAt) <= end)
       }
 
-      // Apply limit
-      const limit = (input.limit as number) || 20
-      results = results.slice(0, limit)
+      // Apply limit (default 5 for table display)
+      const limit = (input.limit as number) || 5
+      const displayResults = results.slice(0, limit)
 
-      return { success: true, data: results }
+      // Build transaction table for display
+      const transactionTableRows = displayResults.map(t => ({
+        id: t.id,
+        counterparty: t.counterpartyName,
+        amount: t.amount,
+        date: t.postedAt || new Date().toISOString(),
+        category: t.mercuryCategory || undefined,
+        type: formatTransactionType(t.kind),
+        dashboardLink: `/transactions?highlight=${t.id}`
+      }))
+
+      // Determine table title based on filters
+      let tableTitle = 'Recent transactions'
+      if (input.kind) {
+        const kindStr = input.kind as string
+        if (kindStr.toLowerCase().includes('wire')) {
+          tableTitle = 'Recent wire transactions'
+        } else {
+          tableTitle = `Recent ${kindStr} transactions`
+        }
+      }
+      if (input.counterparty_name) {
+        tableTitle = `Transactions with ${input.counterparty_name}`
+      }
+
+      return { 
+        success: true, 
+        data: displayResults,
+        metadata: displayResults.length > 0 ? {
+          transactionTable: {
+            title: tableTitle,
+            rows: transactionTableRows,
+            showType: !!(input.kind && (input.kind as string).toLowerCase().includes('wire'))
+          }
+        } : undefined
+      }
     }
 
     case 'get_transaction_details': {
@@ -126,6 +192,76 @@ export async function executeTool(
 
     case 'get_categories':
       return { success: true, data: MOCK_CATEGORIES }
+
+    case 'get_insights_data': {
+      // Use the shared insights data function - this computes data from actual transactions
+      // ensuring consistency with what the frontend displays
+      const insights = getSharedInsightsData()
+      
+      return {
+        success: true,
+        data: {
+          period: insights.cashflow.period,
+          totalBalance: insights.totalBalance,
+          moneyIn: insights.cashflow.moneyIn,
+          moneyOut: insights.cashflow.moneyOut,
+          cashflow: insights.cashflow.netChange,
+          trend: insights.cashflow.trend,
+          transactionCount: insights.transactionCount,
+          
+          // Account breakdown
+          accounts: insights.accounts,
+          
+          // Top spending by category (computed from actual transactions)
+          topSpendingCategories: insights.topSpendingCategories.map(cat => ({
+            category: cat.category,
+            amount: cat.amount
+          }))
+        }
+      }
+    }
+
+    case 'get_top_transactions': {
+      const direction = (input.direction as 'in' | 'out' | 'all') || 'out'
+      const limit = Math.min((input.limit as number) || 5, 10)
+      
+      // Use the shared function to get top transactions
+      const sharedResults = getSharedTopTransactions(direction, limit)
+      
+      // Transform to API format for display
+      const results = transformSharedTransactions(sharedResults)
+      
+      // Build transaction table
+      const transactionTableRows = results.map(t => ({
+        id: t.id,
+        counterparty: t.counterpartyName,
+        amount: t.amount,
+        date: t.postedAt || new Date().toISOString(),
+        category: t.mercuryCategory || undefined,
+        type: formatTransactionType(t.kind),
+        dashboardLink: `/transactions?highlight=${t.id}`
+      }))
+      
+      // Determine title
+      let tableTitle = 'Top transactions'
+      if (direction === 'out') {
+        tableTitle = 'Your biggest expenses'
+      } else if (direction === 'in') {
+        tableTitle = 'Your largest deposits'
+      }
+      
+      return {
+        success: true,
+        data: results,
+        metadata: {
+          transactionTable: {
+            title: tableTitle,
+            rows: transactionTableRows,
+            showCategory: true
+          }
+        }
+      }
+    }
 
     // -------------------------------------------------------------------------
     // Navigation Tools

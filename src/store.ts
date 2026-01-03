@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { type Transaction } from "./transactions/mockData";
+import { type LegacyTransaction as Transaction } from "./shared/mockData";
 
 export type DateRange = { start: Date; end: Date };
 

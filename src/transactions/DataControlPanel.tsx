@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { type Transaction } from './mockData';
+import { getLegacyTransactions } from '../shared/mockData';
 
 // Sample data pools for generating variety
 const merchants = [
@@ -225,8 +226,11 @@ export const generateTransactions = (settings: DataControlSettings): Transaction
 };
 
 // Generate initial transactions for app startup
+// Uses the shared mock data as the single source of truth
 export const generateInitialTransactions = (): Transaction[] => {
-  return generateTransactions(defaultSettings);
+  // Return transactions from the shared mock data
+  // This ensures consistency between the chat agent and the UI
+  return getLegacyTransactions();
 };
 
 interface DataControlPanelProps {

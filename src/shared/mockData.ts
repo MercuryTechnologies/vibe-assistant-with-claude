@@ -1,11 +1,107 @@
 // =============================================================================
-// Unified Mock Data - Single Source of Truth (CommonJS version)
+// Unified Mock Data - Single Source of Truth
 // =============================================================================
-// This is a CommonJS copy of mockData.ts for use in setupProxy.js
-// Keep this file synchronized with mockData.ts
+// This is the ONLY mock data file for the entire app.
+// Both frontend pages and the chat agent use this data.
 
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
+export interface Merchant {
+  name: string
+  initials: string
+  category: string
+  icon?: string
+}
+
+export interface Account {
+  id: string
+  name: string
+  balance: number
+  type: 'checking' | 'savings'
+  accountNumber: string
+}
+
+export interface Card {
+  id: string
+  name: string
+  last4: string
+  status: 'active' | 'frozen' | 'cancelled'
+  limit: number
+  spent: number
+}
+
+/**
+ * Unified Transaction type used across the entire app.
+ * This works for both the frontend UI and the chat agent.
+ */
+export interface Transaction {
+  id: string
+  date: string // ISO format: YYYY-MM-DD
+  
+  // Counterparty info (works as toFrom in UI)
+  counterparty: string
+  counterpartyInitials: string
+  counterpartyIcon?: string
+  
+  amount: number // Positive = incoming, Negative = outgoing
+  account: string
+  
+  // Method details
+  method: 'ach' | 'wire' | 'card' | 'stripe' | 'check' | 'transfer' | 'loan' | 'invoice'
+  methodDirection?: 'in' | 'out'
+  cardHolder?: string
+  cardLast4?: string
+  
+  // Categorization
+  category?: string
+  categoryAutoApplied?: boolean
+  
+  // Additional metadata
+  description?: string | null
+  hasAttachment?: boolean
+  status: 'completed' | 'pending' | 'failed'
+  
+  // Dashboard link for chat agent
+  dashboardLink?: string
+}
+
+export interface CategoryBreakdown {
+  category: string
+  amount: number
+}
+
+export interface CashflowData {
+  moneyIn: number
+  moneyOut: number
+  netChange: number
+  trend: 'positive' | 'negative' | 'neutral'
+  period: string
+}
+
+export interface InsightsData {
+  totalBalance: number
+  cashflow: CashflowData
+  accounts: Array<{ name: string; balance: number; type: string }>
+  topSpendingCategories: CategoryBreakdown[]
+  transactionCount: number
+}
+
+export interface TransactionsSummary {
+  last30Days: {
+    moneyIn: number
+    moneyOut: number
+    netChange: number
+    transactionCount: number
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Static Data
-const merchants = [
+// -----------------------------------------------------------------------------
+
+export const merchants: Merchant[] = [
   { name: 'AWS', initials: 'AW', category: 'Software & Subscriptions' },
   { name: 'Google Cloud', initials: 'GC', category: 'Software & Subscriptions' },
   { name: 'Stripe', initials: 'S', category: 'Revenue' },
@@ -46,23 +142,27 @@ const merchants = [
   { name: 'Milgram Brokerage', initials: 'MB', category: 'Revenue' },
   { name: 'Monarch Books', initials: 'MB', category: 'Office Supplies & Equipment' },
   { name: 'The Plant Organic Cafe', initials: 'P', category: 'Business Meals' },
-];
+]
 
-const accounts = [
+export const accounts: Account[] = [
   { id: 'acct-1', name: 'Mercury Checking', balance: 2459832.17, type: 'checking', accountNumber: '****4521' },
   { id: 'acct-2', name: 'Mercury Savings', balance: 500000.00, type: 'savings', accountNumber: '****8834' },
   { id: 'acct-3', name: 'Ops / Payroll', balance: 145000.00, type: 'checking', accountNumber: '****2211' },
   { id: 'acct-4', name: 'Treasury', balance: 1200000.00, type: 'savings', accountNumber: '****9900' },
-];
+]
 
-const cards = [
+export const cards: Card[] = [
   { id: 'card-1', name: 'Sarah Chen', last4: '4532', status: 'active', limit: 25000, spent: 12450 },
   { id: 'card-2', name: 'John Smith', last4: '7891', status: 'active', limit: 15000, spent: 3200 },
   { id: 'card-3', name: 'Jane Baker', last4: '1234', status: 'active', limit: 10000, spent: 8900 },
   { id: 'card-4', name: 'Mike Johnson', last4: '5555', status: 'frozen', limit: 5000, spent: 0 },
-];
+]
 
-const cardHolders = [
+// Account name aliases (for frontend display)
+export const accountNames = ['Mercury Checking', 'Ops / Payroll', 'Mercury Savings', 'Treasury', 'AR', 'Credit account']
+
+// Card holders for transaction generation
+export const cardHolders = [
   { name: 'Jane B.', last4: '1234' },
   { name: 'Jane B.', last4: '5555' },
   { name: 'Landon S.', last4: '4929' },
@@ -72,20 +172,61 @@ const cardHolders = [
   { name: 'Aluna T.', last4: '7840' },
   { name: 'Sarah Chen', last4: '4532' },
   { name: 'John Smith', last4: '7891' },
-];
+]
 
-// Seeded random for consistent data
-function seededRandom(seed) {
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
+// Categories for GL codes
+export const categories = [
+  'Bank Fees',
+  'Business Meals',
+  'COGS',
+  'Credit & Loan Payments',
+  'Employee Benefits',
+  'Entertainment',
+  'Financing Proceeds',
+  'Insurance',
+  'Interest Earned',
+  'Inventory & Materials',
+  'Legal & Professional Services',
+  'Marketing & Advertising',
+  'Office Supplies & Equipment',
+  'Payment Processing Fees',
+  'Payroll',
+  'Rent & Utilities',
+  'Revenue',
+  'Shipping & Postage',
+  'Software & Subscriptions',
+  'Taxes',
+  'Transfer',
+  'Travel & Transportation',
+]
+
+// -----------------------------------------------------------------------------
+// Transaction Generation
+// -----------------------------------------------------------------------------
+
+// Seeded random for consistent data across page loads
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed) * 10000
+  return x - Math.floor(x)
 }
 
-// Generate transactions
-function generateTransactions() {
-  const transactions = [];
-  let seed = 12345;
+interface RecurringTransaction {
+  merchant: string
+  amount: number
+  day: number
+  account: string
+  method: Transaction['method']
+  cardHolder?: string
+  cardLast4?: string
+  description?: string
+}
+
+function generateTransactions(): Transaction[] {
+  const transactions: Transaction[] = []
+  let seed = 12345 // Fixed seed for consistency
   
-  const recurring = [
+  // Recurring transactions (predictable)
+  const recurring: RecurringTransaction[] = [
     { merchant: 'AWS', amount: -2847.32, day: 1, account: 'Mercury Checking', method: 'ach' },
     { merchant: 'Google Cloud', amount: -1243.50, day: 1, account: 'Mercury Checking', method: 'ach' },
     { merchant: 'Slack', amount: -1250.00, day: 1, account: 'Mercury Checking', method: 'card', cardHolder: 'Sarah Chen', cardLast4: '4532' },
@@ -97,23 +238,24 @@ function generateTransactions() {
     { merchant: 'Notion', amount: -960.00, day: 10, account: 'Mercury Checking', method: 'card', cardHolder: 'Sarah Chen', cardLast4: '4532' },
     { merchant: 'OpenAI', amount: -2100.00, day: 12, account: 'Mercury Checking', method: 'card', cardHolder: 'Sarah Chen', cardLast4: '4532' },
     { merchant: 'Vercel', amount: -320.00, day: 15, account: 'Mercury Checking', method: 'card', cardHolder: 'John Smith', cardLast4: '7891' },
-  ];
+  ]
   
-  let txnId = 1;
+  // Add recurring transactions for each month
+  let txnId = 1
   for (let monthOffset = 0; monthOffset < 3; monthOffset++) {
     for (const r of recurring) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - monthOffset);
-      date.setDate(Math.min(r.day, 28));
+      const date = new Date()
+      date.setMonth(date.getMonth() - monthOffset)
+      date.setDate(Math.min(r.day, 28)) // Avoid invalid dates
       
       if (date <= new Date()) {
-        const merchantData = merchants.find(m => m.name === r.merchant) || { name: r.merchant, initials: r.merchant[0], category: 'Other' };
+        const merchantData = merchants.find(m => m.name === r.merchant) || { name: r.merchant, initials: r.merchant[0], category: 'Other' }
         transactions.push({
           id: `txn-${txnId++}`,
           date: date.toISOString().split('T')[0],
           counterparty: merchantData.name,
           counterpartyInitials: merchantData.initials,
-          counterpartyIcon: merchantData.icon,
+          counterpartyIcon: (merchantData as Merchant).icon,
           amount: r.amount,
           account: r.account,
           method: r.method,
@@ -124,26 +266,26 @@ function generateTransactions() {
           description: r.description || null,
           status: 'completed',
           dashboardLink: '/transactions',
-        });
+        })
       }
     }
   }
   
-  // Revenue transactions
-  const revenueClients = ['Stripe', 'Acme Corp', 'TechStart Inc', 'GlobalTech Solutions', 'Shopify'];
+  // Add revenue transactions (incoming)
+  const revenueClients = ['Stripe', 'Acme Corp', 'TechStart Inc', 'GlobalTech Solutions', 'Shopify']
   for (let i = 0; i < 25; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() - Math.floor(seededRandom(seed++) * 60));
-    const client = revenueClients[Math.floor(seededRandom(seed++) * revenueClients.length)];
-    const merchantData = merchants.find(m => m.name === client);
-    const amount = Math.round((5000 + seededRandom(seed++) * 45000) * 100) / 100;
+    const date = new Date()
+    date.setDate(date.getDate() - Math.floor(seededRandom(seed++) * 60))
+    const client = revenueClients[Math.floor(seededRandom(seed++) * revenueClients.length)]
+    const merchantData = merchants.find(m => m.name === client)
+    const amount = Math.round((5000 + seededRandom(seed++) * 45000) * 100) / 100
     
     transactions.push({
       id: `txn-${txnId++}`,
       date: date.toISOString().split('T')[0],
       counterparty: client,
       counterpartyInitials: merchantData?.initials || client[0],
-      amount: amount,
+      amount: amount, // Positive = incoming
       account: 'Mercury Checking',
       method: client === 'Stripe' ? 'stripe' : 'wire',
       methodDirection: 'in',
@@ -151,19 +293,19 @@ function generateTransactions() {
       description: client === 'Stripe' ? 'Stripe payout' : `Payment from ${client}`,
       status: 'completed',
       dashboardLink: '/transactions',
-    });
+    })
   }
   
-  // Misc card transactions
-  const miscMerchants = ['Blue Bottle Coffee', 'Sweetgreen', "Lily's Eatery", 'Uber', 'Lyft', 'Office Depot', 'Apple', 'Best Buy', 'Deli 77', "Trader John's", 'The Plant Organic Cafe'];
+  // Add miscellaneous card transactions
+  const miscMerchants = ['Blue Bottle Coffee', 'Sweetgreen', "Lily's Eatery", 'Uber', 'Lyft', 'Office Depot', 'Apple', 'Best Buy', 'Deli 77', "Trader John's", 'The Plant Organic Cafe']
   for (let i = 0; i < 40; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() - Math.floor(seededRandom(seed++) * 45));
-    const merchant = miscMerchants[Math.floor(seededRandom(seed++) * miscMerchants.length)];
-    const merchantData = merchants.find(m => m.name === merchant);
-    const cardIndex = Math.floor(seededRandom(seed++) * cardHolders.length);
-    const card = cardHolders[cardIndex];
-    const amount = -Math.round((10 + seededRandom(seed++) * 500) * 100) / 100;
+    const date = new Date()
+    date.setDate(date.getDate() - Math.floor(seededRandom(seed++) * 45))
+    const merchant = miscMerchants[Math.floor(seededRandom(seed++) * miscMerchants.length)]
+    const merchantData = merchants.find(m => m.name === merchant)
+    const cardIndex = Math.floor(seededRandom(seed++) * cardHolders.length)
+    const card = cardHolders[cardIndex]
+    const amount = -Math.round((10 + seededRandom(seed++) * 500) * 100) / 100
     
     transactions.push({
       id: `txn-${txnId++}`,
@@ -180,16 +322,16 @@ function generateTransactions() {
       categoryAutoApplied: seededRandom(seed++) > 0.6,
       status: 'completed',
       dashboardLink: '/transactions',
-    });
+    })
   }
   
-  // Invoice transactions
-  const invoiceClients = ['NASA', 'Acme Corp', 'Milgram Brokerage'];
+  // Add invoice transactions
+  const invoiceClients = ['NASA', 'Acme Corp', 'Milgram Brokerage']
   for (let i = 0; i < 10; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() - Math.floor(seededRandom(seed++) * 60));
-    const client = invoiceClients[Math.floor(seededRandom(seed++) * invoiceClients.length)];
-    const amount = Math.round((1000 + seededRandom(seed++) * 20000) * 100) / 100;
+    const date = new Date()
+    date.setDate(date.getDate() - Math.floor(seededRandom(seed++) * 60))
+    const client = invoiceClients[Math.floor(seededRandom(seed++) * invoiceClients.length)]
+    const amount = Math.round((1000 + seededRandom(seed++) * 20000) * 100) / 100
     
     transactions.push({
       id: `txn-${txnId++}`,
@@ -204,15 +346,16 @@ function generateTransactions() {
       description: `Invoice payment from ${client}`,
       status: seededRandom(seed++) > 0.9 ? 'failed' : 'completed',
       dashboardLink: '/transactions',
-    });
+    })
   }
   
-  // Internal transfers
+  // Add internal transfers
   for (let i = 0; i < 5; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() - Math.floor(seededRandom(seed++) * 30));
-    const amount = Math.round((10000 + seededRandom(seed++) * 50000) * 100) / 100;
+    const date = new Date()
+    date.setDate(date.getDate() - Math.floor(seededRandom(seed++) * 30))
+    const amount = Math.round((10000 + seededRandom(seed++) * 50000) * 100) / 100
     
+    // Transfer out
     transactions.push({
       id: `txn-${txnId++}`,
       date: date.toISOString().split('T')[0],
@@ -226,8 +369,9 @@ function generateTransactions() {
       category: 'Transfer',
       status: 'completed',
       dashboardLink: '/transactions',
-    });
+    })
     
+    // Transfer in
     transactions.push({
       id: `txn-${txnId++}`,
       date: date.toISOString().split('T')[0],
@@ -241,14 +385,14 @@ function generateTransactions() {
       category: 'Transfer',
       status: 'completed',
       dashboardLink: '/transactions',
-    });
+    })
   }
   
-  // Loan payments
+  // Add loan payments
   for (let i = 0; i < 3; i++) {
-    const date = new Date();
-    date.setMonth(date.getMonth() - i);
-    date.setDate(8);
+    const date = new Date()
+    date.setMonth(date.getMonth() - i)
+    date.setDate(8)
     
     transactions.push({
       id: `txn-${txnId++}`,
@@ -263,15 +407,15 @@ function generateTransactions() {
       category: 'Credit & Loan Payments',
       status: 'completed',
       dashboardLink: '/transactions',
-    });
+    })
   }
   
-  // Recent specific transactions
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const twoDaysAgo = new Date(today);
-  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+  // Add a few recent specific transactions for demo purposes
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const twoDaysAgo = new Date(today)
+  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
   
   transactions.push({
     id: `txn-${txnId++}`,
@@ -286,7 +430,7 @@ function generateTransactions() {
     description: 'AWS usage charges',
     status: 'completed',
     dashboardLink: '/transactions',
-  });
+  })
   
   transactions.push({
     id: `txn-${txnId++}`,
@@ -301,7 +445,7 @@ function generateTransactions() {
     description: 'Stripe payout - Weekly',
     status: 'completed',
     dashboardLink: '/transactions',
-  });
+  })
   
   transactions.push({
     id: `txn-${txnId++}`,
@@ -318,21 +462,28 @@ function generateTransactions() {
     description: 'Flight to NYC - Team offsite',
     status: 'completed',
     dashboardLink: '/transactions',
-  });
+  })
   
   // Sort by date descending
-  transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+  transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   
-  return transactions;
+  return transactions
 }
 
-// Generate once
-const MOCK_TRANSACTIONS = generateTransactions();
+// Generate the data once - this is the single source of truth
+export const MOCK_TRANSACTIONS: Transaction[] = generateTransactions()
 
-// Query functions
-function searchTransactions(query, limit = 10) {
-  const q = (query || '').toLowerCase();
-  let results = MOCK_TRANSACTIONS;
+// -----------------------------------------------------------------------------
+// Query Functions
+// -----------------------------------------------------------------------------
+
+/**
+ * Search transactions by query string
+ */
+export function searchTransactions(query?: string, limit: number = 10): Transaction[] {
+  const q = (query || '').toLowerCase()
+  
+  let results = MOCK_TRANSACTIONS
   
   if (q) {
     results = MOCK_TRANSACTIONS.filter(txn => {
@@ -341,26 +492,32 @@ function searchTransactions(query, limit = 10) {
         (txn.description && txn.description.toLowerCase().includes(q)) ||
         (txn.category && txn.category.toLowerCase().includes(q)) ||
         (txn.cardHolder && txn.cardHolder.toLowerCase().includes(q))
-      );
-    });
+      )
+    })
   }
   
-  return results.slice(0, limit);
+  return results.slice(0, limit)
 }
 
-function getTransactionById(id) {
-  return MOCK_TRANSACTIONS.find(txn => txn.id === id);
+/**
+ * Get transaction by ID
+ */
+export function getTransactionById(id: string): Transaction | undefined {
+  return MOCK_TRANSACTIONS.find(txn => txn.id === id)
 }
 
-function getTransactionsSummary() {
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+/**
+ * Get transactions summary for last 30 days
+ */
+export function getTransactionsSummary(): TransactionsSummary {
+  const now = new Date()
+  const thirtyDaysAgo = new Date(now)
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
   
-  const recentTxns = MOCK_TRANSACTIONS.filter(txn => new Date(txn.date) >= thirtyDaysAgo);
+  const recentTxns = MOCK_TRANSACTIONS.filter(txn => new Date(txn.date) >= thirtyDaysAgo)
   
-  const moneyIn = recentTxns.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
-  const moneyOut = recentTxns.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const moneyIn = recentTxns.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
+  const moneyOut = recentTxns.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0)
   
   return {
     last30Days: {
@@ -369,31 +526,39 @@ function getTransactionsSummary() {
       netChange: moneyIn - moneyOut,
       transactionCount: recentTxns.length,
     }
-  };
+  }
 }
 
-function getInsightsData() {
-  const summary = getTransactionsSummary();
-  const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+/**
+ * Get insights page data (cash flow, balances, trends)
+ * This is the main function that should be used by both frontend and agent
+ */
+export function getInsightsData(): InsightsData {
+  const summary = getTransactionsSummary()
+  const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0)
   
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const recentTxns = MOCK_TRANSACTIONS.filter(txn => new Date(txn.date) >= thirtyDaysAgo);
+  // Calculate category breakdown for last 30 days
+  const now = new Date()
+  const thirtyDaysAgo = new Date(now)
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  const recentTxns = MOCK_TRANSACTIONS.filter(txn => new Date(txn.date) >= thirtyDaysAgo)
   
-  const categoryBreakdown = {};
+  const categoryBreakdown: Record<string, number> = {}
   recentTxns.filter(t => t.amount < 0).forEach(t => {
-    const cat = t.category || 'Uncategorized';
-    categoryBreakdown[cat] = (categoryBreakdown[cat] || 0) + Math.abs(t.amount);
-  });
+    const cat = t.category || 'Uncategorized'
+    categoryBreakdown[cat] = (categoryBreakdown[cat] || 0) + Math.abs(t.amount)
+  })
   
-  const topCategories = Object.entries(categoryBreakdown)
+  // Sort by amount descending
+  const topCategories: CategoryBreakdown[] = Object.entries(categoryBreakdown)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
-    .map(([category, amount]) => ({ category, amount }));
+    .map(([category, amount]) => ({ category, amount }))
   
-  const netCashflow = summary.last30Days.moneyIn - summary.last30Days.moneyOut;
-  const cashflowTrend = netCashflow > 0 ? 'positive' : netCashflow < -10000 ? 'negative' : 'neutral';
+  // Calculate net cash flow trend (positive = more money in than out)
+  const netCashflow = summary.last30Days.moneyIn - summary.last30Days.moneyOut
+  const cashflowTrend: 'positive' | 'negative' | 'neutral' = 
+    netCashflow > 0 ? 'positive' : netCashflow < -10000 ? 'negative' : 'neutral'
   
   return {
     totalBalance,
@@ -407,31 +572,45 @@ function getInsightsData() {
     accounts: accounts.map(a => ({ name: a.name, balance: a.balance, type: a.type })),
     topSpendingCategories: topCategories,
     transactionCount: summary.last30Days.transactionCount,
-  };
+  }
 }
 
-function getWireTransactions(limit = 20) {
+/**
+ * Get wire transactions
+ */
+export function getWireTransactions(limit: number = 20): Transaction[] {
   return MOCK_TRANSACTIONS
     .filter(txn => txn.method === 'wire')
-    .slice(0, limit);
+    .slice(0, limit)
 }
 
-function getTopTransactions(direction = 'out', limit = 5) {
-  let results = [...MOCK_TRANSACTIONS];
+/**
+ * Get top transactions by amount
+ */
+export function getTopTransactions(
+  direction: 'in' | 'out' | 'all' = 'out',
+  limit: number = 5
+): Transaction[] {
+  let results = [...MOCK_TRANSACTIONS]
   
+  // Filter by direction
   if (direction === 'out') {
-    results = results.filter(t => t.amount < 0);
+    results = results.filter(t => t.amount < 0)
   } else if (direction === 'in') {
-    results = results.filter(t => t.amount > 0);
+    results = results.filter(t => t.amount > 0)
   }
   
-  results.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+  // Sort by absolute amount (biggest first)
+  results.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
   
-  return results.slice(0, limit);
+  return results.slice(0, limit)
 }
 
-function filterTransactionsByType(type, limit = 50) {
-  const typeMapping = {
+/**
+ * Filter transactions by type/method
+ */
+export function filterTransactionsByType(type: string, limit: number = 50): Transaction[] {
+  const typeMapping: Record<string, string[]> = {
     'wire': ['wire'],
     'ach': ['ach'],
     'card': ['card'],
@@ -439,21 +618,65 @@ function filterTransactionsByType(type, limit = 50) {
     'transfer': ['transfer'],
     'loan': ['loan'],
     'invoice': ['invoice'],
-  };
+  }
   
-  const methods = typeMapping[type.toLowerCase()] || [type.toLowerCase()];
+  const methods = typeMapping[type.toLowerCase()] || [type.toLowerCase()]
   
   return MOCK_TRANSACTIONS
     .filter(txn => methods.includes(txn.method))
-    .slice(0, limit);
+    .slice(0, limit)
 }
 
-// Legacy format conversion functions (for backward compatibility with frontend components)
-function toLegacyFormat(txn) {
-  let methodType = 'transfer';
-  if (txn.method === 'card') methodType = 'card';
-  else if (txn.method === 'loan') methodType = 'loan';
-  else if (txn.method === 'invoice') methodType = 'invoice';
+/**
+ * Filter transactions by date range
+ */
+export function filterTransactionsByDateRange(startDate: Date, endDate: Date): Transaction[] {
+  return MOCK_TRANSACTIONS.filter(txn => {
+    const txnDate = new Date(txn.date)
+    return txnDate >= startDate && txnDate <= endDate
+  })
+}
+
+// -----------------------------------------------------------------------------
+// Legacy Format Adapters (for backward compatibility with existing components)
+// -----------------------------------------------------------------------------
+
+/**
+ * Legacy Transaction format used by some frontend components
+ * This is provided for backward compatibility during migration
+ */
+export interface LegacyTransaction {
+  id: string
+  date: string
+  toFrom: {
+    name: string
+    initials: string
+    icon?: string
+  }
+  amount: number
+  account: string
+  method: {
+    type: 'loan' | 'invoice' | 'transfer' | 'card'
+    direction?: 'in' | 'out'
+    cardLast4?: string
+    cardHolder?: string
+  }
+  glCode?: string
+  glCodeAutoApplied?: boolean
+  hasAttachment?: boolean
+  status?: 'completed' | 'failed' | 'pending'
+}
+
+/**
+ * Convert unified Transaction to legacy format for backward compatibility
+ */
+export function toLegacyFormat(txn: Transaction): LegacyTransaction {
+  // Map method to legacy type
+  let methodType: 'loan' | 'invoice' | 'transfer' | 'card' = 'transfer'
+  if (txn.method === 'card') methodType = 'card'
+  else if (txn.method === 'loan') methodType = 'loan'
+  else if (txn.method === 'invoice') methodType = 'invoice'
+  else methodType = 'transfer'
   
   return {
     id: txn.id,
@@ -475,15 +698,19 @@ function toLegacyFormat(txn) {
     glCodeAutoApplied: txn.categoryAutoApplied,
     hasAttachment: txn.hasAttachment,
     status: txn.status,
-  };
+  }
 }
 
-function fromLegacyFormat(legacy) {
-  let method = 'transfer';
-  if (legacy.method.type === 'card') method = 'card';
-  else if (legacy.method.type === 'loan') method = 'loan';
-  else if (legacy.method.type === 'invoice') method = 'invoice';
-  else method = legacy.amount > 0 ? 'wire' : 'ach';
+/**
+ * Convert legacy Transaction to unified format
+ */
+export function fromLegacyFormat(legacy: LegacyTransaction): Transaction {
+  // Map legacy type to method
+  let method: Transaction['method'] = 'transfer'
+  if (legacy.method.type === 'card') method = 'card'
+  else if (legacy.method.type === 'loan') method = 'loan'
+  else if (legacy.method.type === 'invoice') method = 'invoice'
+  else method = legacy.amount > 0 ? 'wire' : 'ach'
   
   return {
     id: legacy.id,
@@ -502,15 +729,30 @@ function fromLegacyFormat(legacy) {
     hasAttachment: legacy.hasAttachment,
     status: legacy.status || 'completed',
     dashboardLink: '/transactions',
-  };
+  }
 }
 
-function getLegacyTransactions() {
-  return MOCK_TRANSACTIONS.map(toLegacyFormat);
+/**
+ * Get all transactions in legacy format
+ * Use this in components that still expect the old format
+ */
+export function getLegacyTransactions(): LegacyTransaction[] {
+  return MOCK_TRANSACTIONS.map(toLegacyFormat)
 }
+
+// Chart data helpers
+export const lineChartData = [
+  { date: 'Dec 1', moneyIn: 72000, moneyOut: 71500 },
+  { date: 'Dec 2', moneyIn: 85000, moneyOut: 84000 },
+  { date: 'Dec 3', moneyIn: 95000, moneyOut: 94500 },
+  { date: 'Dec 4', moneyIn: 120000, moneyOut: 119000 },
+  { date: 'Dec 5', moneyIn: 145000, moneyOut: 144500 },
+  { date: 'Dec 6', moneyIn: 160000, moneyOut: 159000 },
+  { date: 'Dec 7', moneyIn: 170000, moneyOut: 169500 },
+]
 
 // GL Code options for category dropdowns
-const glCodeOptions = [
+export const glCodeOptions = [
   { value: '', label: '' },
   { value: 'bank-fees', label: 'Bank Fees' },
   { value: 'business-meals', label: 'Business Meals' },
@@ -534,49 +776,15 @@ const glCodeOptions = [
   { value: 'taxes', label: 'Taxes' },
   { value: 'transfer', label: 'Transfer' },
   { value: 'travel-transportation', label: 'Travel & Transportation' },
-];
+]
 
-// Line chart data
-const lineChartData = [
-  { date: 'Dec 1', moneyIn: 72000, moneyOut: 71500 },
-  { date: 'Dec 2', moneyIn: 85000, moneyOut: 84000 },
-  { date: 'Dec 3', moneyIn: 95000, moneyOut: 94500 },
-  { date: 'Dec 4', moneyIn: 120000, moneyOut: 119000 },
-  { date: 'Dec 5', moneyIn: 145000, moneyOut: 144500 },
-  { date: 'Dec 6', moneyIn: 160000, moneyOut: 159000 },
-  { date: 'Dec 7', moneyIn: 170000, moneyOut: 169500 },
-];
-
-// Summary data
-function getSummaryData() {
-  const summary = getTransactionsSummary();
+// Summary data computed from transactions
+export function getSummaryData() {
+  const summary = getTransactionsSummary()
   return {
     netChange: summary.last30Days.netChange,
     netChangeDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     moneyIn: summary.last30Days.moneyIn,
     moneyOut: summary.last30Days.moneyOut,
-  };
+  }
 }
-
-// Export for CommonJS
-module.exports = {
-  merchants,
-  accounts,
-  cards,
-  cardHolders,
-  MOCK_TRANSACTIONS,
-  searchTransactions,
-  getTransactionById,
-  getTransactionsSummary,
-  getInsightsData,
-  getWireTransactions,
-  getTopTransactions,
-  filterTransactionsByType,
-  // Legacy format functions
-  toLegacyFormat,
-  fromLegacyFormat,
-  getLegacyTransactions,
-  glCodeOptions,
-  lineChartData,
-  getSummaryData,
-};

@@ -1,8 +1,11 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { transactions as initialTransactions, glCodeOptions as initialGlCodeOptions, type Transaction } from './mockData';
+import { getLegacyTransactions, glCodeOptions as initialGlCodeOptions, type Transaction } from './mockData';
 import { avatarColors } from './tokens';
 import type { CategoryRule } from './SettingsModal';
 import { formatDateForDisplay } from './DataControlPanel';
+
+// Get initial transactions from the shared mock data
+const initialTransactions = getLegacyTransactions();
 
 // Category option type
 interface CategoryOption {

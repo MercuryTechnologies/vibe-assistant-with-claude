@@ -9,6 +9,7 @@ export { default as ChatMessage } from './ChatMessage'
 export { default as ThinkingIndicator } from './ThinkingIndicator'
 export { default as ActionCard } from './ActionCard'
 export { default as NavigateCountdown } from './NavigateCountdown'
+export { default as TransactionTable } from './TransactionTable'
 
 // Store
 export { useChatStore } from './useChatStore'
