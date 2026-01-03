@@ -12,7 +12,7 @@ import {
   getSharedTransactionsSummary,
   getSharedWireTransactions,
   searchSharedTransactions,
-} from '../lib/mock-data'
+} from './_lib/mock-data'
 
 // Model configuration - Claude 4.5 models (latest)
 const ROUTER_MODEL = 'claude-sonnet-4-5-20250929'  // Sonnet 4.5: Intelligent router
