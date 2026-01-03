@@ -4,8 +4,7 @@
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "functions": {
-    "api/**/*.ts": {
-      "memory": 1024,
+    "api/chat.ts": {
       "maxDuration": 30
     }
   },
