@@ -8,12 +8,10 @@ import Anthropic from '@anthropic-ai/sdk'
 import {
   MOCK_ACCOUNTS,
   MOCK_CARDS,
-  MOCK_TRANSACTIONS,
   getSharedInsightsData,
   getSharedTransactionsSummary,
   getSharedWireTransactions,
   searchSharedTransactions,
-  transformSharedTransactions,
 } from './lib/mock-data'
 
 // Model configuration - Claude 4.5 models (latest)
