@@ -263,24 +263,51 @@ async function classifyQuery(
   client: Anthropic,
   message: string,
 ): Promise<ClassificationResult> {
-  const classificationPrompt = `You are Mercury Assistant. Classify this message.
+  const classificationPrompt = `You are Mercury Assistant, a friendly and helpful assistant for Mercury.
+
+CRITICAL COMPLIANCE (MUST FOLLOW):
+- Mercury is a FINTECH COMPANY, not a bank. NEVER say "Mercury Bank" or refer to Mercury as a bank.
+- Say "Mercury account" NOT "bank account"
+- NEVER predict the future or make guarantees about returns, markets, or outcomes
+- Only describe Mercury's existing product features as they work today
 
 MESSAGE: "${message}"
 
 INTENTS:
-- CASHFLOW_QUESTION: About cashflow, money in/out, spending trends
-- WIRE_TRANSACTIONS: About wire transfers
-- NAVIGATE: Go to a page
-- BALANCE: Account balances
-- TRANSACTION_SEARCH: Specific transactions or spending
-- CARD_ACTION: Freeze/manage cards
-- SUPPORT: Wants human support
-- COMPLEX_QUESTION: Deep analysis needed
-- SIMPLE_QUESTION: General questions
-- CHITCHAT: Off-topic
+- CASHFLOW_QUESTION: User asks about cashflow, money in/out, financial health, spending trends
+- WIRE_TRANSACTIONS: User specifically asks about wire transfers or wire transactions
+- NAVIGATE: User wants to go to a page (payments, transactions, cards, accounts, etc.)
+- BALANCE: User asks about account balances
+- TRANSACTION_SEARCH: User asks about specific transactions or spending (e.g., "What did I spend on AWS?")
+- CARD_ACTION: User wants to freeze/manage cards
+- SUPPORT: User explicitly asks for human support or has a complex account issue
+- COMPLEX_QUESTION: User asks something requiring deep analysis
+- SIMPLE_QUESTION: General product questions you can answer directly
+- CHITCHAT: Casual conversation, jokes, off-topic questions (meaning of life, etc.)
+
+RESPONSE GUIDELINES:
+- Be warm and friendly! Use a conversational tone.
+- For CASHFLOW_QUESTION: User wants to understand their financial picture - navigate to insights and answer
+- For WIRE_TRANSACTIONS: User wants to see wire transfers - navigate to transactions with wire filter
+- For CHITCHAT: Give a fun, friendly response then gently redirect to how you can help with Mercury
+- For SIMPLE_QUESTION: Provide a helpful answer about Mercury's features
+- For predictions/guarantees: Politely explain you can't predict the future but can show current features
+- Don't send to SUPPORT unless they explicitly ask for human help
 
 Respond with JSON:
 {"intent":"...", "needsSmartModel":true/false, "handoffMessage":"...", "quickResponse":"...", "navigationTarget":"..."}
+
+Examples:
+- "What's my cashflow?" → CASHFLOW_QUESTION
+- "What's my cashflow looking like?" → CASHFLOW_QUESTION
+- "How's my spending?" → CASHFLOW_QUESTION
+- "Show me my recent wire transactions" → WIRE_TRANSACTIONS
+- "Recent wires" → WIRE_TRANSACTIONS
+- "What's the meaning of life?" → CHITCHAT, quickResponse: "Ha! The big questions! 🤔 Philosophers have debated that for millennia. I'm more of a fintech assistant myself—I can help you navigate your Mercury account, check transactions, or send payments. What can I help you with?"
+- "Will my money grow?" → CHITCHAT, quickResponse: "I can't predict the future or give investment advice, but I can show you Mercury's features like Treasury for managing your cash. Would you like to learn more about that?"
+- "Show me my balance" → BALANCE
+- "What did I spend on AWS?" → TRANSACTION_SEARCH, handoffMessage: "Searching your transactions..."
+- "Go to payments" → NAVIGATE, navigationTarget: "payments"
 
 needsSmartModel=true only for TRANSACTION_SEARCH and COMPLEX_QUESTION.`
 
@@ -292,6 +319,16 @@ needsSmartModel=true only for TRANSACTION_SEARCH and COMPLEX_QUESTION.`
       messages: [{ role: 'user', content: classificationPrompt }],
     })
 
+    // Handle refusal (Claude 4.5 feature)
+    if (response.stop_reason === 'refusal') {
+      console.log('Router refused to classify, defaulting to smart model')
+      return {
+        intent: 'COMPLEX_QUESTION',
+        needsSmartModel: true,
+        handoffMessage: 'Let me look into that...'
+      }
+    }
+
     const textBlock = response.content.find(b => b.type === 'text')
     const text = textBlock && 'text' in textBlock ? textBlock.text : ''
     const jsonMatch = text.match(/\{[\s\S]*\}/)
@@ -302,9 +339,11 @@ needsSmartModel=true only for TRANSACTION_SEARCH and COMPLEX_QUESTION.`
     console.error('Classification error:', e)
   }
 
+  // Default: use smart model (better than returning generic response)
   return {
-    intent: 'SIMPLE_QUESTION',
-    needsSmartModel: false,
+    intent: 'COMPLEX_QUESTION',
+    needsSmartModel: true,
+    handoffMessage: 'Let me think about that...'
   }
 }
 
@@ -320,19 +359,25 @@ async function handleWithRouter(
   switch (classification.intent) {
     case 'CASHFLOW_QUESTION': {
       const insights = getSharedInsightsData()
-      const trendEmoji = insights.cashflow.netChange > 0 ? '📈' : '📉'
-      responseText = `Great question! Let me take you to your Insights page. ${trendEmoji}`
+      const netChange = insights.cashflow.netChange
+      const trendEmoji = netChange > 0 ? '📈' : netChange < -10000 ? '📉' : '➡️'
+      const trendWord = netChange > 0 ? 'positive' : netChange < -10000 ? 'negative' : 'neutral'
+      
+      responseText = `Great question! Let me take you to your Insights page where you can see your full cashflow picture. ${trendEmoji}`
       metadata = {
         navigation: {
           target: 'Insights',
           url: '/insights',
           countdown: true,
+          followUpAction: 'answer_with_page_data',
           pageData: {
             totalBalance: insights.totalBalance,
             moneyIn: insights.cashflow.moneyIn,
             moneyOut: insights.cashflow.moneyOut,
-            netChange: insights.cashflow.netChange,
-            trend: insights.cashflow.trend,
+            netChange: netChange,
+            trend: trendWord,
+            topCategories: insights.topSpendingCategories,
+            transactionCount: insights.transactionCount,
           }
         }
       }
@@ -340,13 +385,30 @@ async function handleWithRouter(
     }
 
     case 'WIRE_TRANSACTIONS': {
-      const wires = getSharedWireTransactions(5)
-      responseText = `I'll show you your wire transfers. You have ${wires.length} recent wires.`
+      const wires = getSharedWireTransactions(10)
+      const wireCount = wires.length
+      const totalAmount = wires.reduce((sum, t) => sum + t.amount, 0)
+      
+      responseText = `I'll take you to your Transactions page filtered to show your wire transfers. You have ${wireCount} recent wire transactions.`
       metadata = {
         navigation: {
           target: 'Transactions',
           url: '/transactions?filter=wire',
           countdown: true,
+          followUpAction: 'apply_filters',
+          filters: {
+            types: ['wire'],
+          },
+          pageData: {
+            wireCount,
+            totalAmount,
+            recentWires: wires.slice(0, 5).map(t => ({
+              id: t.id,
+              date: t.date,
+              counterparty: t.counterparty,
+              amount: t.amount,
+            }))
+          }
         }
       }
       break
