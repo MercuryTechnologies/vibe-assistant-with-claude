@@ -200,6 +200,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // If navigation has pageData, add a follow-up message with the data
   markNavigationComplete: (messageId: string, navigationMeta?: NavigationMetadata) => {
     const current = get().completedNavigations
+    const currentConversationId = get().conversationId
     const updated = new Set(current)
     updated.add(messageId)
     set({ completedNavigations: updated })
@@ -207,6 +208,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // If there's page data, add a follow-up message after a short delay
     if (navigationMeta?.pageData && navigationMeta?.followUpAction === 'answer_with_page_data') {
       setTimeout(() => {
+        // Check if we're still in the same conversation before adding message
+        // This prevents follow-ups from appearing in the wrong conversation
+        if (get().conversationId !== currentConversationId) {
+          return
+        }
+        
         const pageData = navigationMeta.pageData as Record<string, unknown>
         let followUpContent = ''
         
@@ -302,6 +309,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       isLoading: !!initialMessage,
       thinkingStatus: initialMessage ? 'Thinking' : null,
       streamingMessageId: null,
+      // Clear navigation state from previous conversations
+      completedNavigations: new Set<string>(),
+      pendingFollowUp: null,
     })
   },
 }))
