@@ -1,0 +1,91 @@
+---
+description: Prevent AI from suggesting Tailwind patterns - this project has migrated away from Tailwind
+globs: **/*.tsx, **/*.ts, **/*.css
+alwaysApply: true
+---
+
+# NO TAILWIND CSS
+
+This project has **MIGRATED AWAY** from Tailwind CSS. Do not suggest or generate any Tailwind patterns.
+
+## NEVER suggest or use:
+
+### Tailwind Color Tokens
+- `text-gray-500`, `bg-slate-100`, `border-blue-600`, etc.
+- Any color class with a number suffix
+
+### Responsive Prefixes
+- `sm:`, `md:`, `lg:`, `xl:`, `2xl:`
+- Example: `md:flex`, `lg:grid-cols-4`
+
+### State Prefixes
+- `hover:`, `focus:`, `focus-visible:`, `active:`, `disabled:`
+- `group-hover:`, `group-focus:`
+- `data-[state=...]` patterns in className
+- Example: `hover:bg-primary`, `focus:ring-2`
+
+### Arbitrary Values
+- `bg-[#color]`, `text-[#hex]`, `border-[rgba(...)]`
+- `w-[256px]`, `h-[100px]`, `min-h-[400px]`
+- `text-[15px]`, `leading-[24px]`, `tracking-[0.1px]`
+- `rounded-[20px]`, `rounded-[10px]`
+
+## ALWAYS use instead:
+
+### For Layout & Spacing
+Use utility classes from `src/utilities.css`:
+```tsx
+className="flex items-center gap-4 p-4"
+```
+
+### For Colors
+Use CSS custom properties via inline styles:
+```tsx
+style={{ color: 'var(--ds-text-default)', backgroundColor: 'var(--purple-magic-600)' }}
+```
+
+Or semantic classes:
+```tsx
+className="text-muted-foreground bg-background"
+```
+
+### For Hover/Focus/Responsive States
+Define in component CSS (`src/components.css`):
+```css
+.my-button:hover {
+  background-color: var(--purple-magic-700);
+}
+
+.my-button:focus-visible {
+  outline: 2px solid var(--purple-magic-600);
+}
+
+@media (min-width: 768px) {
+  .my-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+```
+
+### For Border Radius
+Use ONLY the 4-tier system:
+- `rounded-sm` (4px) - compact elements
+- `rounded-md` (8px) - **DEFAULT for most elements**
+- `rounded-lg` (12px) - large containers
+- `rounded-full` (9999px) - circular elements
+
+### For Typography
+Use design system classes:
+```tsx
+className="text-body text-title-secondary text-label-demi"
+```
+
+## Reference Files
+
+| File | Purpose |
+|------|---------|
+| `docs/UTILITIES.md` | Full styling reference |
+| `src/utilities.css` | Available utility classes |
+| `src/components.css` | Component-specific styles |
+| `src/index.css` | Design tokens (CSS custom properties) |
+| `src/typography.css` | Typography classes |

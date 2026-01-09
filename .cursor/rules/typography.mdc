@@ -1,0 +1,112 @@
+# Typography Rules
+
+## CRITICAL: Only Use Defined Typography Styles
+
+**ALL text in this app MUST use the Arcadia font family through the defined typography system. NEVER use generic fonts like Arial, Helvetica, or system defaults.**
+
+## The Typography System
+
+This design system uses only the Arcadia font family:
+- `var(--font-sans)` - Arcadia (for body text)
+- `var(--font-display)` - Arcadia Display (for titles/headings)
+
+## Rules
+
+### DO
+
+1. **Use typography CSS classes from `typography.css`** for all text:
+   - `.text-title-hero` - Hero titles (34px, Arcadia Display)
+   - `.text-title-main` - Main page titles (28px, Arcadia Display)
+   - `.text-title-secondary` - Section titles (19px, Arcadia)
+   - `.text-title-minor` - Subsection titles (17px, Arcadia)
+   - `.text-title-eyebrow` - Eyebrow/overline text (12px, uppercase)
+   - `.text-body-lg` / `.text-body-lg-demi` - Large body text (17px)
+   - `.text-body` / `.text-body-demi` - Default body text (15px)
+   - `.text-body-sm` / `.text-body-sm-demi` - Small body text (14px)
+   - `.text-label` / `.text-label-demi` - Labels (13px)
+   - `.text-tiny` / `.text-tiny-demi` - Tiny text (12px)
+   - `.text-micro` / `.text-micro-demi` - Micro text (10px)
+
+2. **When using inline styles with `fontSize`, ALWAYS include `fontFamily`**:
+   ```tsx
+   // CORRECT
+   style={{ fontFamily: 'var(--font-sans)', fontSize: 15 }}
+   
+   // WRONG - Will fall back to Arial/system font
+   style={{ fontSize: 15 }}
+   ```
+
+3. **Use CSS variables for font-family**:
+   ```css
+   font-family: var(--font-sans);
+   font-family: var(--font-display);
+   ```
+
+### DON'T
+
+1. **NEVER use generic font-family values**:
+   - ❌ `font-family: sans-serif`
+   - ❌ `font-family: Arial`
+   - ❌ `font-family: Helvetica`
+   - ❌ `font-family: system-ui`
+
+2. **NEVER use inline `fontSize` without `fontFamily`**:
+   - ❌ `style={{ fontSize: 14 }}`
+   - ❌ `style={{ fontSize: '15px' }}`
+
+3. **NEVER add fallback fonts to font-family declarations**:
+   - ❌ `font-family: 'Arcadia', sans-serif`
+   - ✅ `font-family: 'Arcadia'`
+
+## CSS Class Reference
+
+### In CSS files, always include font-family when setting font-size:
+
+```css
+/* CORRECT */
+.my-class {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 24px;
+}
+
+/* WRONG - Missing font-family */
+.my-class {
+  font-size: 15px;
+  line-height: 24px;
+}
+```
+
+## Available Typography Classes
+
+| Class | Size | Weight | Line Height | Use Case |
+|-------|------|--------|-------------|----------|
+| `.text-title-hero` | 34px | 380 | 44px | Hero titles |
+| `.text-title-main` | 28px | 380 | 36px | Page titles |
+| `.text-title-secondary` | 19px | 400 | 28px | Section titles |
+| `.text-title-minor` | 17px | 400 | 28px | Subsection titles |
+| `.text-title-eyebrow` | 12px | 480 | 24px | Eyebrow/overline |
+| `.text-body-lg` | 17px | 400 | 28px | Large body |
+| `.text-body-lg-demi` | 17px | 480 | 28px | Large body bold |
+| `.text-body` | 15px | 400 | 24px | Default body |
+| `.text-body-demi` | 15px | 480 | 24px | Default body bold |
+| `.text-body-sm` | 14px | 400 | 20px | Small body |
+| `.text-body-sm-demi` | 14px | 480 | 20px | Small body bold |
+| `.text-label` | 13px | 400 | 20px | Labels |
+| `.text-label-demi` | 13px | 480 | 20px | Labels bold |
+| `.text-tiny` | 12px | 400 | 20px | Tiny text |
+| `.text-tiny-demi` | 12px | 480 | 20px | Tiny text bold |
+| `.text-micro` | 10px | 400 | 20px | Micro text |
+| `.text-micro-demi` | 10px | 480 | 20px | Micro text bold |
+
+## Quick Reference for Inline Styles
+
+When you must use inline styles (e.g., dynamic values), always include the font:
+
+```tsx
+// For body text sizes (15px, 14px, 13px, 12px)
+style={{ fontFamily: 'var(--font-sans)', fontSize: 15 }}
+
+// For display/title sizes (34px, 28px, 19px+)
+style={{ fontFamily: 'var(--font-display)', fontSize: 28 }}
+```

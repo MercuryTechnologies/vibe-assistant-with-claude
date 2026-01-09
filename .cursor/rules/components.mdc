@@ -1,0 +1,94 @@
+---
+description: Guidelines for creating and managing components in the Mercury design system
+globs: src/components/**/*.tsx
+---
+
+# Component Development Guidelines
+
+## Adding New Components
+
+When creating a new component in this design system, you **MUST** complete these steps to ensure the component is properly documented and accessible in the Design System sidebar.
+
+### Steps for Adding a New Component
+
+1. **Create the component** in the appropriate directory:
+   - `src/components/ui/` - For base UI primitives (buttons, inputs, badges, etc.)
+   - `src/components/core/` - For business-specific components (AccountCard, TransactionRow, etc.)
+
+2. **Export the component** from the appropriate index file:
+   - For UI components: Add export to `src/components/ui/` (if index exists)
+   - For core components: Add export to `src/components/core/index.ts`
+
+3. **Add the component to the Component Registry** (`src/lib/component-registry.tsx`):
+   - Import the component at the top of the file
+   - Add an entry to the `componentRegistry` array with:
+     - `name`: Component name (string) - **This name will appear in the sidebar navigation**
+     - `category`: Either `'core'` or `'ui'`
+     - `description`: Brief description of the component's purpose
+     - `usedIn`: Array of file names where this component is used
+     - `variants`: Array of variant objects, each containing:
+       - `name`: Variant name
+       - `description`: What this variant demonstrates
+       - `props`: The props to pass for this variant
+     - `component`: Reference to the actual component (or a demo wrapper component)
+   - If the component needs interactive demos for different variants, create demo wrapper components (e.g., `MyComponentDefaultDemo`, `MyComponentErrorDemo`) and add them to the appropriate variant components map (e.g., `myComponentVariantComponents`)
+
+### Example Component Registry Entry
+
+\`\`\`typescript
+// 1. Import the component and create demo wrappers if needed
+import { MyNewComponent } from '@/components/ui/my-new-component';
+
+function MyNewComponentDefaultDemo() {
+  const [value, setValue] = useState('');
+  return <MyNewComponent value={value} onChange={setValue} />;
+}
+
+function MyNewComponentErrorDemo() {
+  return <MyNewComponent value="" error errorMessage="This field is required" />;
+}
+
+// 2. Add to componentRegistry array
+{
+  name: 'MyNewComponent',
+  category: 'ui',
+  description: 'Description of what this component does',
+  usedIn: ['SomePage.tsx', 'AnotherPage.tsx'],
+  variants: [
+    {
+      name: 'Default',
+      description: 'Default state of the component',
+      props: {},
+    },
+    {
+      name: 'Error State',
+      description: 'Component showing validation error',
+      props: { variant: 'error' },
+    },
+  ],
+  component: MyNewComponentDefaultDemo,
+}
+
+// 3. Add variant components map (for ComponentDetail page)
+export const myNewComponentVariantComponents: Record<string, React.ComponentType> = {
+  'Default': MyNewComponentDefaultDemo,
+  'Error State': MyNewComponentErrorDemo,
+};
+\`\`\`
+
+### Automatic Sidebar Navigation
+
+Once you add a component to the \`componentRegistry\`, it will **automatically appear** in the Design System sidebar navigation. The sidebar dynamically reads from the registry, so no additional steps are needed for navigation.
+
+The component will be accessible at \`/components/{componentname}\` (lowercase, no spaces).
+
+### Why This Matters
+
+The Component Gallery and Registry serve as:
+- **Living documentation** for the design system
+- **Visual reference** for designers and developers  
+- **Testing ground** to verify component variants work correctly
+- **Consistency checker** to ensure all components follow design standards
+- **Navigation source** for the Design System sidebar
+
+**Never skip adding a component to the registry** - it's essential for maintaining a well-documented design system and ensuring the component is discoverable in the sidebar.

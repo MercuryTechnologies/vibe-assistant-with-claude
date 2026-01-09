@@ -1,0 +1,99 @@
+---
+description: Border radius rules for the Mercury design system - always use medium (8px) as default
+globs: **/*.tsx, **/*.css
+alwaysApply: true
+---
+
+# Border Radius Rules
+
+## Default: Medium (8px)
+
+**ALWAYS use `rounded-md` (8px) as the default border radius** for all UI elements unless specifically instructed otherwise.
+
+## The 4-Tier System
+
+This design system uses only 4 border radius values:
+
+| Name | Value | CSS Class | CSS Variable | When to Use |
+|------|-------|-----------|--------------|-------------|
+| Small | 4px | `rounded-sm` | `var(--radius-sm)` | ONLY when specifically requested for compact elements (checkboxes, small badges) |
+| **Medium** | **8px** | **`rounded-md`** | **`var(--radius-md)`** | **DEFAULT - Use this for everything** |
+| Large | 12px | `rounded-lg` | `var(--radius-lg)` | ONLY when specifically requested for large containers |
+| Round | 9999px | `rounded-full` | `var(--radius-full)` | ONLY for circular elements (avatars, round buttons, pills) |
+
+## Rules
+
+### DO
+
+1. **Use `rounded-md` by default** for:
+   - Buttons
+   - Input fields
+   - Cards
+   - Dropdown menus
+   - Tooltips
+   - Modal dialogs
+   - Table containers
+   - Any new component
+
+2. **Only use other radii when explicitly specified**:
+   - User says "small radius" or "compact" → use `rounded-sm`
+   - User says "large radius" or "feature card" → use `rounded-lg`
+   - User says "circular", "avatar", or "pill" → use `rounded-full`
+
+### DON'T
+
+1. **Never use arbitrary pixel values** like `border-radius: 10px` or `border-radius: 6px`
+2. **Never mix different radii** on similar components
+
+## CSS Variables
+
+\`\`\`css
+--radius-sm: 4px;     /* Small - only when requested */
+--radius-md: 8px;     /* Medium - DEFAULT */
+--radius-lg: 12px;    /* Large - only when requested */
+--radius-full: 9999px; /* Round - for circles only */
+--radius: 8px;        /* Alias - defaults to medium */
+\`\`\`
+
+## Examples
+
+### Default (no specific instruction given)
+\`\`\`tsx
+// Using utility classes from utilities.css
+<button className="rounded-md px-4 py-2">Click me</button>
+<div className="rounded-md border p-4">Card content</div>
+<input className="rounded-md border px-3 py-2" />
+
+// Using inline styles with CSS variables
+<button style={{ borderRadius: 'var(--radius-md)' }}>Click me</button>
+\`\`\`
+
+### When user asks for "small" or "compact"
+\`\`\`tsx
+// User specified small
+<input type="checkbox" className="rounded-sm" />
+<span className="rounded-sm px-1">Tag</span>
+\`\`\`
+
+### When user asks for circular elements
+\`\`\`tsx
+// Avatars and pills are circular
+<img className="rounded-full" style={{ width: 40, height: 40 }} src="avatar.jpg" />
+<span className="rounded-full px-3 py-1">Pill badge</span>
+\`\`\`
+
+## Available Utility Classes
+
+The design system provides these border radius utility classes in \`utilities.css\`:
+
+- \`.rounded-none\` - 0px
+- \`.rounded-sm\` - 4px (var(--radius-sm))
+- \`.rounded-md\` - 8px (var(--radius-md)) - DEFAULT
+- \`.rounded-lg\` - 12px (var(--radius-lg))
+- \`.rounded-full\` - 9999px (var(--radius-full))
+
+Individual corner utilities are also available:
+- \`.rounded-t-*\` - Top corners
+- \`.rounded-r-*\` - Right corners
+- \`.rounded-b-*\` - Bottom corners
+- \`.rounded-l-*\` - Left corners

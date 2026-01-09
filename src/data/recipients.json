@@ -1,0 +1,52 @@
+{
+  "recipients": [
+    {
+      "id": "rec_001",
+      "name": "Acme Corp",
+      "status": "active",
+      "lastPaid": "2024-12-15"
+    },
+    {
+      "id": "rec_002",
+      "name": "Jason Green",
+      "status": "active",
+      "lastPaid": "2024-12-10"
+    },
+    {
+      "id": "rec_003",
+      "name": "Figma Inc",
+      "status": "active",
+      "lastPaid": "2024-12-14"
+    },
+    {
+      "id": "rec_004",
+      "name": "Amazon Web Services",
+      "status": "active",
+      "lastPaid": "2024-12-17"
+    },
+    {
+      "id": "rec_005",
+      "name": "Gusto",
+      "status": "active",
+      "lastPaid": "2024-12-15"
+    },
+    {
+      "id": "rec_006",
+      "name": "Notion Labs",
+      "status": "inactive",
+      "lastPaid": "2024-11-20"
+    },
+    {
+      "id": "rec_007",
+      "name": "Slack Technologies",
+      "status": "active",
+      "lastPaid": "2024-12-11"
+    },
+    {
+      "id": "rec_008",
+      "name": "Stripe Payments",
+      "status": "pending",
+      "lastPaid": null
+    }
+  ]
+}

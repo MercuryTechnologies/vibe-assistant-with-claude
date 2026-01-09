@@ -1,0 +1,37 @@
+/* Arcadia Font Family - Variable Fonts */
+
+/* Arcadia Text - Regular */
+@font-face {
+  font-family: 'Arcadia';
+  src: url('/fonts/ArcadiaText-VariableVF.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Arcadia Text - Italic */
+@font-face {
+  font-family: 'Arcadia';
+  src: url('/fonts/ArcadiaTextItalic-VariableVF.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Arcadia Display - Regular */
+@font-face {
+  font-family: 'Arcadia Display';
+  src: url('/fonts/ArcadiaDisplay-VariableVF.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Arcadia Display - Italic */
+@font-face {
+  font-family: 'Arcadia Display';
+  src: url('/fonts/ArcadiaDisplayItalic-VariableVF.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}

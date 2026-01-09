@@ -1,0 +1,36 @@
+{
+  "user": {
+    "id": "user_001",
+    "firstName": "Sarah",
+    "lastName": "Chen",
+    "email": "sarah@acmestartup.com",
+    "role": "Admin",
+    "avatar": null,
+    "company": {
+      "id": "company_001",
+      "name": "Acme Startup Inc",
+      "type": "LLC",
+      "industry": "Technology",
+      "website": "https://acmestartup.com"
+    }
+  },
+  "teamMembers": [
+    {
+      "id": "user_002",
+      "firstName": "Marcus",
+      "lastName": "Johnson",
+      "email": "marcus@acmestartup.com",
+      "role": "Finance",
+      "avatar": null
+    },
+    {
+      "id": "user_003",
+      "firstName": "Emily",
+      "lastName": "Rodriguez",
+      "email": "emily@acmestartup.com",
+      "role": "Viewer",
+      "avatar": null
+    }
+  ]
+}
+

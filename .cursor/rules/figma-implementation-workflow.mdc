@@ -1,0 +1,239 @@
+---
+description: Step-by-step workflow for pixel-perfect implementation from Figma MCP
+globs: ["src/**/*.tsx", "src/**/*.css"]
+alwaysApply: true
+---
+
+# Figma Implementation Workflow
+
+Follow this workflow exactly when implementing designs from Figma MCP to ensure pixel-perfect, consistent output.
+
+---
+
+## Step 1: Before Writing Code
+
+### 1.1 Check for Existing Components
+
+Before building anything custom, check if a component already exists:
+
+**Available DS Components:**
+- `DSButton` - Buttons with variants (primary, secondary, tertiary, destructive, floating)
+- `DSTextInput` - Text inputs with label, states, prefix/suffix
+- `DSCombobox` - Dropdown select with label and states
+- `DSCheckbox` - Checkbox with label variants
+- `DSRadioGroup` - Radio buttons (simple and block variants)
+- `DSTable` - Data tables with sorting, selection, loading states
+- `Chip` - Filter chips with dropdown/clear actions
+- `Badge` - Status badges (neutral, pearl, highlight, success, warning, error)
+- `Icon` - Standardized icon wrapper
+- `FilterMenu` - Multi-category filter popover
+- `InlineCombobox` - Compact dropdown for table cells
+
+**If a component exists → USE IT with appropriate props**
+
+Reference: `src/lib/component-registry/registry.ts`
+
+### 1.2 Extract All Design Values
+
+From the Figma MCP output, identify and note:
+- [ ] All fill colors → will map to `--ds-bg-*`
+- [ ] All text colors → will map to `--ds-text-*`
+- [ ] All border colors → will map to `--color-border-*`
+- [ ] All icon colors → will map to `--ds-icon-*`
+- [ ] All spacing values (padding, gap, margins)
+- [ ] All sizing values (width, height)
+- [ ] Typography (font-size, line-height, font-weight)
+- [ ] Border radius values
+- [ ] Shadow values
+
+---
+
+## Step 2: Spacing Translation
+
+Use this table to convert Figma spacing values to utility classes:
+
+| Figma px | Utility Class | CSS Variable |
+|---|---|---|
+| 4px | `gap-1`, `p-1`, `m-1` | `--space-25` |
+| 8px | `gap-2`, `p-2`, `m-2` | `--space-50` |
+| 12px | `gap-3`, `p-3`, `m-3` | `--space-75` |
+| 16px | `gap-4`, `p-4`, `m-4` | `--space-100` |
+| 20px | Use inline style | `--space-125` |
+| 24px | `gap-6`, `p-6`, `m-6` | `--space-150` |
+| 32px | `gap-8`, `p-8`, `m-8` | `--space-200` |
+| 40px | Use inline style | `--space-250` |
+| 48px | Use inline style | `--space-300` |
+
+**For values NOT in this table:** Use inline style
+
+```tsx
+style={{ padding: 20 }}
+style={{ gap: 40 }}
+```
+
+---
+
+## Step 3: Typography Translation
+
+Match Figma typography to these classes:
+
+### Title Styles
+| Figma Values | Class |
+|---|---|
+| 34px / 44px line / 380 weight / Display | `text-title-hero` |
+| 28px / 36px line / 380 weight / Display | `text-title-main` |
+| 19px / 28px line / 400 weight | `text-title-secondary` |
+| 17px / 28px line / 400 weight (heading) | `text-title-minor` |
+| 12px / 24px line / 480 weight / UPPERCASE | `text-title-eyebrow` |
+
+### Body Styles
+| Figma Values | Class |
+|---|---|
+| 17px / 28px line / 400 weight | `text-body-lg` |
+| 17px / 28px line / 480 weight | `text-body-lg-demi` |
+| 15px / 24px line / 400 weight | `text-body` (DEFAULT) |
+| 15px / 24px line / 480 weight | `text-body-demi` |
+| 14px / 20px line / 400 weight | `text-body-sm` |
+| 14px / 20px line / 480 weight | `text-body-sm-demi` |
+
+### Label & Small Styles
+| Figma Values | Class |
+|---|---|
+| 13px / 20px line / 400 weight | `text-label` |
+| 13px / 20px line / 480 weight | `text-label-demi` |
+| 12px / 20px line / 400 weight | `text-tiny` |
+| 10px / 20px line / UPPERCASE | `text-micro` |
+
+**NEVER use inline font-size.** Always use typography classes.
+
+---
+
+## Step 4: Sizing (Heights, Widths)
+
+**Match Figma exactly.** Use inline styles for explicit dimensions:
+
+```tsx
+style={{ height: 32 }}
+style={{ width: 256 }}
+style={{ minHeight: 400 }}
+```
+
+**Do NOT guess or round values.** If Figma says 42px, use 42px.
+
+---
+
+## Step 5: Layout Translation (Figma Auto-Layout → CSS)
+
+| Figma Auto-Layout | CSS |
+|---|---|
+| Direction: Vertical | `flex flex-col` |
+| Direction: Horizontal | `flex` or `flex-row` |
+| Gap: Xpx | `gap-*` (see spacing table) |
+| Alignment: Center | `items-center` |
+| Alignment: Start | `items-start` |
+| Alignment: End | `items-end` |
+| Justify: Space Between | `justify-between` |
+| Justify: Center | `justify-center` |
+| Padding: uniform | `p-*` |
+| Padding: asymmetric | `py-* px-*` or `pt-* pr-* pb-* pl-*` |
+| Fill Container (width) | `w-full` or `flex-1` |
+| Fill Container (height) | `h-full` or `flex-1` |
+| Hug Contents | `w-fit` or omit width |
+| Fixed Width/Height | `style={{ width: X, height: Y }}` |
+
+---
+
+## Step 6: Border Radius
+
+| Figma Radius | CSS Class |
+|---|---|
+| 4px | `rounded-sm` (compact elements only) |
+| 8px | `rounded-md` (DEFAULT) |
+| 12px | `rounded-lg` (large containers) |
+| 9999px / full / pill | `rounded-full` |
+
+**NEVER use arbitrary values like `rounded-[10px]`**
+
+---
+
+## Step 7: Handling Interactive States
+
+**NEVER put hover/focus/disabled styles inline.**
+
+Define all state styles in `src/components.css`:
+
+```css
+.my-component {
+  /* base styles */
+}
+
+.my-component:hover {
+  background-color: var(--ds-bg-default-hovered);
+}
+
+.my-component:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-border-focus-ring);
+}
+
+.my-component:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.my-component[data-state="selected"] {
+  background-color: var(--ds-bg-emphasized);
+}
+```
+
+---
+
+## Step 8: Final Checklist
+
+Before submitting code, verify:
+
+- [ ] All colors use `--ds-*` or `--color-*` variables (no hex values)
+- [ ] All spacing uses utility classes or inline styles with exact values
+- [ ] Typography uses `text-*` classes (no inline font-size)
+- [ ] Border radius uses `rounded-*` classes (no arbitrary values)
+- [ ] Sizing matches Figma exactly
+- [ ] Interactive states defined in CSS, not inline
+- [ ] Existing components used where available
+
+---
+
+## Quick Reference
+
+### Color Variables
+- Backgrounds: `--ds-bg-*`
+- Text: `--ds-text-*`
+- Borders: `--color-border-*`
+- Icons: `--ds-icon-*`
+
+### Common Patterns
+
+```tsx
+// Container with padding and gap
+<div className="flex flex-col gap-4 p-6">
+
+// Card with border and radius
+<div 
+  className="rounded-lg p-6"
+  style={{ 
+    backgroundColor: 'var(--ds-bg-default)',
+    border: '1px solid var(--color-border-default)'
+  }}
+>
+
+// Text with semantic color
+<span 
+  className="text-label"
+  style={{ color: 'var(--ds-text-secondary)' }}
+>
+  Label text
+</span>
+
+// Button (use DSButton component)
+<DSButton variant="primary" size="small">
+  Click me
+</DSButton>
+```

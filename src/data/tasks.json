@@ -1,0 +1,72 @@
+{
+  "tasks": [
+    {
+      "id": "task_001",
+      "status": "incomplete",
+      "type": "email",
+      "description": "Review pending emails that can auto-forward to receipts@mercury.com",
+      "received": "2025-12-31",
+      "actionLabel": "View",
+      "actionHref": "/tasks/task_001"
+    },
+    {
+      "id": "task_003",
+      "status": "incomplete",
+      "type": "payment",
+      "description": "Approve $1,042.95 payment to Jason Green (requested by Aluna T.)",
+      "received": "2025-12-30",
+      "actionLabel": "View",
+      "actionHref": "/tasks/task_003"
+    },
+    {
+      "id": "task_004",
+      "status": "incomplete",
+      "type": "recurring_payment",
+      "description": "Approve $5,000.00 recurring payment to Jason Green (requested by Aluna T.)",
+      "received": "2025-12-30",
+      "actionLabel": "View",
+      "actionHref": "/tasks/task_004"
+    },
+    {
+      "id": "task_005",
+      "status": "incomplete",
+      "type": "policy",
+      "description": "Approve new daily maximum payment limit (requested by Landon Shepherd)",
+      "received": "2025-12-30",
+      "actionLabel": "View",
+      "actionHref": "/tasks/task_005"
+    },
+    {
+      "id": "task_006",
+      "status": "incomplete",
+      "type": "security",
+      "description": "Approve enabling the dual admin approval policy (requested by Landon Shepherd)",
+      "received": "2025-12-30",
+      "actionLabel": "View",
+      "actionHref": "/tasks/task_006"
+    },
+    {
+      "id": "task_007",
+      "status": "completed",
+      "type": "payment",
+      "description": "Approved $325.00 payment to Figma Inc. (requested by Aluna T.)",
+      "received": "2025-12-28",
+      "completedOn": "2025-12-29",
+      "completedBy": "Landon Shepherd",
+      "actionLabel": "View",
+      "actionHref": "/tasks/task_007"
+    },
+    {
+      "id": "task_008",
+      "status": "completed",
+      "type": "team_invite",
+      "description": "Approved team invite for Nicole Rivera (requested by Landon Shepherd)",
+      "received": "2025-12-27",
+      "completedOn": "2025-12-27",
+      "completedBy": "Aluna T.",
+      "actionLabel": "View",
+      "actionHref": "/tasks/task_008"
+    }
+  ]
+}
+

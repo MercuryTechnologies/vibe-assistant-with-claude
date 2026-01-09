@@ -1,0 +1,160 @@
+---
+description: Rules for using icons in the Mercury design system
+globs: ["src/**/*.tsx"]
+alwaysApply: true
+---
+
+# Icon Usage Rules
+
+## CRITICAL RULES
+
+1. **ALWAYS use the `Icon` component** from `@/components/ui/icon`
+2. **NEVER generate random SVGs** - only use Font Awesome icons
+3. **ONLY use Font Awesome Classic Regular style** (`far` prefix) unless specifically told to use Solid (`fas`)
+4. **Use the default size** unless the design specifically calls for small
+
+---
+
+## Icon Sizes
+
+| Size | Container | Icon | When to Use |
+|---|---|---|---|
+| `default` | 24×24px | 13px | **USE THIS** - standard for most contexts |
+| `small` | 20×20px | 11px | Only when explicitly specified for compact UI |
+
+```tsx
+// Default (use this)
+<Icon icon={faCircle} />
+
+// Small (only when specified)
+<Icon icon={faCircle} size="small" />
+```
+
+---
+
+## Font Awesome Style
+
+### Default: Classic Regular (`far`)
+
+Import icons from `@fortawesome/free-regular-svg-icons`:
+
+```tsx
+import { faCircle } from "@fortawesome/free-regular-svg-icons"
+import { faEnvelope } from "@fortawesome/free-regular-svg-icons"
+import { faUser } from "@fortawesome/free-regular-svg-icons"
+```
+
+### Only Use Solid When Specified (`fas`)
+
+Import from `@fortawesome/free-solid-svg-icons` ONLY if the design explicitly requires solid:
+
+```tsx
+// Only when design specifies solid
+import { faCircle } from "@fortawesome/free-solid-svg-icons"
+```
+
+---
+
+## NEVER Do This
+
+### Never generate inline SVGs
+
+```tsx
+// ❌ WRONG - Never do this
+<svg viewBox="0 0 24 24">
+  <path d="M12 2C6.48 2..." />
+</svg>
+
+// ✅ CORRECT - Use Font Awesome via Icon component
+<Icon icon={faCheck} />
+```
+
+### Never use arbitrary icon libraries
+
+```tsx
+// ❌ WRONG
+import { SomeIcon } from "some-random-icon-library"
+
+// ✅ CORRECT
+import { faCheck } from "@fortawesome/free-regular-svg-icons"
+```
+
+### Never hardcode SVG paths
+
+```tsx
+// ❌ WRONG
+const CustomIcon = () => <svg>...</svg>
+
+// ✅ CORRECT
+<Icon icon={faCheck} />
+```
+
+---
+
+## Applying Icon Colors
+
+Use the `--ds-icon-*` CSS variables via inline style:
+
+```tsx
+// Default color (neutral-base-700)
+<Icon icon={faUser} />
+
+// Semantic colors
+<Icon icon={faCheck} style={{ color: 'var(--ds-icon-success)' }} />
+<Icon icon={faXmark} style={{ color: 'var(--ds-icon-error)' }} />
+<Icon icon={faExclamation} style={{ color: 'var(--ds-icon-warning)' }} />
+
+// Primary/interactive
+<Icon icon={faPlus} style={{ color: 'var(--ds-icon-primary)' }} />
+
+// On dark backgrounds
+<Icon icon={faCheck} style={{ color: 'var(--ds-icon-on-inverted)' }} />
+```
+
+---
+
+## Common Icon Patterns
+
+### In Buttons
+
+```tsx
+<DSButton
+  variant="primary"
+  leadingIcon={<Icon icon={faPlus} style={{ color: 'var(--ds-icon-on-primary)' }} />}
+>
+  Add Item
+</DSButton>
+```
+
+### In Chips
+
+```tsx
+<Chip
+  label="Filter"
+  leadingIcon={<Icon icon={faFilter} size="small" />}
+  trailingAction="dropdown"
+/>
+```
+
+### Standalone
+
+```tsx
+<Icon icon={faEllipsis} style={{ color: 'var(--ds-icon-secondary)' }} />
+```
+
+---
+
+## Available Icon Color Variables
+
+| Variable | Use Case |
+|---|---|
+| `--ds-icon-default` | Standard icons |
+| `--ds-icon-secondary` | De-emphasized icons |
+| `--ds-icon-tertiary` | Subtle/muted icons |
+| `--ds-icon-emphasized` | High contrast icons |
+| `--ds-icon-primary` | Interactive/brand icons |
+| `--ds-icon-success` | Success states |
+| `--ds-icon-warning` | Warning states |
+| `--ds-icon-error` | Error states |
+| `--ds-icon-on-primary` | Icons on primary buttons |
+| `--ds-icon-on-inverted` | Icons on dark backgrounds |

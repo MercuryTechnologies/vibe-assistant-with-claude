@@ -1,0 +1,144 @@
+---
+description: Maps Figma semantic color variables to CSS custom properties for pixel-perfect implementation
+globs: ["src/**/*.tsx", "src/**/*.css"]
+alwaysApply: true
+---
+
+# Figma Color Mapping
+
+When implementing designs from Figma MCP, use these lookup tables to translate Figma semantic color names to CSS variables.
+
+**CRITICAL RULES:**
+- When Figma MCP references ANY color, look up the exact CSS variable from these tables
+- NEVER use hex values directly in components
+- NEVER use foundational tokens (like `--neutral-base-700`) directly - use semantic variables
+- NEVER guess - if a color isn't in these tables, ask for clarification
+
+---
+
+## Background Colors
+
+| Figma Name | CSS Variable |
+|---|---|
+| `Background/Default` | `var(--ds-bg-default)` |
+| `Background/Default › Hovered` | `var(--ds-bg-default-hovered)` |
+| `Background/Sidebar` | `var(--ds-bg-sidebar)` |
+| `Background/Secondary` | `var(--ds-bg-secondary)` |
+| `Background/Secondary › Hovered` | `var(--ds-bg-secondary-hovered)` |
+| `Background/Secondary › High Contrast` | `var(--ds-bg-secondary-high-contrast)` |
+| `Background/Emphasized` | `var(--ds-bg-emphasized)` |
+| `Background/Emphasized › Hovered` | `var(--ds-bg-emphasized-hovered)` |
+| `Background/Inverted` | `var(--ds-bg-inverted)` |
+| `Background/Primary` | `var(--ds-bg-primary)` |
+| `Background/Primary › Hovered` | `var(--ds-bg-primary-hovered)` |
+| `Background/Highlight` | `var(--ds-bg-highlight)` |
+| `Background/Success` | `var(--ds-bg-success)` |
+| `Background/Error` | `var(--ds-bg-error)` |
+| `Background/Warning` | `var(--ds-bg-warning)` |
+| `Background/Destructive` | `var(--ds-bg-destructive)` |
+| `Background/Destructive › Hovered` | `var(--ds-bg-destructive-hovered)` |
+| `Background/Input/Default` | `var(--ds-bg-input-default)` |
+| `Background/Input › Hovered` | `var(--ds-bg-input-hovered)` |
+| `Background/Input › Focused` | `var(--ds-bg-input-focused)` |
+| `Background/Input › Disabled` | `var(--ds-bg-input-disabled)` |
+| `Background/Input › Checked` | `var(--ds-bg-input-checked)` |
+| `Background/Role/Admin` | `var(--ds-bg-role-admin)` |
+| `Background/Role/Custom` | `var(--ds-bg-role-custom)` |
+| `Background/Role/Bookkeeper` | `var(--ds-bg-role-bookkeeper)` |
+| `Background/Role/Card Only` | `var(--ds-bg-role-card-only)` |
+
+---
+
+## Text Colors
+
+| Figma Name | CSS Variable |
+|---|---|
+| `Text/Default` | `var(--ds-text-default)` |
+| `Text/Secondary` | `var(--ds-text-secondary)` |
+| `Text/Tertiary` | `var(--ds-text-tertiary)` |
+| `Text/Emphasized` | `var(--ds-text-emphasized)` |
+| `Text/Disabled` | `var(--ds-text-disabled)` |
+| `Text/Placeholder` | `var(--ds-text-placeholder)` |
+| `Text/Title` | `var(--ds-text-title)` |
+
+---
+
+## Border Colors
+
+| Figma Name | CSS Variable |
+|---|---|
+| `Border/Default` | `var(--color-border-default)` |
+| `Border/Emphasized` | `var(--color-border-emphasized)` |
+| `Border/On Inverted` | `var(--color-border-on-inverted)` |
+| `Border/Error` | `var(--color-border-error)` |
+| `Border/Input` | `var(--color-border-input)` |
+| `Border/Input › Emphasized` | `var(--color-border-input-emphasized)` |
+| `Border/Input › Focused` | `var(--color-border-input-focused)` |
+| `Border/Input › Focused Underline` | `var(--color-border-input-focused-underline)` |
+| `Border/_Focus Ring` | `var(--color-border-focus-ring)` |
+| `Border/Input › Error` | `var(--color-border-input-error)` |
+| `Border/Input › Error Underline` | `var(--color-border-input-error-underline)` |
+| `Border/Avatar` | `var(--color-border-avatar)` |
+| `Border/Frosted` | `var(--color-border-frosted)` |
+
+---
+
+## Icon Colors
+
+| Figma Name | CSS Variable |
+|---|---|
+| `Icon/Default` | `var(--ds-icon-default)` |
+| `Icon/Secondary` | `var(--ds-icon-secondary)` |
+| `Icon/Tertiary` | `var(--ds-icon-tertiary)` |
+| `Icon/Emphasized` | `var(--ds-icon-emphasized)` |
+| `Icon/Success` | `var(--ds-icon-success)` |
+| `Icon/Warning` | `var(--ds-icon-warning)` |
+| `Icon/Error` | `var(--ds-icon-error)` |
+| `Icon/Destructive` | `var(--ds-icon-destructive)` |
+| `Icon/Primary` | `var(--ds-icon-primary)` |
+| `Icon/Primary › Hovered` | `var(--ds-icon-primary-hovered)` |
+| `Icon/Money › In` | `var(--ds-icon-money-in)` |
+| `Icon/Money › Out` | `var(--ds-icon-money-out)` |
+| `Icon/On Primary` | `var(--ds-icon-on-primary)` |
+| `Icon/On Inverted` | `var(--ds-icon-on-inverted)` |
+| `Icon/On Inverted › Success` | `var(--ds-icon-on-inverted-success)` |
+| `Icon/On Inverted › Error` | `var(--ds-icon-on-inverted-error)` |
+
+---
+
+## Status Colors (for direct use when needed)
+
+| Figma Name | CSS Variable |
+|---|---|
+| `Success` | `var(--color-success)` |
+| `Warning` | `var(--color-warning)` |
+| `Error` | `var(--color-error)` |
+| `Info` | `var(--color-info)` |
+
+---
+
+## Usage Examples
+
+### Background fill from Figma
+```tsx
+// Figma shows: Background/Secondary
+<div style={{ backgroundColor: 'var(--ds-bg-secondary)' }}>
+```
+
+### Text color from Figma
+```tsx
+// Figma shows: Text/Secondary
+<span style={{ color: 'var(--ds-text-secondary)' }}>Label</span>
+```
+
+### Border from Figma
+```tsx
+// Figma shows: Border/Input
+<input style={{ borderColor: 'var(--color-border-input)' }} />
+```
+
+### Icon color from Figma
+```tsx
+// Figma shows: Icon/Primary
+<Icon style={{ color: 'var(--ds-icon-primary)' }} />
+```

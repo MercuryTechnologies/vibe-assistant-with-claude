@@ -1,0 +1,336 @@
+---
+description: Reference patterns from existing components for consistency
+globs: ["src/components/**/*.tsx"]
+---
+
+# Component Patterns Reference
+
+When building new components, follow these patterns from existing design system components to ensure consistency.
+
+---
+
+## File Structure
+
+Components are organized in two directories:
+
+- `src/components/ui/` - Base UI primitives (buttons, inputs, badges, etc.)
+- `src/components/core/` - Business-specific components (AccountCard, TransactionRow, etc.)
+
+---
+
+## Component Structure Pattern
+
+Reference: `src/components/ui/ds-button.tsx`
+
+### Props Interface
+
+```tsx
+export interface MyComponentProps extends React.ComponentProps<"div"> {
+  variant?: "default" | "secondary" | "error"
+  size?: "small" | "large"
+  // Custom props specific to component
+}
+```
+
+### Component Function
+
+```tsx
+function MyComponent({
+  className,
+  variant = "default",
+  size = "small",
+  children,
+  ...props
+}: MyComponentProps) {
+  // Build class names using variant/size
+  const variantClass = `ds-my-component-${variant}`
+  const sizeClass = `ds-my-component-${size}`
+
+  return (
+    <div
+      data-slot="ds-my-component"
+      data-variant={variant}
+      data-size={size}
+      className={cn(
+        "ds-my-component",
+        variantClass,
+        sizeClass,
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  )
+}
+```
+
+### Key Patterns
+
+1. **Use `data-slot` attribute** for styling hooks
+2. **Use `data-variant` and `data-size`** for debugging/testing
+3. **Use `cn()` utility** for className composition
+4. **Spread `...props`** to allow standard HTML attributes
+5. **Export named** - `export { MyComponent }`
+
+---
+
+## Styling Pattern
+
+All component styles go in `src/components.css`, NOT inline.
+
+### Base Styles
+
+```css
+.ds-my-component {
+  display: flex;
+  align-items: center;
+  /* Use CSS variables for all colors */
+  background-color: var(--ds-bg-default);
+  color: var(--ds-text-default);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  /* Transitions for smooth state changes */
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+```
+
+### Size Variants
+
+```css
+.ds-my-component-small {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
+.ds-my-component-large {
+  height: 40px;
+  padding: 0 16px;
+  font-size: 15px;
+}
+```
+
+### Visual Variants
+
+```css
+.ds-my-component-default {
+  background-color: var(--ds-bg-default);
+  color: var(--ds-text-default);
+}
+
+.ds-my-component-secondary {
+  background-color: var(--ds-bg-secondary);
+  color: var(--ds-text-secondary);
+}
+
+.ds-my-component-error {
+  background-color: var(--ds-bg-error);
+  color: var(--color-error);
+}
+```
+
+### State Styles
+
+```css
+/* Hover */
+.ds-my-component:hover {
+  background-color: var(--ds-bg-default-hovered);
+  border-color: var(--color-border-emphasized);
+}
+
+/* Focus */
+.ds-my-component:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-border-focus-ring);
+}
+
+/* Disabled */
+.ds-my-component:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Selected (data attribute) */
+.ds-my-component[data-state="selected"] {
+  background-color: var(--ds-bg-emphasized);
+  border-color: var(--color-primary);
+}
+```
+
+---
+
+## Input Component Pattern
+
+Reference: `src/components/ui/ds-text-input.tsx`
+
+### Structure
+
+```tsx
+<div className="ds-text-input-container">
+  {label && (
+    <label className={cn("ds-text-input-label", focused && "focused", error && "error")}>
+      {label}
+    </label>
+  )}
+  <div className={cn("ds-text-input-wrapper", focused && "focused", error && "error")}>
+    {prefix && <span className="ds-text-input-affix">{prefix}</span>}
+    <input
+      className="ds-text-input-field"
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      {...props}
+    />
+    {suffix && <span className="ds-text-input-affix">{suffix}</span>}
+  </div>
+  {helpText && (
+    <span className={cn("ds-text-input-help", error && "error")}>
+      {helpText}
+    </span>
+  )}
+</div>
+```
+
+### Key Patterns
+
+1. **Container wraps everything** for consistent spacing
+2. **Wrapper for input row** (handles border, background, focus state)
+3. **State classes** applied via `cn()` based on state (`focused`, `error`, `disabled`)
+4. **Affix support** for prefix/suffix content
+
+---
+
+## Button Component Pattern
+
+Reference: `src/components/ui/ds-button.tsx`
+
+### Variants
+
+- `primary` - Main CTA, purple fill
+- `secondary` - Secondary action, gray fill
+- `tertiary` - Low emphasis, transparent
+- `destructive` - Dangerous action, red tint
+- `floating` - Elevated, white with shadow
+
+### Sizes
+
+- `small` - 32px height
+- `large` - 40px height
+
+### Icon Support
+
+```tsx
+<DSButton
+  variant="primary"
+  size="small"
+  leadingIcon={<Icon icon={faPlus} />}
+  trailingIcon={<Icon icon={faChevronDown} />}
+>
+  Button Text
+</DSButton>
+
+// Icon-only button
+<DSButton variant="tertiary" size="small" iconOnly>
+  <Icon icon={faEllipsis} />
+</DSButton>
+```
+
+---
+
+## Chip Component Pattern
+
+Reference: `src/components/ui/chip.tsx`
+
+### States
+
+- Default (unselected)
+- Selected (light purple background)
+- Open (dropdown active)
+
+### Trailing Actions
+
+- `dropdown` - Chevron icon, rotates when open
+- `clear` - X icon for clearing selection
+- `none` - No trailing action
+
+```tsx
+<Chip
+  label="Category"
+  selected={hasValue}
+  trailingAction="dropdown"
+  isOpen={isOpen}
+  onClick={toggleDropdown}
+/>
+
+<Chip
+  label="Filter: Active"
+  selected
+  trailingAction="clear"
+  onClear={clearFilter}
+/>
+```
+
+---
+
+## Table Component Pattern
+
+Reference: `src/components/ui/ds-table.tsx`
+
+### Key Elements
+
+- `DSTable` - Main table wrapper
+- `DSTableHeader` - Header row container
+- `DSTableBody` - Body rows container
+- `DSTableRow` - Individual row
+- `DSTableHead` - Header cell
+- `DSTableCell` - Body cell
+
+### Features
+
+- Sortable columns via `onSort` callback
+- Row selection via checkbox column
+- Loading state with skeleton
+- Empty state message
+- Detail panel support
+
+---
+
+## Component Registry
+
+After creating a component, add it to `src/lib/component-registry/registry.ts`:
+
+```tsx
+{
+  name: 'MyComponent',
+  category: 'ui',
+  description: 'Description of what this component does',
+  usedIn: ['PageName.tsx'],
+  variants: [
+    {
+      name: 'Default',
+      description: 'Default state',
+      props: {},
+    },
+    {
+      name: 'Error State',
+      description: 'Error variant',
+      props: { variant: 'error' },
+    },
+  ],
+  component: MyComponentDefaultDemo,
+}
+```
+
+---
+
+## Checklist for New Components
+
+- [ ] Props interface extends appropriate HTML element props
+- [ ] Uses `data-slot` attribute
+- [ ] Uses `cn()` for className composition
+- [ ] All styles in `components.css`, not inline
+- [ ] Colors use CSS variables (`--ds-*`, `--color-*`)
+- [ ] States handled in CSS (`:hover`, `:focus-visible`, `:disabled`, `[data-state]`)
+- [ ] Added to component registry with demos
+- [ ] Follows existing naming conventions (`ds-*` prefix)

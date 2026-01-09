@@ -1,0 +1,234 @@
+/* Typography System - Based on Figma Design System */
+
+/* ========================================
+   TITLE STYLES
+   ======================================== */
+
+/* Title - Hero: Large hero titles */
+.text-title-hero {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 380;
+  line-height: 44px;
+  letter-spacing: 0;
+  color: var(--ds-text-title, #1e1e2a);
+}
+
+/* Title - Main: Primary page titles */
+.text-title-main {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 380;
+  line-height: 36px;
+  letter-spacing: 0;
+  color: var(--ds-text-title, #1e1e2a);
+}
+
+/* Title - Secondary: Section titles */
+.text-title-secondary {
+  font-family: var(--font-sans);
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 28px;
+  letter-spacing: 0;
+  color: var(--ds-text-title, #1e1e2a);
+}
+
+/* Title - Minor: Subsection titles */
+.text-title-minor {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 28px;
+  letter-spacing: 0;
+  color: var(--ds-text-title, #1e1e2a);
+}
+
+/* Title - Eyebrow: Small overline titles */
+.text-title-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 480;
+  line-height: 24px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ds-text-title, #1e1e2a);
+}
+
+/* ========================================
+   BODY TEXT STYLES
+   ======================================== */
+
+/* Body Large: Emphasized body text */
+.text-body-lg {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 28px;
+  letter-spacing: 0;
+  color: var(--ds-text-default, #363644);
+}
+
+.text-body-lg-demi {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 480;
+  line-height: 28px;
+  letter-spacing: 0;
+  color: var(--ds-text-default, #363644);
+}
+
+/* Body Default: Standard body text */
+.text-body {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--ds-text-default, #363644);
+}
+
+.text-body-demi {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 480;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--ds-text-default, #363644);
+}
+
+/* Body Secondary: De-emphasized body text */
+.text-body-sm {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--ds-text-secondary, #535461);
+}
+
+.text-body-sm-demi {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 480;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--ds-text-secondary, #535461);
+}
+
+/* ========================================
+   LABEL & SMALL TEXT STYLES
+   ======================================== */
+
+/* Label: Form labels, metadata */
+.text-label {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  color: var(--ds-text-secondary, #535461);
+}
+
+.text-label-demi {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 480;
+  line-height: 20px;
+  letter-spacing: 0.2px;
+  color: var(--ds-text-secondary, #535461);
+}
+
+/* Tiny: Very small text */
+.text-tiny {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0.2px;
+  color: var(--ds-text-secondary, #535461);
+}
+
+.text-tiny-demi {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 480;
+  line-height: 20px;
+  letter-spacing: 0.2px;
+  color: var(--ds-text-secondary, #535461);
+}
+
+/* Micro: Smallest text (captions, legal) */
+.text-micro {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  color: var(--ds-text-secondary, #535461);
+}
+
+.text-micro-demi {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 480;
+  line-height: 20px;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  color: var(--ds-text-secondary, #535461);
+}
+
+/* ========================================
+   UNDERLINED VARIANTS
+   ======================================== */
+
+.text-body-lg-underline {
+  composes: text-body-lg;
+  text-decoration: underline;
+}
+
+.text-body-lg-demi-underline {
+  composes: text-body-lg-demi;
+  text-decoration: underline;
+}
+
+.text-body-underline {
+  composes: text-body;
+  text-decoration: underline;
+}
+
+.text-body-demi-underline {
+  composes: text-body-demi;
+  text-decoration: underline;
+}
+
+.text-body-sm-underline {
+  composes: text-body-sm;
+  text-decoration: underline;
+}
+
+.text-body-sm-demi-underline {
+  composes: text-body-sm-demi;
+  text-decoration: underline;
+}
+
+.text-label-underline {
+  composes: text-label;
+  text-decoration: underline;
+}
+
+.text-label-demi-underline {
+  composes: text-label-demi;
+  text-decoration: underline;
+}
+
+.text-tiny-demi-underline {
+  composes: text-tiny-demi;
+  text-decoration: underline;
+}
+
+.text-micro-demi-underline {
+  composes: text-micro-demi;
+  text-decoration: underline;
+}

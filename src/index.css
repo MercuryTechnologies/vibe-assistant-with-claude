@@ -1,0 +1,775 @@
+/* Design System CSS Imports */
+@import "./fonts.css";
+@import "./typography.css";
+@import "./utilities.css";
+@import "./animations.css";
+@import "./components.css";
+
+/* Design tokens - customize these to match your brand */
+:root {
+  /* ============================================
+     FOUNDATIONAL COLORS - From Figma Design System
+     ============================================ */
+  
+  /* Neutral Colors - Base Series */
+  --neutral-base-0: #ffffff;
+  --neutral-base-50: #fbfcfd;
+  --neutral-base-100: #f4f5f9;
+  --neutral-base-150: #ededf3;
+  --neutral-base-200: #dddde5;
+  --neutral-base-300: #c3c3cc;
+  --neutral-base-400: #9d9da8;
+  --neutral-base-500: #70707d;
+  --neutral-base-600: #535461;
+  --neutral-base-700: #363644;
+  --neutral-base-800: #272735;
+  --neutral-base-900: #1e1e2a;
+  --neutral-base-950: #171721;
+  --neutral-base-1000: #10101a;
+
+  /* Neutral Colors - Magic Series */
+  --neutral-magic-200: #d6d9ef;
+  --neutral-magic-300: #c2c5de;
+  --neutral-magic-400: #afb2ce;
+  --neutral-magic-600: #707393;
+  --neutral-magic-700: #5c5f7b;
+  --neutral-magic-800: #4a4c64;
+
+  /* Neutral Colors - Magic Series Alpha Variants */
+  --neutral-magic-400-alpha1: #afb2ce14;
+  --neutral-magic-400-alpha2: #afb2ce1f;
+  --neutral-magic-400-alpha3: #afb2ce33;
+  --neutral-magic-400-alpha4: #afb2ce47;
+  --neutral-magic-400-alpha5: #afb2ce5c;
+  --neutral-magic-600-alpha1: #70739305;
+  --neutral-magic-600-alpha2: #7073930f;
+  --neutral-magic-600-alpha3: #7073931a;
+  --neutral-magic-600-alpha4: #70739329;
+  --neutral-magic-600-alpha5: #70739338;
+
+  /* Purple Colors - Base Series */
+  --purple-base-0: #ffffff;
+  --purple-base-50: #fbfbff;
+  --purple-base-100: #f5f4fd;
+  --purple-base-150: #edecfb;
+  --purple-base-200: #dddbf4;
+  --purple-base-300: #c3c0df;
+  --purple-base-400: #9d98c3;
+  --purple-base-500: #716b96;
+  --purple-base-600: #554e7b;
+  --purple-base-700: #383255;
+  --purple-base-800: #28253b;
+  --purple-base-900: #1f1d2d;
+  --purple-base-950: #181623;
+  --purple-base-1000: #11101a;
+
+  /* Purple Colors - Magic Series */
+  --purple-magic-200: #cdddff;
+  --purple-magic-300: #b4c9f8;
+  --purple-magic-400: #9cb4e8;
+  --purple-magic-600: #5266eb;
+  --purple-magic-700: #4354c8;
+  --purple-magic-800: #3442a6;
+
+  /* Purple Colors - Magic Series Alpha Variants */
+  --purple-magic-400-alpha1: #9cb4e814;
+  --purple-magic-400-alpha2: #9cb4e81f;
+  --purple-magic-400-alpha3: #9cb4e833;
+  --purple-magic-400-alpha4: #9cb4e847;
+  --purple-magic-400-alpha5: #9cb4e85c;
+  --purple-magic-600-alpha1: #5266eb05;
+  --purple-magic-600-alpha2: #5266eb0f;
+  --purple-magic-600-alpha3: #5266eb1a;
+  --purple-magic-600-alpha4: #5266eb29;
+  --purple-magic-600-alpha5: #5266eb38;
+
+  /* Beige Colors - Base Series */
+  --beige-base-0: #ffffff;
+  --beige-base-50: #fcfcfa;
+  --beige-base-100: #f6f5f2;
+  --beige-base-150: #efeee9;
+  --beige-base-200: #e0ded7;
+  --beige-base-300: #c8c4b8;
+  --beige-base-400: #a39e91;
+  --beige-base-500: #767165;
+  --beige-base-600: #5a5548;
+  --beige-base-700: #3a3831;
+  --beige-base-800: #2a2924;
+  --beige-base-900: #201f1c;
+  --beige-base-950: #181818;
+  --beige-base-1000: #121212;
+
+  /* Beige Colors - Magic Series */
+  --beige-magic-200: #e7dab6;
+  --beige-magic-300: #d5c69f;
+  --beige-magic-400: #c3b389;
+  --beige-magic-600: #8a753c;
+  --beige-magic-700: #736131;
+  --beige-magic-800: #5d4e27;
+
+  /* Beige Colors - Magic Series Alpha Variants */
+  --beige-magic-400-alpha1: #c3b38914;
+  --beige-magic-400-alpha2: #c3b3891f;
+  --beige-magic-400-alpha3: #c3b38933;
+  --beige-magic-400-alpha4: #c3b38947;
+  --beige-magic-400-alpha5: #c3b3895c;
+  --beige-magic-600-alpha1: #8a753c05;
+  --beige-magic-600-alpha2: #8a753c0f;
+  --beige-magic-600-alpha3: #8a753c1a;
+  --beige-magic-600-alpha4: #8a753c29;
+  --beige-magic-600-alpha5: #8a753c38;
+
+  /* Blue Colors - Base Series */
+  --blue-base-0: #ffffff;
+  --blue-base-50: #f8fcfd;
+  --blue-base-150: #e4f0f5;
+  --blue-base-200: #d1e1e8;
+  --blue-base-300: #b0c9d3;
+  --blue-base-400: #84a4b1;
+  --blue-base-500: #547886;
+  --blue-base-600: #335c6b;
+  --blue-base-700: #183d4a;
+  --blue-base-800: #0f2d37;
+  --blue-base-900: #112228;
+  --blue-base-950: #111a1d;
+  --blue-base-1000: #0c1316;
+
+  /* Blue Colors - Magic Series */
+  --blue-magic-200: #a9e6f6;
+  --blue-magic-300: #8fd0e1;
+  --blue-magic-400: #77becf;
+  --blue-magic-600: #007f95;
+  --blue-magic-700: #00697b;
+  --blue-magic-800: #075462;
+
+  /* Blue Colors - Magic Series Alpha Variants */
+  --blue-magic-400-alpha1: #76bdff14;
+  --blue-magic-400-alpha2: #76bdff1f;
+  --blue-magic-400-alpha3: #76bdff33;
+  --blue-magic-400-alpha4: #76bdff47;
+  --blue-magic-400-alpha5: #76bdff5c;
+  --blue-magic-600-alpha1: #0078b905;
+  --blue-magic-600-alpha2: #0078b90f;
+  --blue-magic-600-alpha3: #0078b91a;
+  --blue-magic-600-alpha4: #0078b929;
+  --blue-magic-600-alpha5: #0078b938;
+
+  /* Red Colors - Base Series */
+  --red-base-0: #ffffff;
+  --red-base-50: #fefbfc;
+  --red-base-100: #fdf2f5;
+  --red-base-150: #fbe8ed;
+  --red-base-200: #fdd0dc;
+  --red-base-300: #eab2c2;
+  --red-base-400: #d2849c;
+  --red-base-500: #a4546f;
+  --red-base-600: #803b53;
+  --red-base-700: #5a2236;
+  --red-base-800: #411a28;
+  --red-base-900: #2f161e;
+  --red-base-950: #201418;
+  --red-base-1000: #151011;
+
+  /* Red Colors - Magic Series */
+  --red-magic-200: #fdcbd9;
+  --red-magic-300: #fdb2c8;
+  --red-magic-400: #fc92b4;
+  --red-magic-600: #d03275;
+  --red-magic-700: #b0175f;
+  --red-magic-800: #93004c;
+
+  /* Red Colors - Magic Series Alpha Variants */
+  --red-magic-400-alpha1: #fc92b414;
+  --red-magic-400-alpha2: #fc92b41f;
+  --red-magic-400-alpha3: #fc92b433;
+  --red-magic-400-alpha4: #fc92b447;
+  --red-magic-400-alpha5: #fc92b45c;
+  --red-magic-600-alpha1: #d0327505;
+  --red-magic-600-alpha2: #d032750f;
+  --red-magic-600-alpha3: #d032751a;
+  --red-magic-600-alpha4: #d0327529;
+  --red-magic-600-alpha5: #d0327538;
+
+  /* Orange Colors - Base Series */
+  --orange-base-0: #ffffff;
+  --orange-base-50: #fffbf9;
+  --orange-base-100: #fdf3ef;
+  --orange-base-150: #faeae3;
+  --orange-base-200: #f8d6c7;
+  --orange-base-300: #edb69d;
+  --orange-base-400: #d18b6c;
+  --orange-base-500: #9c6045;
+  --orange-base-600: #764833;
+  --orange-base-700: #4e2f21;
+  --orange-base-800: #38231a;
+  --orange-base-900: #281c17;
+  --orange-base-950: #1c1715;
+  --orange-base-1000: #15100f;
+
+  /* Orange Colors - Magic Series */
+  --orange-magic-200: #fecdb7;
+  --orange-magic-300: #ffb392;
+  --orange-magic-400: #fc9b6f;
+  --orange-magic-600: #c45000;
+  --orange-magic-700: #a44200;
+  --orange-magic-800: #863400;
+
+  /* Orange Colors - Magic Series Alpha Variants */
+  --orange-magic-400-alpha1: #fc9b6f14;
+  --orange-magic-400-alpha2: #fc9b6f1f;
+  --orange-magic-400-alpha3: #fc9b6f33;
+  --orange-magic-400-alpha4: #fc9b6f47;
+  --orange-magic-400-alpha5: #fc9b6f5c;
+  --orange-magic-600-alpha1: #c4500005;
+  --orange-magic-600-alpha2: #c450000f;
+  --orange-magic-600-alpha3: #c450001a;
+  --orange-magic-600-alpha4: #c4500029;
+  --orange-magic-600-alpha5: #c4500038;
+
+  /* Green Colors - Base Series */
+  --green-base-0: #ffffff;
+  --green-base-50: #fafcfb;
+  --green-base-100: #f1f7f3;
+  --green-base-150: #e7f1ea;
+  --green-base-200: #d3e3d8;
+  --green-base-300: #b4cbbc;
+  --green-base-400: #88a794;
+  --green-base-500: #5b7a67;
+  --green-base-600: #405d4c;
+  --green-base-700: #293d31;
+  --green-base-800: #1f2d24;
+  --green-base-900: #1a211d;
+  --green-base-950: #161917;
+  --green-base-1000: #0c0f0e;
+
+  /* Green Colors - Magic Series */
+  --green-magic-200: #bbe7cc;
+  --green-magic-300: #95d5af;
+  --green-magic-400: #77c599;
+  --green-magic-600: #188554;
+  --green-magic-700: #036e43;
+  --green-magic-800: #0a5736;
+
+  /* Green Colors - Magic Series Alpha Variants */
+  --green-magic-400-alpha1: #77c59914;
+  --green-magic-400-alpha2: #77c5991f;
+  --green-magic-400-alpha3: #77c59933;
+  --green-magic-400-alpha4: #77c59947;
+  --green-magic-400-alpha5: #77c5995c;
+  --green-magic-600-alpha1: #18855405;
+  --green-magic-600-alpha2: #1885540f;
+  --green-magic-600-alpha3: #1885541a;
+  --green-magic-600-alpha4: #18855429;
+  --green-magic-600-alpha5: #18855438;
+
+  /* ============================================
+     SEMANTIC COLORS - Mapped from Foundational Colors
+     ============================================ */
+
+  /* Primary Colors - Using Purple Magic */
+  --color-primary: var(--purple-magic-600);
+  --color-primary-hover: var(--purple-magic-700);
+  --color-primary-light: var(--purple-magic-400);
+  --color-primary-dark: var(--purple-magic-800);
+
+  /* Secondary Colors - Using Neutral Base */
+  --color-secondary: var(--neutral-base-700);
+  --color-secondary-light: var(--neutral-base-500);
+  --color-secondary-dark: var(--neutral-base-900);
+
+  /* Accent Colors - Using Blue Magic */
+  --color-accent: var(--blue-magic-600);
+  --color-accent-light: var(--blue-magic-400);
+  --color-accent-dark: var(--blue-magic-800);
+
+  /* ============================================
+     DESIGN SYSTEM BACKGROUND COLORS (from Figma)
+     ============================================ */
+  
+  /* General Backgrounds */
+  --ds-bg-default: var(--neutral-base-0);
+  --ds-bg-default-hovered: var(--neutral-magic-600-alpha2);
+  --ds-bg-sidebar: var(--neutral-base-50);
+  --ds-bg-secondary: var(--neutral-magic-600-alpha3);
+  --ds-bg-secondary-hovered: var(--neutral-magic-600-alpha4);
+  --ds-bg-secondary-high-contrast: var(--neutral-magic-600-alpha4);
+  --ds-bg-emphasized: var(--purple-magic-600-alpha3);
+  --ds-bg-emphasized-hovered: var(--purple-magic-600-alpha4);
+  --ds-bg-inverted: var(--neutral-base-900);
+  
+  /* Action/Button Backgrounds */
+  --ds-bg-primary: var(--purple-magic-600);
+  --ds-bg-primary-hovered: var(--purple-magic-700);
+  
+  /* Status Backgrounds (alpha-based for subtle tints) */
+  --ds-bg-highlight: var(--blue-magic-600-alpha3);
+  --ds-bg-success: var(--green-magic-600-alpha3);
+  --ds-bg-error: var(--red-magic-600-alpha3);
+  --ds-bg-warning: var(--orange-magic-600-alpha3);
+  --ds-bg-destructive: var(--red-magic-600-alpha3);
+  --ds-bg-destructive-hovered: var(--red-magic-600-alpha4);
+  
+  /* Input Backgrounds */
+  --ds-bg-input-default: var(--neutral-base-50);
+  --ds-bg-input-hovered: var(--neutral-base-0);
+  --ds-bg-input-focused: var(--neutral-base-0);
+  --ds-bg-input-disabled: var(--neutral-base-100);
+  --ds-bg-input-checked: var(--purple-magic-600);
+  
+  /* Role Backgrounds */
+  --ds-bg-role-admin: var(--blue-base-200);
+  --ds-bg-role-custom: var(--purple-base-200);
+  --ds-bg-role-bookkeeper: var(--neutral-base-200);
+  --ds-bg-role-card-only: var(--green-base-200);
+  
+  /* Legacy background colors (for compatibility) */
+  --color-bg-default: var(--ds-bg-default);
+  --color-bg-secondary: var(--neutral-base-100);
+  --color-bg-tertiary: var(--neutral-base-150);
+  --color-bg-elevated: var(--neutral-base-50);
+
+  /* Figma alias tokens (kept for parity with Figma variable naming) */
+  --ds-background-default: var(--ds-bg-default);
+  --ds-background-default-hovered: var(--ds-bg-default-hovered);
+  --ds-border-default: var(--color-border-default);
+
+  /* Text colors - Using Neutral Base */
+  --color-text-primary: var(--neutral-base-900);
+  --color-text-secondary: var(--neutral-base-600);
+  --color-text-muted: var(--neutral-base-500);
+  --color-text-disabled: var(--neutral-base-400);
+  
+  /* Design System text colors (from Figma) */
+  --ds-text-title: var(--neutral-base-900);
+  --ds-text-emphasized: var(--neutral-base-900);
+  --ds-text-default: var(--neutral-base-700);
+  --ds-text-secondary: var(--neutral-base-600);
+  --ds-text-tertiary: var(--neutral-base-500);
+  --ds-text-disabled: var(--neutral-base-400);
+  --ds-text-placeholder: var(--neutral-base-400);
+  /* Link text (Figma: Text/Link) */
+  --ds-text-link: var(--ds-icon-primary);
+
+  /* Layout */
+  --ds-top-nav-height: 64px;
+
+  /* Design System icon colors (from Figma) */
+  --ds-icon-default: var(--neutral-base-700);
+  --ds-icon-secondary: var(--neutral-base-500);
+  --ds-icon-tertiary: var(--neutral-base-400);
+  --ds-icon-emphasized: var(--neutral-base-900);
+  --ds-icon-success: var(--green-magic-600);
+  --ds-icon-warning: var(--orange-magic-600);
+  --ds-icon-error: var(--red-magic-600);
+  --ds-icon-destructive: var(--red-magic-600);
+  --ds-icon-primary: var(--purple-magic-600);
+  --ds-icon-primary-hovered: var(--purple-magic-700);
+  --ds-icon-money-in: var(--green-magic-600);
+  --ds-icon-money-out: var(--red-magic-600);
+  --ds-icon-on-primary: var(--neutral-base-0);
+  --ds-icon-on-inverted: var(--neutral-base-0);
+  --ds-icon-on-inverted-success: var(--green-magic-400);
+  --ds-icon-on-inverted-error: var(--red-magic-600);
+
+  /* ============================================
+     SEMANTIC BORDER COLORS - From Design System
+     ============================================ */
+  
+  /* Default Border Colors */
+  --color-border-default: var(--neutral-magic-600-alpha3);
+  --color-border-emphasized: var(--neutral-magic-600-alpha4);
+  --color-border-on-inverted: var(--neutral-base-700);
+  
+  /* Error Border Colors */
+  --color-border-error: var(--red-magic-600-alpha5);
+  
+  /* Input Border Colors */
+  --color-border-input: var(--neutral-magic-600-alpha4);
+  --color-border-input-emphasized: var(--neutral-magic-600-alpha5);
+  --color-border-input-focused: var(--neutral-magic-600-alpha3);
+  --color-border-input-focused-underline: var(--purple-magic-600);
+  --color-border-input-error: var(--red-magic-600-alpha5);
+  --color-border-input-error-underline: var(--red-magic-600);
+  
+  /* Focus Ring */
+  --color-border-focus-ring: var(--purple-magic-400);
+  
+  /* Avatar Border */
+  --color-border-avatar: var(--neutral-magic-600-alpha2);
+  
+  /* Frosted Border */
+  --color-border-frosted: hsla(0, 0%, 100%, 0.64);
+  
+  /* Legacy border colors (deprecated - use semantic colors above) */
+  --color-border: var(--color-border-default);
+  --color-border-hover: var(--color-border-emphasized);
+  --color-border-subtle: var(--color-border-default);
+
+  /* Status colors - Using semantic color families */
+  --color-success: var(--green-magic-600);
+  --color-success-light: var(--green-magic-400);
+  --color-success-dark: var(--green-magic-700);
+  
+  --color-warning: var(--orange-magic-600);
+  --color-warning-light: var(--orange-magic-400);
+  --color-warning-dark: var(--orange-magic-700);
+  
+  --color-error: var(--red-magic-600);
+  --color-error-light: var(--red-magic-400);
+  --color-error-dark: var(--red-magic-700);
+  
+  --color-info: var(--blue-magic-600);
+  --color-info-light: var(--blue-magic-400);
+  --color-info-dark: var(--blue-magic-700);
+
+  /* Base spacing scale */
+  --space-0: 0px;
+  --space-25: 4px;
+  --space-50: 8px;
+  --space-75: 12px;
+  --space-100: 16px;
+  --space-125: 20px;
+  --space-150: 24px;
+  --space-200: 32px;
+  --space-250: 40px;
+  --space-300: 48px;
+  --space-350: 56px;
+  --space-400: 64px;
+  --space-450: 72px;
+  --space-500: 80px;
+  --space-600: 96px;
+  --space-700: 112px;
+  --space-800: 128px;
+
+  /* ============================================
+     BORDER RADIUS TOKENS
+     Only 4 border radius values allowed in this app:
+     - Small (4px): Compact elements like checkboxes, small badges
+     - Medium (8px): DEFAULT - Most UI elements (buttons, inputs, cards, dropdowns)
+     - Large (12px): Large containers only when specifically needed
+     - Round (9999px): Circular elements (avatars, round buttons, pills)
+     ============================================ */
+  --radius-sm: 4px;    /* Small: compact elements */
+  --radius-md: 8px;    /* Medium: DEFAULT for most elements */
+  --radius-lg: 12px;   /* Large: large containers only */
+  --radius-full: 9999px; /* Round: circular elements */
+  
+  /* Alias for compatibility - uses medium (8px) as default */
+  --radius: 8px;
+
+  /* Font family - Arcadia as the only typography (no generic fallbacks) */
+  --font-sans: 'Arcadia';
+  --font-display: 'Arcadia Display';
+  --font-mono: 'Arcadia';
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+
+  /* Overlays */
+  --color-overlay-scrim: #000000cc;
+
+  /* UI Component colors (for compatibility with existing components) */
+  --background: var(--color-bg-default);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-bg-default);
+  --card-foreground: var(--color-text-primary);
+  --popover: var(--color-bg-elevated);
+  --popover-foreground: var(--color-text-primary);
+  --primary: var(--color-text-primary);
+  --primary-foreground: var(--color-bg-default);
+  --secondary: var(--color-bg-secondary);
+  --secondary-foreground: var(--color-text-primary);
+  --muted: var(--color-bg-secondary);
+  --muted-foreground: var(--color-text-muted);
+  --accent: var(--color-bg-secondary);
+  --accent-foreground: var(--color-text-primary);
+  --destructive: var(--color-error);
+  --border: var(--color-border-default);
+  --input: var(--color-border-input);
+  --ring: var(--color-border-focus-ring);
+  --sidebar: var(--color-bg-elevated);
+  --sidebar-foreground: var(--color-text-primary);
+  --sidebar-primary: var(--color-text-primary);
+  --sidebar-primary-foreground: var(--color-bg-default);
+  --sidebar-accent: var(--color-bg-secondary);
+  --sidebar-accent-foreground: var(--color-text-primary);
+  --sidebar-border: var(--color-border-default);
+  --sidebar-ring: var(--color-border-focus-ring);
+}
+
+/* Dark mode tokens */
+.dark {
+  /* ============================================
+     DESIGN SYSTEM BACKGROUND COLORS - Dark Mode
+     ============================================ */
+  
+  /* General Backgrounds */
+  --ds-bg-default: var(--neutral-base-950);
+  --ds-bg-default-hovered: var(--neutral-magic-400-alpha1);
+  --ds-bg-sidebar: var(--neutral-base-1000);
+  --ds-bg-secondary: var(--neutral-magic-400-alpha2);
+  --ds-bg-secondary-hovered: var(--neutral-magic-400-alpha3);
+  --ds-bg-secondary-high-contrast: var(--neutral-magic-400-alpha4);
+  --ds-bg-emphasized: var(--purple-magic-400-alpha3);
+  --ds-bg-emphasized-hovered: var(--purple-magic-400-alpha4);
+  --ds-bg-inverted: var(--neutral-base-700);
+  
+  /* Action/Button Backgrounds (same in dark mode) */
+  --ds-bg-primary: var(--purple-magic-600);
+  --ds-bg-primary-hovered: var(--purple-magic-700);
+  
+  /* Status Backgrounds - Dark Mode (use 400 alpha variants) */
+  --ds-bg-highlight: var(--blue-magic-400-alpha3);
+  --ds-bg-success: var(--green-magic-400-alpha3);
+  --ds-bg-error: var(--red-magic-400-alpha3);
+  --ds-bg-warning: var(--orange-magic-400-alpha3);
+  --ds-bg-destructive: var(--red-magic-400-alpha3);
+  --ds-bg-destructive-hovered: var(--red-magic-400-alpha4);
+  
+  /* Input Backgrounds - Dark Mode */
+  --ds-bg-input-default: var(--neutral-magic-400-alpha1);
+  --ds-bg-input-hovered: var(--neutral-magic-400-alpha2);
+  --ds-bg-input-focused: var(--neutral-magic-400-alpha2);
+  --ds-bg-input-disabled: var(--neutral-base-800);
+  --ds-bg-input-checked: var(--purple-magic-600);
+  
+  /* Role Backgrounds - Dark Mode */
+  --ds-bg-role-admin: var(--blue-base-700);
+  --ds-bg-role-custom: var(--purple-base-700);
+  --ds-bg-role-bookkeeper: var(--neutral-base-700);
+  --ds-bg-role-card-only: var(--green-base-700);
+  
+  /* Legacy background colors (for compatibility) */
+  --color-bg-default: var(--ds-bg-default);
+  --color-bg-secondary: var(--neutral-base-900);
+  --color-bg-tertiary: var(--neutral-base-800);
+  --color-bg-elevated: var(--neutral-base-950);
+
+  /* Figma alias tokens (kept for parity with Figma variable naming) */
+  --ds-background-default: var(--ds-bg-default);
+  --ds-background-default-hovered: var(--ds-bg-default-hovered);
+  --ds-border-default: var(--color-border-default);
+
+  /* Text colors - Using Neutral Base (light shades) */
+  --color-text-primary: var(--neutral-base-0);
+  --color-text-secondary: var(--neutral-base-400);
+  --color-text-muted: var(--neutral-base-500);
+  --color-text-disabled: var(--neutral-base-600);
+  
+  /* Design System text colors - Dark mode */
+  --ds-text-title: var(--neutral-base-0);
+  --ds-text-emphasized: var(--neutral-base-0);
+  --ds-text-default: var(--neutral-base-300);
+  --ds-text-secondary: var(--neutral-base-400);
+  --ds-text-tertiary: var(--neutral-base-500);
+  --ds-text-disabled: var(--neutral-base-600);
+  --ds-text-placeholder: var(--neutral-base-600);
+  /* Link text (Figma: Text/Link) */
+  --ds-text-link: var(--ds-icon-primary);
+
+  /* Design System icon colors - Dark mode */
+  --ds-icon-default: var(--neutral-base-200);
+  --ds-icon-secondary: var(--neutral-base-400);
+  --ds-icon-tertiary: var(--neutral-base-400);
+  --ds-icon-emphasized: var(--neutral-base-50);
+  --ds-icon-success: var(--green-magic-400);
+  --ds-icon-warning: var(--orange-magic-400);
+  --ds-icon-error: var(--red-magic-400);
+  --ds-icon-destructive: var(--red-magic-400);
+  --ds-icon-primary: var(--purple-magic-400);
+  --ds-icon-primary-hovered: var(--purple-magic-300);
+  --ds-icon-money-in: var(--green-magic-400);
+  --ds-icon-money-out: var(--red-magic-400);
+  --ds-icon-on-primary: var(--neutral-base-0);
+  --ds-icon-on-inverted: var(--neutral-base-0);
+  --ds-icon-on-inverted-success: var(--green-magic-400);
+  --ds-icon-on-inverted-error: var(--red-magic-600);
+
+  /* ============================================
+     SEMANTIC BORDER COLORS - Dark Mode
+     ============================================ */
+  
+  /* Default Border Colors */
+  --color-border-default: var(--neutral-magic-400-alpha2);
+  --color-border-emphasized: var(--neutral-magic-400-alpha3);
+  --color-border-on-inverted: var(--neutral-magic-400-alpha3);
+  
+  /* Error Border Colors */
+  --color-border-error: var(--red-magic-400-alpha5);
+  
+  /* Input Border Colors */
+  --color-border-input: var(--neutral-magic-400-alpha3);
+  --color-border-input-emphasized: var(--neutral-magic-400-alpha5);
+  --color-border-input-focused: var(--neutral-magic-400-alpha4);
+  --color-border-input-focused-underline: var(--purple-magic-400);
+  --color-border-input-error: var(--red-magic-400-alpha5);
+  --color-border-input-error-underline: var(--red-magic-400);
+  
+  /* Focus Ring */
+  --color-border-focus-ring: var(--purple-magic-400);
+  
+  /* Avatar Border */
+  --color-border-avatar: var(--neutral-magic-600-alpha2);
+  
+  /* Frosted Border */
+  --color-border-frosted: var(--neutral-magic-400-alpha2);
+  
+  /* Legacy border colors (deprecated - use semantic colors above) */
+  --color-border: var(--color-border-default);
+  --color-border-hover: var(--color-border-emphasized);
+  --color-border-subtle: var(--color-border-default);
+
+  /* UI Component colors - Dark mode */
+  --background: var(--color-bg-default);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-bg-elevated);
+  --card-foreground: var(--color-text-primary);
+  --popover: var(--color-bg-elevated);
+  --popover-foreground: var(--color-text-primary);
+  --primary: var(--color-text-primary);
+  --primary-foreground: var(--color-bg-default);
+  --secondary: var(--color-bg-secondary);
+  --secondary-foreground: var(--color-text-primary);
+  --muted: var(--color-bg-secondary);
+  --muted-foreground: var(--color-text-muted);
+  --accent: var(--color-bg-secondary);
+  --accent-foreground: var(--color-text-primary);
+  --destructive: var(--color-error);
+  --border: var(--color-border-default);
+  --input: var(--color-border-input);
+  --ring: var(--color-border-focus-ring);
+  --sidebar: var(--color-bg-elevated);
+  --sidebar-foreground: var(--color-text-primary);
+  --sidebar-primary: var(--color-text-primary);
+  --sidebar-primary-foreground: var(--color-bg-default);
+  --sidebar-accent: var(--color-bg-secondary);
+  --sidebar-accent-foreground: var(--color-text-primary);
+  --sidebar-border: var(--color-border-default);
+  --sidebar-ring: var(--color-border-focus-ring);
+
+  /* Overlays */
+  --color-overlay-scrim: #000000cc;
+}
+
+/* Base styles */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border-color: var(--color-border-default);
+}
+
+/* CRITICAL: Force Arcadia font on ALL elements to prevent Arial/system font fallback */
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video,
+input, textarea, select, button {
+  font-family: var(--font-sans);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: var(--color-bg-default);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Default typography - matches .text-body class */
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+/* Font family utilities */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-sans {
+  font-family: var(--font-sans);
+}
+
+/* Text balance utility */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Ensure all interactive elements have pointer cursor */
+button,
+[role="button"],
+[role="menuitem"],
+a {
+  cursor: pointer;
+}
+
+/* Remove default button borders and outlines */
+button {
+  border: none;
+  outline: none;
+}
+
+/* Remove underlines from all links */
+a {
+  text-decoration: none;
+}
+
+/* FontAwesome icon sizing - ensure icons respect inline style dimensions */
+svg[data-icon] {
+  flex-shrink: 0;
+}
+
+/* Ensure FontAwesome SVGs don't stretch beyond their intended size */
+svg[data-icon] {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* Focus outline utility */
+.outline-ring {
+  outline: 2px solid var(--color-border-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Background and text colors using design tokens */
+.bg-background { background-color: var(--color-bg-default); }
+.bg-foreground { background-color: var(--color-text-primary); }
+.bg-card { background-color: var(--color-bg-default); }
+.bg-popover { background-color: var(--color-bg-elevated); }
+.bg-primary { background-color: var(--color-text-primary); }
+.bg-secondary { background-color: var(--color-bg-secondary); }
+.bg-muted { background-color: var(--color-bg-secondary); }
+.bg-accent { background-color: var(--color-bg-secondary); }
+.bg-destructive { background-color: var(--color-error); }
+.bg-sidebar { background-color: var(--color-bg-elevated); }
+.bg-transparent { background-color: transparent; }
+.bg-white { background-color: var(--neutral-base-0); }
+
+.text-foreground { color: var(--color-text-primary); }
+.text-card-foreground { color: var(--color-text-primary); }
+.text-popover-foreground { color: var(--color-text-primary); }
+.text-primary { color: var(--color-text-primary); }
+.text-primary-foreground { color: var(--color-bg-default); }
+.text-secondary-foreground { color: var(--color-text-primary); }
+.text-muted-foreground { color: var(--color-text-muted); }
+.text-accent-foreground { color: var(--color-text-primary); }
+.text-destructive { color: var(--color-error); }
+.text-sidebar-foreground { color: var(--color-text-primary); }
+.text-white { color: var(--neutral-base-0); }
+
+.border-border { border-color: var(--color-border); }
+.border-input { border-color: var(--color-border-input); }
+.border-sidebar-border { border-color: var(--color-border-default); }

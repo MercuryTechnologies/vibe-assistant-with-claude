@@ -1,0 +1,36 @@
+{
+  "accounts": [
+    {
+      "id": "acc_001",
+      "name": "Mercury Checking",
+      "type": "checking",
+      "balance": 125750.42,
+      "currency": "USD",
+      "accountNumber": "****4521",
+      "routingNumber": "****8832",
+      "status": "active"
+    },
+    {
+      "id": "acc_002",
+      "name": "Mercury Treasury",
+      "type": "treasury",
+      "balance": 500000.00,
+      "currency": "USD",
+      "accountNumber": "****7893",
+      "routingNumber": "****8832",
+      "status": "active",
+      "apy": 5.02
+    },
+    {
+      "id": "acc_003",
+      "name": "Operating Expenses",
+      "type": "checking",
+      "balance": 45230.18,
+      "currency": "USD",
+      "accountNumber": "****2156",
+      "routingNumber": "****8832",
+      "status": "active"
+    }
+  ]
+}
+

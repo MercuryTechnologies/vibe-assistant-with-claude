@@ -1,0 +1,110 @@
+{
+  "components": {
+    "Header": {
+      "name": "Header",
+      "category": "core",
+      "file": "src/components/core/Header.tsx",
+      "description": "Main navigation header with user menu and logo",
+      "usedIn": [
+        {
+          "file": "src/App.tsx",
+          "line": 7,
+          "context": "Global navigation"
+        }
+      ],
+      "props": [
+        {
+          "name": "No props required",
+          "type": "void",
+          "description": "Header uses hooks to get user data"
+        }
+      ],
+      "variants": [
+        "Default (logged in user)"
+      ]
+    },
+    "AccountCard": {
+      "name": "AccountCard",
+      "category": "core",
+      "file": "src/components/core/AccountCard.tsx",
+      "description": "Displays account information including balance, type, and account number",
+      "usedIn": [
+        {
+          "file": "src/pages/Dashboard.tsx",
+          "line": 69,
+          "context": "Accounts grid display"
+        },
+        {
+          "file": "src/pages/ComponentGallery.tsx",
+          "line": 248,
+          "context": "Component preview"
+        }
+      ],
+      "props": [
+        {
+          "name": "account",
+          "type": "Account",
+          "required": true,
+          "description": "Account object with id, name, type, balance, currency, accountNumber, routingNumber, status, and optional apy"
+        },
+        {
+          "name": "onClick",
+          "type": "() => void",
+          "required": false,
+          "description": "Optional click handler"
+        }
+      ],
+      "variants": [
+        "Checking account (no APY)",
+        "Treasury account (with APY badge)",
+        "Savings account (with APY)",
+        "Low balance state"
+      ]
+    },
+    "TransactionRow": {
+      "name": "TransactionRow",
+      "category": "core",
+      "file": "src/components/core/TransactionRow.tsx",
+      "description": "Single transaction row showing merchant, amount, category, and date",
+      "usedIn": [
+        {
+          "file": "src/pages/Dashboard.tsx",
+          "line": 84,
+          "context": "Recent transactions list"
+        },
+        {
+          "file": "src/pages/ComponentGallery.tsx",
+          "line": 248,
+          "context": "Component preview"
+        }
+      ],
+      "props": [
+        {
+          "name": "transaction",
+          "type": "Transaction",
+          "required": true,
+          "description": "Transaction object with id, description, merchant, amount, type, date, category, status, accountId"
+        }
+      ],
+      "variants": [
+        "Debit transaction (negative amount)",
+        "Credit transaction (positive amount, green)",
+        "Pending status",
+        "Transfer type",
+        "Different categories (Revenue, Payroll, Software, Infrastructure)"
+      ]
+    }
+  },
+  "metadata": {
+    "lastUpdated": "2024-12-29",
+    "totalComponents": 3,
+    "totalVariants": 12,
+    "coreComponents": 3,
+    "uiComponents": 0
+  },
+  "notes": {
+    "usage-tracking": "This file tracks where components are used. To automate updates, run: npm run track-usage (script to be created)",
+    "adding-components": "When adding new components, update this registry with usage information",
+    "automation": "Future: Create a script to grep the codebase and auto-populate usedIn arrays"
+  }
+}
