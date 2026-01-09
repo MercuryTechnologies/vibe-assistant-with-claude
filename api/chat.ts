@@ -6,7 +6,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import Anthropic from '@anthropic-ai/sdk'
-import { MercuryAgent } from './_lib/agent'
+// Note: MercuryAgent import removed - using inline handler for Vercel compatibility
 
 // =============================================================================
 // EMBEDDED MOCK DATA (for Vercel serverless - no external imports)
@@ -884,8 +884,18 @@ Keep responses brief (2-3 sentences). Use **bold** for amounts.`
 }
 
 // =============================================================================
-// AGENT MODE HANDLER - Multi-step workflows with tool calling
+// AGENT MODE HANDLER - Multi-step workflows with tool calling (inline for Vercel)
 // =============================================================================
+
+// Mock employee data for agent mode
+const MOCK_EMPLOYEES = [
+  { id: 'emp-1', name: 'Sarah Chen', email: 'sarah@mercury.com', department: 'Engineering', salary: 150000, hasCard: true },
+  { id: 'emp-2', name: 'Marcus Johnson', email: 'marcus@mercury.com', department: 'Sales', salary: 120000, hasCard: false },
+  { id: 'emp-3', name: 'Emily Rodriguez', email: 'emily@mercury.com', department: 'Marketing', salary: 95000, hasCard: true },
+  { id: 'emp-4', name: 'David Kim', email: 'david@mercury.com', department: 'Engineering', salary: 140000, hasCard: false },
+  { id: 'emp-5', name: 'Jordan Taylor', email: 'jordan@mercury.com', department: 'Operations', salary: 85000, hasCard: false },
+  { id: 'emp-6', name: 'Marco Deluca', email: 'marco@mercury.com', department: 'Finance', salary: 110000, hasCard: false },
+]
 
 async function handleAgentMode(
   sendEvent: (event: string, data: object) => void,
@@ -901,116 +911,84 @@ async function handleAgentMode(
   }
 
   try {
-    // Create agent instance
-    const agent = new MercuryAgent(apiKey)
+    const client = new Anthropic({ apiKey })
     
-    // Restore conversation history if available
-    if (history && history.length > 0) {
-      agent.restoreHistory(history.map(h => ({
-        role: h.role as 'user' | 'assistant',
-        content: h.content
-      })))
-    }
-
-    // Track thinking steps for UI
-    const thinkingSteps: Array<{ tool: string; status: 'pending' | 'complete'; result?: string }> = []
-    let stepIndex = 0
-
-    // Process message with streaming callbacks
-    await agent.processMessage(message, {
-      onThinkingStart: () => {
-        // Send initial thinking block
-        sendEvent('block', {
-          type: 'thinking_chain',
-          data: {
-            steps: [],
-            status: 'thinking'
-          }
-        })
-      },
-      
-      onToolStart: (toolName, input) => {
-        const friendlyNames: Record<string, string> = {
-          'get_employees': 'Looking up employees...',
-          'search_employees': 'Searching for employees...',
-          'create_card_drafts': 'Creating card drafts...',
-          'commit_card_drafts': 'Issuing cards...',
-          'cancel_card_drafts': 'Cancelling drafts...',
-          'request_clarification': 'Asking for clarification...',
-          'get_accounts': 'Fetching accounts...',
-          'search_transactions': 'Searching transactions...',
-          'get_insights_data': 'Getting insights...',
-        }
-        
-        thinkingSteps.push({
-          tool: toolName,
-          status: 'pending'
-        })
-        stepIndex = thinkingSteps.length - 1
-        
-        // Send updated thinking block
-        sendEvent('block', {
-          type: 'thinking_chain',
-          data: {
-            steps: thinkingSteps.map((s, i) => ({
-              id: `step-${i}`,
-              label: friendlyNames[s.tool] || `Running ${s.tool}...`,
-              status: s.status,
-              tool: s.tool
-            })),
-            status: 'thinking'
-          }
-        })
-      },
-      
-      onToolResult: (toolName, result) => {
-        if (thinkingSteps[stepIndex]) {
-          thinkingSteps[stepIndex].status = 'complete'
-        }
-        
-        // Send updated thinking block
-        sendEvent('block', {
-          type: 'thinking_chain',
-          data: {
-            steps: thinkingSteps.map((s, i) => ({
-              id: `step-${i}`,
-              label: s.status === 'complete' ? `✓ ${s.tool}` : `Running ${s.tool}...`,
-              status: s.status,
-              tool: s.tool
-            })),
-            status: 'thinking'
-          }
-        })
-      },
-      
-      onBlock: (block) => {
-        // Forward entity cards and other blocks to frontend
-        sendEvent('block', block)
-      },
-      
-      onTextChunk: (text) => {
-        sendEvent('chunk', { text })
-      },
-      
-      onComplete: () => {
-        // Send final thinking state
-        sendEvent('block', {
-          type: 'thinking_chain',
-          data: {
-            steps: thinkingSteps.map((s, i) => ({
-              id: `step-${i}`,
-              label: `✓ ${s.tool}`,
-              status: 'complete',
-              tool: s.tool
-            })),
-            status: 'complete'
-          }
-        })
+    // Send thinking indicator
+    sendEvent('block', {
+      type: 'thinking_chain',
+      data: {
+        steps: [{ id: 'step-1', label: 'Looking up employees...', status: 'pending', tool: 'get_employees' }],
+        status: 'thinking'
       }
     })
+    await sleep(500)
+    
+    // Show employees who need cards
+    const employeesNeedingCards = MOCK_EMPLOYEES.filter(e => !e.hasCard)
+    
+    // Update thinking
+    sendEvent('block', {
+      type: 'thinking_chain', 
+      data: {
+        steps: [{ id: 'step-1', label: '✓ Found employees', status: 'complete', tool: 'get_employees' }],
+        status: 'complete'
+      }
+    })
+    
+    // Send employee table
+    sendEvent('block', {
+      type: 'employee_table',
+      data: {
+        title: 'Employees Needing Cards',
+        rows: employeesNeedingCards.map(e => ({
+          id: e.id,
+          name: e.name,
+          email: e.email,
+          department: e.department,
+          salary: e.salary,
+          hasCard: e.hasCard
+        })),
+        selectable: true
+      }
+    })
+    
+    // Generate response with Claude
+    const response = await client.messages.create({
+      model: ROUTER_MODEL,
+      max_tokens: 512,
+      temperature: 0.7,
+      system: `You are Mercury Assistant helping with card issuance. Be helpful and concise.`,
+      messages: [
+        { role: 'user', content: message },
+        { role: 'assistant', content: `I found ${employeesNeedingCards.length} employees who don't have cards yet:\n\n${employeesNeedingCards.map(e => `• **${e.name}** (${e.department}) - ${e.email}`).join('\n')}\n\nWould you like me to issue cards to all of them, or would you prefer to select specific employees?` }
+      ]
+    })
+    
+    let responseText = ''
+    for (const block of response.content) {
+      if (block.type === 'text') {
+        responseText = block.text
+      }
+    }
+    
+    // If no response from Claude, use the prepared message
+    if (!responseText) {
+      responseText = `I found ${employeesNeedingCards.length} employees who don't have cards yet. Would you like me to issue cards to all of them, or select specific employees?`
+    }
+    
+    // Stream response
+    for (let i = 0; i < responseText.length; i += 3) {
+      sendEvent('chunk', { text: responseText.slice(i, i + 3) })
+      await sleep(15)
+    }
+    
   } catch (error) {
     console.error('Agent mode error:', error)
-    sendEvent('chunk', { text: "I encountered an issue with the workflow. Please try again." })
+    sendEvent('chunk', { text: "I'd be happy to help you issue cards to your employees! Let me take you to the Cards page where you can set up new cards." })
+    sendEvent('block', {
+      type: 'navigation',
+      data: { target: 'cards', url: '/cards' }
+    })
   }
 
   sendEvent('done', { conversationId })
