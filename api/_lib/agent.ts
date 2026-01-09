@@ -307,8 +307,8 @@ export class MercuryAgent {
           }
           
           // Send employee table as block
-          if (result.metadata.employees) {
-            streamingCallback?.onBlock?.({ type: 'employee_table', data: result.metadata.employees })
+          if (result.metadata.employeeTable) {
+            streamingCallback?.onBlock?.({ type: 'employee_table', data: result.metadata.employeeTable })
           }
         }
 
