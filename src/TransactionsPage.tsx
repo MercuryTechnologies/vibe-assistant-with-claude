@@ -184,6 +184,9 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ urlFilter }) => {
     return result;
   }, [dateFilteredTransactions, categoryFilter, keywordFilter, amountFilter]);
 
+  // Count flagged transactions for the header badge (hardcoded for demo - rows 1, 6, 9, 14)
+  const flaggedCount = 4;
+
   // Sync charts expanded state with settings
   useEffect(() => {
     setIsChartsExpanded(settings.showChartsExpanded);
@@ -357,6 +360,28 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ urlFilter }) => {
       <div className="px-6 pt-6 pb-2">
         <div className="flex items-center justify-between">
           <h1 className="title-main">Transactions</h1>
+
+          {/* Flagged transactions counter */}
+          {flaggedCount > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg">
+              <svg
+                className="w-4 h-4 text-amber-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+              <span className="text-[13px] font-medium text-amber-700">
+                {flaggedCount} transactions flagged
+              </span>
+            </div>
+          )}
 {/* Match Receipts button hidden
           <div className="flex items-center gap-2">
             <button className="h-9 px-4 flex items-center gap-2 text-[13px] font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 hover:border-gray-300 transition-colors">

@@ -543,6 +543,42 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   return null;
 };
 
+// Alert badge component for suspicious transactions
+interface AlertBadgeProps {
+  type: 'possible-duplicate' | 'subscription-increase' | 'new-vendor';
+}
+
+const AlertBadge: React.FC<AlertBadgeProps> = ({ type }) => {
+  const config = {
+    'possible-duplicate': {
+      label: 'Possible Duplicate',
+      bgColor: 'bg-amber-50',
+      textColor: 'text-amber-700',
+      borderColor: 'border-amber-200',
+    },
+    'subscription-increase': {
+      label: 'Subscription Increase',
+      bgColor: 'bg-orange-50',
+      textColor: 'text-orange-700',
+      borderColor: 'border-orange-200',
+    },
+    'new-vendor': {
+      label: 'New Vendor',
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-700',
+      borderColor: 'border-blue-200',
+    },
+  };
+
+  const { label, bgColor, textColor, borderColor } = config[type];
+
+  return (
+    <span className={`ml-2 px-2 py-0.5 text-[11px] font-medium ${bgColor} ${textColor} border ${borderColor} rounded flex-shrink-0`}>
+      {label}
+    </span>
+  );
+};
+
 // Method cell component
 interface MethodCellProps {
   method: Transaction['method'];
@@ -1525,11 +1561,19 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
         </thead>
         
         <tbody>
-          {filteredTransactions.map((transaction) => {
+          {filteredTransactions.map((transaction, rowIndex) => {
             const amount = formatAmount(transaction.amount);
             const isSelected = selectedRows.has(transaction.id);
             const isFailed = transaction.status === 'failed';
             const isHighlighted = highlightedTransactionId === transaction.id;
+            // Show alert badge on rows 1, 6, 9, 14 (indices 0, 5, 8, 13)
+            const alertByIndex: Record<number, 'subscription-increase' | 'possible-duplicate' | 'new-vendor'> = {
+              0: 'subscription-increase',
+              5: 'possible-duplicate',
+              8: 'new-vendor',
+              13: 'subscription-increase',
+            };
+            const rowAlertType = alertByIndex[rowIndex];
             
             return (
               <tr 
@@ -1574,6 +1618,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
                         {transaction.toFrom.name}
                       </span>
                       <StatusBadge status={transaction.status || 'completed'} />
+                      {rowAlertType && <AlertBadge type={rowAlertType} />}
                     </div>
                   </td>
                 )}

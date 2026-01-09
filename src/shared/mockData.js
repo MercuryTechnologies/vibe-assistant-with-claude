@@ -506,7 +506,54 @@ function fromLegacyFormat(legacy) {
 }
 
 function getLegacyTransactions() {
-  return MOCK_TRANSACTIONS.map(toLegacyFormat);
+  const transactions = MOCK_TRANSACTIONS.map(toLegacyFormat);
+  
+  // Add alerts to specific rows (1, 6, 9, 14 = indices 0, 5, 8, 13)
+  const alertConfigs = [
+    {
+      index: 0,
+      alert: {
+        type: 'subscription-increase',
+        reason: 'This charge is 25% higher than last month. The increase appears to correlate with new team members added this billing cycle.',
+        details: { percentChange: 25, comparisonPeriod: 'last month' }
+      }
+    },
+    {
+      index: 5,
+      alert: {
+        type: 'possible-duplicate',
+        reason: 'A similar charge was posted 3 days ago. This may be a duplicate or a mid-cycle adjustment. Worth verifying with the vendor.',
+        details: { previousDate: '3 days ago' }
+      }
+    },
+    {
+      index: 8,
+      alert: {
+        type: 'new-vendor',
+        reason: 'First transaction with this vendor. New vendors are flagged for visibility since they haven\'t been used before.',
+      }
+    },
+    {
+      index: 13,
+      alert: {
+        type: 'subscription-increase',
+        reason: 'This charge is 40% higher than your 3-month average. This likely reflects increased usage or a plan upgrade.',
+        details: { percentChange: 40, comparisonPeriod: '3-month average' }
+      }
+    }
+  ];
+  
+  alertConfigs.forEach(({ index, alert }) => {
+    if (transactions[index]) {
+      transactions[index].alert = alert;
+    }
+  });
+  
+  return transactions;
+}
+
+function getFlaggedTransactions() {
+  return getLegacyTransactions().filter(txn => txn.alert);
 }
 
 // GL Code options for category dropdowns
@@ -572,6 +619,7 @@ module.exports = {
   getWireTransactions,
   getTopTransactions,
   filterTransactionsByType,
+  getFlaggedTransactions,
   // Legacy format functions
   toLegacyFormat,
   fromLegacyFormat,

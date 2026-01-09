@@ -5,7 +5,7 @@
 // The single source of truth is src/shared/mockData.ts
 
 // Re-export types
-export type { LegacyTransaction as Transaction } from '../shared/mockData'
+export type { LegacyTransaction as Transaction, AlertType, TransactionAlert } from '../shared/mockData'
 
 // Re-export everything needed from shared
 export { 

@@ -65,6 +65,23 @@ export interface Transaction {
   
   // Dashboard link for chat agent
   dashboardLink?: string
+  
+  // Suspicious transaction alert
+  alert?: TransactionAlert
+}
+
+// Alert types for suspicious transactions
+export type AlertType = 'possible-duplicate' | 'subscription-increase' | 'new-vendor'
+
+export interface TransactionAlert {
+  type: AlertType
+  reason: string
+  details?: {
+    previousAmount?: number
+    previousDate?: string
+    percentChange?: number
+    comparisonPeriod?: string
+  }
 }
 
 export interface CategoryBreakdown {
@@ -500,8 +517,69 @@ function generateTransactions(): Transaction[] {
     dashboardLink: '/transactions',
   })
   
+  // Add Blue Bottle Coffee for the new vendor alert
+  const threeDaysAgo = new Date()
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
+  transactions.push({
+    id: `txn-${txnId++}`,
+    date: threeDaysAgo.toISOString().split('T')[0],
+    counterparty: 'Blue Bottle Coffee',
+    counterpartyInitials: 'BB',
+    amount: -127.50,
+    account: 'Mercury Checking',
+    method: 'card',
+    methodDirection: 'out',
+    cardHolder: 'Jane Baker',
+    cardLast4: '1234',
+    category: 'Business Meals',
+    description: 'Team coffee meeting',
+    status: 'completed',
+    dashboardLink: '/transactions',
+  })
+  
   // Sort by date descending
   transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  
+  // Flag suspicious transactions by row index (rows 1, 6, 9, 14 = indices 0, 5, 8, 13)
+  const alertConfigs: Array<{ index: number; alert: TransactionAlert }> = [
+    {
+      index: 0,
+      alert: {
+        type: 'subscription-increase',
+        reason: 'This charge is 25% higher than last month. The increase appears to correlate with new team members added this billing cycle.',
+        details: { percentChange: 25, comparisonPeriod: 'last month' }
+      }
+    },
+    {
+      index: 5,
+      alert: {
+        type: 'possible-duplicate',
+        reason: 'A similar charge was posted 3 days ago. This may be a duplicate or a mid-cycle adjustment. Worth verifying with the vendor.',
+        details: { previousDate: '3 days ago' }
+      }
+    },
+    {
+      index: 8,
+      alert: {
+        type: 'new-vendor',
+        reason: 'First transaction with this vendor. New vendors are flagged for visibility since they haven\'t been used before.',
+      }
+    },
+    {
+      index: 13,
+      alert: {
+        type: 'subscription-increase',
+        reason: 'This charge is 40% higher than your 3-month average. This likely reflects increased usage or a plan upgrade.',
+        details: { percentChange: 40, comparisonPeriod: '3-month average' }
+      }
+    }
+  ]
+  
+  alertConfigs.forEach(({ index, alert }) => {
+    if (transactions[index]) {
+      transactions[index].alert = alert
+    }
+  })
   
   return transactions
 }
@@ -540,6 +618,13 @@ export function searchTransactions(query?: string, limit: number = 10): Transact
  */
 export function getTransactionById(id: string): Transaction | undefined {
   return MOCK_TRANSACTIONS.find(txn => txn.id === id)
+}
+
+/**
+ * Get all flagged/suspicious transactions
+ */
+export function getFlaggedTransactions(): LegacyTransaction[] {
+  return getLegacyTransactions().filter(txn => txn.alert)
 }
 
 /**
@@ -701,6 +786,7 @@ export interface LegacyTransaction {
   glCodeAutoApplied?: boolean
   hasAttachment?: boolean
   status?: 'completed' | 'failed' | 'pending'
+  alert?: TransactionAlert
 }
 
 /**
@@ -734,6 +820,7 @@ export function toLegacyFormat(txn: Transaction): LegacyTransaction {
     glCodeAutoApplied: txn.categoryAutoApplied,
     hasAttachment: txn.hasAttachment,
     status: txn.status,
+    alert: txn.alert,
   }
 }
 
@@ -773,7 +860,50 @@ export function fromLegacyFormat(legacy: LegacyTransaction): Transaction {
  * Use this in components that still expect the old format
  */
 export function getLegacyTransactions(): LegacyTransaction[] {
-  return MOCK_TRANSACTIONS.map(toLegacyFormat)
+  const transactions = MOCK_TRANSACTIONS.map(toLegacyFormat)
+  
+  // Add alerts to specific rows (1, 6, 9, 14 = indices 0, 5, 8, 13)
+  const alertConfigs: Array<{ index: number; alert: TransactionAlert }> = [
+    {
+      index: 0,
+      alert: {
+        type: 'subscription-increase',
+        reason: 'This charge is 25% higher than last month. The increase appears to correlate with new team members added this billing cycle.',
+        details: { percentChange: 25, comparisonPeriod: 'last month' }
+      }
+    },
+    {
+      index: 5,
+      alert: {
+        type: 'possible-duplicate',
+        reason: 'A similar charge was posted 3 days ago. This may be a duplicate or a mid-cycle adjustment. Worth verifying with the vendor.',
+        details: { previousDate: '3 days ago' }
+      }
+    },
+    {
+      index: 8,
+      alert: {
+        type: 'new-vendor',
+        reason: 'First transaction with this vendor. New vendors are flagged for visibility since they haven\'t been used before.',
+      }
+    },
+    {
+      index: 13,
+      alert: {
+        type: 'subscription-increase',
+        reason: 'This charge is 40% higher than your 3-month average. This likely reflects increased usage or a plan upgrade.',
+        details: { percentChange: 40, comparisonPeriod: '3-month average' }
+      }
+    }
+  ]
+  
+  alertConfigs.forEach(({ index, alert }) => {
+    if (transactions[index]) {
+      transactions[index].alert = alert
+    }
+  })
+  
+  return transactions
 }
 
 // Chart data helpers

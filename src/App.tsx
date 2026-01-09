@@ -22,6 +22,8 @@ import {
 import TransactionsPage from './TransactionsPage';
 import InsightsBreakdown from './InsightsBreakdown';
 import HomePage from './HomePage';
+import PlaceholderPage from './PlaceholderPage';
+import AskAnythingInput from './AskAnythingInput';
 import { 
   DataControlPanel, 
   DataControlTrigger, 
@@ -253,13 +255,12 @@ function App() {
   // Gradient Playground visibility state (hidden by default)
   const [showGradientPlayground, setShowGradientPlayground] = useState(false);
   
-  // Initialize transactions on first mount
+  // Initialize transactions on mount (always regenerate to pick up latest mock data)
   useEffect(() => {
-    if (transactions.length === 0) {
-      const initialTransactions = generateInitialTransactions();
-      setTransactions(initialTransactions);
-    }
-  }, [transactions.length, setTransactions]);
+    const initialTransactions = generateInitialTransactions();
+    setTransactions(initialTransactions);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Handle applying new transactions from DataControlPanel
   const handleApplyData = useCallback((newTransactions: Transaction[]) => {
@@ -690,6 +691,16 @@ function App() {
           <HomePage onStartChat={handleStartChat} />
         ) : activePath === '/transactions' ? (
           <TransactionsPage urlFilter={urlParams.get('filter') || undefined} />
+        ) : activePath === '/tasks' ||
+             activePath === '/payments' ||
+             activePath === '/cards' ||
+             activePath === '/capital' ||
+             activePath === '/accounts' ||
+             activePath === '/bill-pay' ||
+             activePath === '/invoicing' ||
+             activePath === '/reimbursements' ||
+             activePath === '/accounting' ? (
+          <PlaceholderPage />
         ) : (
         <>
         {/* Sticky Insights Header - transforms layout on scroll, includes timeline */}
@@ -985,6 +996,11 @@ function App() {
           onClose={handleCloseChat}
           onExpand={handleExpandChat}
         />
+      )}
+      
+      {/* Action Bar - shown on all pages when no conversation is active */}
+      {!hasActiveConversation && activePath !== '/chat' && activePath !== '/home' && (
+        <AskAnythingInput onStartChat={handleStartChat} />
       )}
     </div>
   );

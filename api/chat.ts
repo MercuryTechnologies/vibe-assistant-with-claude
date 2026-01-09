@@ -229,6 +229,45 @@ function getSharedInsightsData() {
   }
 }
 
+// Flagged transactions data for demo
+interface FlaggedTransaction {
+  counterparty: string
+  amount: number
+  alertType: 'subscription-increase' | 'possible-duplicate' | 'new-vendor'
+  reason: string
+}
+
+const FLAGGED_TRANSACTIONS_DATA: FlaggedTransaction[] = [
+  {
+    counterparty: 'Lyft',
+    amount: -1250,
+    alertType: 'subscription-increase',
+    reason: 'This charge is 25% higher than last month. The increase appears to correlate with new team members added this billing cycle.',
+  },
+  {
+    counterparty: 'AWS',
+    amount: -3421.89,
+    alertType: 'possible-duplicate',
+    reason: 'A similar charge was posted 3 days ago. This may be a duplicate or a mid-cycle adjustment. Worth verifying with the vendor.',
+  },
+  {
+    counterparty: 'Delta Airlines',
+    amount: -1847.50,
+    alertType: 'new-vendor',
+    reason: "First transaction with this vendor. New vendors are flagged for visibility since they haven't been used before.",
+  },
+  {
+    counterparty: 'Best Buy',
+    amount: -2100,
+    alertType: 'subscription-increase',
+    reason: 'This charge is 40% higher than your 3-month average. This likely reflects increased usage or a plan upgrade.',
+  },
+]
+
+function getFlaggedTransactions(): FlaggedTransaction[] {
+  return FLAGGED_TRANSACTIONS_DATA
+}
+
 // =============================================================================
 // DETAILED INSIGHT DATA (for contextual responses when user clicks an insight)
 // =============================================================================
@@ -456,6 +495,9 @@ CRITICAL COMPLIANCE (MUST FOLLOW):
 MESSAGE: "${message}"
 
 INTENTS:
+- FLAGGED_TRANSACTIONS: User asks about suspicious, flagged, or unusual transactions. Questions like "any transactions to review?", "suspicious activity?", "flagged transactions?", "anything unusual?", "duplicates?", "alerts?", "transactions I should investigate?"
+- PAYMENT_LIMITS: User asks about increasing payment limits, wire limits, ACH limits, or transfer limits. Questions like "how can I increase my payment limits?", "raise my wire limit", "what are my transfer limits?"
+- EIN_QUERY: User asks about their EIN (Employer Identification Number). Questions like "what is my EIN?", "show me my EIN", "company EIN"
 - CASHFLOW_QUESTION: User asks about cashflow, money in/out, financial health, spending trends
 - WIRE_TRANSACTIONS: User specifically asks about wire transfers or wire transactions
 - NAVIGATE: User wants to go to a page (payments, transactions, cards, accounts, etc.)
@@ -490,6 +532,12 @@ Examples:
 - "Show me my balance" → BALANCE
 - "What did I spend on AWS?" → TRANSACTION_SEARCH, handoffMessage: "Searching your transactions..."
 - "Go to payments" → NAVIGATE, navigationTarget: "payments"
+- "Are there any transactions I should investigate?" → FLAGGED_TRANSACTIONS
+- "Any suspicious transactions?" → FLAGGED_TRANSACTIONS
+- "Any flagged transactions?" → FLAGGED_TRANSACTIONS
+- "How can I increase my payment limits?" → PAYMENT_LIMITS
+- "What are my wire limits?" → PAYMENT_LIMITS
+- "What is my EIN?" → EIN_QUERY
 
 needsSmartModel=true only for TRANSACTION_SEARCH and COMPLEX_QUESTION.`
 
@@ -539,6 +587,56 @@ async function handleWithRouter(
   let metadata: Record<string, unknown> | undefined
 
   switch (classification.intent) {
+    case 'FLAGGED_TRANSACTIONS': {
+      const flagged = getFlaggedTransactions()
+      
+      if (flagged.length > 0) {
+        responseText = `⚠️ I found **${flagged.length} transactions** that need your attention:\n\n`
+        
+        flagged.forEach((t, i) => {
+          const amount = t.amount < 0 ? `-$${Math.abs(t.amount).toLocaleString()}` : `+$${t.amount.toLocaleString()}`
+          const alertLabels: Record<string, string> = {
+            'possible-duplicate': '🔄 Possible Duplicate',
+            'subscription-increase': '📈 Subscription Increase',
+            'new-vendor': '🆕 New Vendor',
+          }
+          const label = alertLabels[t.alertType] || 'Flagged'
+          responseText += `${i + 1}. **${t.counterparty}** — ${amount}\n`
+          responseText += `   ${label}\n\n`
+        })
+        
+        responseText += `Would you like me to explain why any of these are flagged?`
+      } else {
+        responseText = `✅ Good news! I don't see any transactions that need your attention right now. Everything looks normal.`
+      }
+      break
+    }
+
+    case 'PAYMENT_LIMITS': {
+      responseText = `Great question! Here's how to increase your payment limits on Mercury:\n\n`
+      responseText += `**Current Default Limits:**\n`
+      responseText += `- ACH transfers: Up to $500,000 per transfer\n`
+      responseText += `- Wire transfers: Up to $1,000,000 per transfer\n\n`
+      responseText += `**To Request Higher Limits:**\n\n`
+      responseText += `1. **Go to Settings** → Click on your profile in the top right\n`
+      responseText += `2. **Select "Payment Limits"** from the menu\n`
+      responseText += `3. **Submit a limit increase request** with:\n`
+      responseText += `   - The new limit amount you need\n`
+      responseText += `   - Business justification (e.g., "Large vendor payments")\n`
+      responseText += `   - How often you'll need this limit\n\n`
+      responseText += `Mercury's team typically reviews requests within 1-2 business days. Higher limits may require additional documentation.\n\n`
+      responseText += `📖 **Learn more:** [Requesting higher payment limits](https://support.mercury.com/hc/en-us/articles/28772859696148-Requesting-higher-payment-limits)`
+      break
+    }
+
+    case 'EIN_QUERY': {
+      responseText = `Your company's **Employer Identification Number (EIN)** is:\n\n`
+      responseText += `**82-4506327**\n\n`
+      responseText += `This is for **Maker Inc.** — the business registered with your Mercury account.\n\n`
+      responseText += `You can also find this in **Settings → Business Details** if you need it for tax filings, vendor forms, or other official documents.`
+      break
+    }
+
     case 'CASHFLOW_QUESTION': {
       const insights = getSharedInsightsData()
       const netChange = insights.cashflow.netChange

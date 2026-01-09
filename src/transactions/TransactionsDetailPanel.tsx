@@ -311,6 +311,58 @@ const CommentInput: React.FC<CommentInputProps> = ({ onSubmit }) => {
   );
 };
 
+// Alert explanation section for suspicious transactions
+interface AlertSectionProps {
+  alert: {
+    type: 'possible-duplicate' | 'subscription-increase' | 'new-vendor';
+    reason: string;
+  };
+}
+
+const AlertSection: React.FC<AlertSectionProps> = ({ alert }) => {
+  const config = {
+    'possible-duplicate': {
+      title: 'Possible Duplicate',
+      icon: '⚠️',
+      bgColor: 'bg-amber-50',
+      borderColor: 'border-amber-200',
+      textColor: 'text-amber-800',
+    },
+    'subscription-increase': {
+      title: 'Subscription Increase',
+      icon: '📈',
+      bgColor: 'bg-orange-50',
+      borderColor: 'border-orange-200',
+      textColor: 'text-orange-800',
+    },
+    'new-vendor': {
+      title: 'New Vendor',
+      icon: '🆕',
+      bgColor: 'bg-blue-50',
+      borderColor: 'border-blue-200',
+      textColor: 'text-blue-800',
+    },
+  };
+
+  const { title, icon, bgColor, borderColor, textColor } = config[alert.type];
+
+  return (
+    <div className={`${bgColor} border ${borderColor} rounded-lg p-4`}>
+      <div className="flex items-start gap-3">
+        <span className="text-lg flex-shrink-0">{icon}</span>
+        <div>
+          <h4 className={`text-[14px] font-semibold ${textColor}`}>
+            {title}
+          </h4>
+          <p className="text-[13px] text-gray-700 mt-1 leading-relaxed">
+            {alert.reason}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ============================================
 // Main Component
 // ============================================
@@ -431,6 +483,13 @@ const TransactionsDetailPanel: React.FC<TransactionsDetailPanelProps> = ({
             <div className="pt-2">
               <Timeline events={timelineEvents} />
             </div>
+
+            {/* Alert Section (if transaction has alert) */}
+            {transaction.alert && (
+              <div className="pt-2">
+                <AlertSection alert={transaction.alert} />
+              </div>
+            )}
 
             {/* Divider */}
             <div className="border-t border-gray-100" />
