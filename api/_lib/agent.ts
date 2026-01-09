@@ -204,6 +204,16 @@ interface ToolUseBlock {
   input: Record<string, unknown>
 }
 
+// Streaming callback for SSE events during agent execution
+export interface StreamingCallback {
+  onThinkingStart?: () => void
+  onToolStart?: (toolName: string, input: Record<string, unknown>) => void
+  onToolResult?: (toolName: string, result: unknown) => void
+  onTextChunk?: (text: string) => void
+  onBlock?: (block: { type: string; data: unknown }) => void
+  onComplete?: () => void
+}
+
 export class MercuryAgent {
   private client: Anthropic
   private conversationHistory: ConversationMessage[] = []
@@ -226,8 +236,10 @@ export class MercuryAgent {
 
   /**
    * Process a user message and return a response
+   * @param userMessage The user's message
+   * @param streamingCallback Optional callback for streaming events (SSE)
    */
-  async processMessage(userMessage: string): Promise<AgentResponse> {
+  async processMessage(userMessage: string, streamingCallback?: StreamingCallback): Promise<AgentResponse> {
     // Add user message to history
     this.conversationHistory.push({
       role: 'user',
@@ -237,6 +249,9 @@ export class MercuryAgent {
     // Track metadata from tool executions
     let responseMetadata: MessageMetadata | undefined
     const toolsUsed: string[] = []
+
+    // Notify that thinking has started
+    streamingCallback?.onThinkingStart?.()
 
     // Check if Big Dellis mode should be activated
     const dellisMode = mentionsNickDellis(userMessage) || conversationMentionsDellis(this.conversationHistory)
@@ -272,11 +287,29 @@ export class MercuryAgent {
       for (const toolUse of toolUseBlocks) {
         toolsUsed.push(toolUse.name)
 
+        // Notify about tool start
+        streamingCallback?.onToolStart?.(toolUse.name, toolUse.input)
+
         const result = await executeTool(toolUse.name, toolUse.input)
+
+        // Notify about tool result
+        streamingCallback?.onToolResult?.(toolUse.name, result)
 
         // Capture metadata from tool execution (navigation, actions, etc.)
         if (result.metadata) {
           responseMetadata = { ...responseMetadata, ...result.metadata }
+          
+          // Send entity cards as blocks
+          if (result.metadata.entityCards) {
+            for (const card of result.metadata.entityCards) {
+              streamingCallback?.onBlock?.({ type: 'entity_card', data: card })
+            }
+          }
+          
+          // Send employee table as block
+          if (result.metadata.employees) {
+            streamingCallback?.onBlock?.({ type: 'employee_table', data: result.metadata.employees })
+          }
         }
 
         toolResults.push({
@@ -327,6 +360,18 @@ export class MercuryAgent {
       .map(b => 'text' in b ? b.text : '')
       .filter(Boolean)
       .join('\n')
+
+    // Stream the final text in chunks
+    if (streamingCallback?.onTextChunk && finalMessage) {
+      const chunkSize = 3
+      for (let i = 0; i < finalMessage.length; i += chunkSize) {
+        streamingCallback.onTextChunk(finalMessage.slice(i, i + chunkSize))
+        await new Promise(resolve => setTimeout(resolve, 15))
+      }
+    }
+
+    // Notify completion
+    streamingCallback?.onComplete?.()
 
     // Add final response to history
     this.conversationHistory.push({

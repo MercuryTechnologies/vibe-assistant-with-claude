@@ -6,6 +6,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import Anthropic from '@anthropic-ai/sdk'
+import { MercuryAgent } from './_lib/agent'
 
 // =============================================================================
 // EMBEDDED MOCK DATA (for Vercel serverless - no external imports)
@@ -585,6 +586,7 @@ INTENTS:
 - BALANCE: User asks about account balances
 - TRANSACTION_SEARCH: User asks about specific transactions or spending (e.g., "What did I spend on AWS?")
 - CARD_ACTION: User wants to freeze/manage cards
+- AGENT_MODE: User wants a multi-step workflow like issuing cards to employees, setting up team cards, employee card setup, or onboarding. Keywords: "issue cards to employees", "set up cards for team", "employee card setup", "issue cards", "cards for employees"
 - SUPPORT: User explicitly asks for human support or has a complex account issue
 - COMPLEX_QUESTION: User asks something requiring deep analysis
 - SIMPLE_QUESTION: General product questions you can answer directly
@@ -619,8 +621,11 @@ Examples:
 - "How can I increase my payment limits?" → PAYMENT_LIMITS
 - "What are my wire limits?" → PAYMENT_LIMITS
 - "What is my EIN?" → EIN_QUERY
+- "Issue cards to employees" → AGENT_MODE, handoffMessage: "Starting card issuance workflow..."
+- "Set up cards for my team" → AGENT_MODE, handoffMessage: "Let me help you set up employee cards..."
+- "I want to issue cards to our employees" → AGENT_MODE
 
-needsSmartModel=true only for TRANSACTION_SEARCH and COMPLEX_QUESTION.`
+needsSmartModel=true for TRANSACTION_SEARCH, COMPLEX_QUESTION, and AGENT_MODE.`
 
   try {
     const response = await client.messages.create({
@@ -878,6 +883,139 @@ Keep responses brief (2-3 sentences). Use **bold** for amounts.`
   sendEvent('done', { conversationId })
 }
 
+// =============================================================================
+// AGENT MODE HANDLER - Multi-step workflows with tool calling
+// =============================================================================
+
+async function handleAgentMode(
+  sendEvent: (event: string, data: object) => void,
+  message: string,
+  history: Array<{ role: string; content: string }> | undefined,
+  conversationId: string
+): Promise<void> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    sendEvent('chunk', { text: "I need an API key to run agent mode workflows." })
+    sendEvent('done', { conversationId })
+    return
+  }
+
+  try {
+    // Create agent instance
+    const agent = new MercuryAgent(apiKey)
+    
+    // Restore conversation history if available
+    if (history && history.length > 0) {
+      agent.restoreHistory(history.map(h => ({
+        role: h.role as 'user' | 'assistant',
+        content: h.content
+      })))
+    }
+
+    // Track thinking steps for UI
+    const thinkingSteps: Array<{ tool: string; status: 'pending' | 'complete'; result?: string }> = []
+    let stepIndex = 0
+
+    // Process message with streaming callbacks
+    await agent.processMessage(message, {
+      onThinkingStart: () => {
+        // Send initial thinking block
+        sendEvent('block', {
+          type: 'thinking_chain',
+          data: {
+            steps: [],
+            status: 'thinking'
+          }
+        })
+      },
+      
+      onToolStart: (toolName, input) => {
+        const friendlyNames: Record<string, string> = {
+          'get_employees': 'Looking up employees...',
+          'search_employees': 'Searching for employees...',
+          'create_card_drafts': 'Creating card drafts...',
+          'commit_card_drafts': 'Issuing cards...',
+          'cancel_card_drafts': 'Cancelling drafts...',
+          'request_clarification': 'Asking for clarification...',
+          'get_accounts': 'Fetching accounts...',
+          'search_transactions': 'Searching transactions...',
+          'get_insights_data': 'Getting insights...',
+        }
+        
+        thinkingSteps.push({
+          tool: toolName,
+          status: 'pending'
+        })
+        stepIndex = thinkingSteps.length - 1
+        
+        // Send updated thinking block
+        sendEvent('block', {
+          type: 'thinking_chain',
+          data: {
+            steps: thinkingSteps.map((s, i) => ({
+              id: `step-${i}`,
+              label: friendlyNames[s.tool] || `Running ${s.tool}...`,
+              status: s.status,
+              tool: s.tool
+            })),
+            status: 'thinking'
+          }
+        })
+      },
+      
+      onToolResult: (toolName, result) => {
+        if (thinkingSteps[stepIndex]) {
+          thinkingSteps[stepIndex].status = 'complete'
+        }
+        
+        // Send updated thinking block
+        sendEvent('block', {
+          type: 'thinking_chain',
+          data: {
+            steps: thinkingSteps.map((s, i) => ({
+              id: `step-${i}`,
+              label: s.status === 'complete' ? `✓ ${s.tool}` : `Running ${s.tool}...`,
+              status: s.status,
+              tool: s.tool
+            })),
+            status: 'thinking'
+          }
+        })
+      },
+      
+      onBlock: (block) => {
+        // Forward entity cards and other blocks to frontend
+        sendEvent('block', block)
+      },
+      
+      onTextChunk: (text) => {
+        sendEvent('chunk', { text })
+      },
+      
+      onComplete: () => {
+        // Send final thinking state
+        sendEvent('block', {
+          type: 'thinking_chain',
+          data: {
+            steps: thinkingSteps.map((s, i) => ({
+              id: `step-${i}`,
+              label: `✓ ${s.tool}`,
+              status: 'complete',
+              tool: s.tool
+            })),
+            status: 'complete'
+          }
+        })
+      }
+    })
+  } catch (error) {
+    console.error('Agent mode error:', error)
+    sendEvent('chunk', { text: "I encountered an issue with the workflow. Please try again." })
+  }
+
+  sendEvent('done', { conversationId })
+}
+
 async function streamMockResponse(
   sendEvent: (event: string, data: object) => void,
   message: string,
@@ -958,7 +1096,11 @@ export default async function handler(
 
         const classification = await classifyQuery(client, message)
 
-        if (classification.needsSmartModel) {
+        // Check for AGENT_MODE - multi-step workflows
+        if (classification.intent === 'AGENT_MODE') {
+          sendEvent('ack', { message: classification.handoffMessage || 'Starting multi-step workflow...' })
+          await handleAgentMode(sendEvent, message, history, convId)
+        } else if (classification.needsSmartModel) {
           sendEvent('ack', { message: classification.handoffMessage || 'Looking into that...' })
           await sleep(300)
           await handleWithSmartModel(client, sendEvent, message, history, convId)
