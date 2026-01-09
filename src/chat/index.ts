@@ -10,6 +10,10 @@ export { default as ThinkingIndicator } from './ThinkingIndicator'
 export { default as ActionCard } from './ActionCard'
 export { default as NavigateCountdown } from './NavigateCountdown'
 export { default as TransactionTable } from './TransactionTable'
+export { default as EmployeeTable } from './EmployeeTable'
+export { default as ThinkingAccordion } from './ThinkingAccordion'
+export { default as ClarificationCard } from './ClarificationCard'
+export { default as EntityCard, EntityCardList } from './EntityCard'
 
 // Store
 export { useChatStore } from './useChatStore'

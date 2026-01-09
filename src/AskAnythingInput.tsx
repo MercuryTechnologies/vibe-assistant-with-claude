@@ -88,9 +88,9 @@ export const defaultQuickSuggestions: QuickSuggestion[] = [
   },
   { 
     icon: 'rounded', 
-    title: 'Use agent mode to setup Payroll', 
-    subtitle: 'Guided workflow', 
-    initialMessage: 'how do we achieve world peace?' 
+    title: 'Issue cards to employees', 
+    subtitle: 'Agent mode workflow', 
+    initialMessage: 'I want to issue cards to our employees' 
   },
 ];
 

@@ -10,6 +10,7 @@ import {
   MOCK_CARDS,
   MOCK_CATEGORIES,
   MOCK_ORGANIZATION,
+  MOCK_EMPLOYEES,
   NAVIGATION_URLS,
   FORM_URLS,
   // Shared data functions (from src/shared/mockData.ts)
@@ -17,7 +18,19 @@ import {
   getSharedTopTransactions,
   transformSharedTransactions
 } from './mock-data'
-import { MessageMetadata } from './types'
+import { MessageMetadata, Employee, EntityCard } from './types'
+
+// In-memory storage for card drafts (simulating database)
+const cardDrafts: Map<string, {
+  id: string
+  employeeId: string
+  employeeName: string
+  employeeEmail: string
+  cardType: 'virtual' | 'physical'
+  spendingLimit: number
+  status: 'draft' | 'scheduled' | 'void'
+  createdAt: Date
+}> = new Map()
 
 export interface ToolResult {
   success: boolean
@@ -556,6 +569,284 @@ export async function executeTool(
             reason: input.reason as string,
             ticketId
           }
+        }
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // Agentic Card Issuance Tools
+    // -------------------------------------------------------------------------
+    case 'get_employees': {
+      let results = [...MOCK_EMPLOYEES]
+
+      // Apply department filter
+      if (input.department) {
+        const dept = (input.department as string).toLowerCase()
+        results = results.filter(e => e.department.toLowerCase().includes(dept))
+      }
+
+      // Apply hasCard filter
+      if (input.has_card !== undefined) {
+        results = results.filter(e => e.hasCard === input.has_card)
+      }
+
+      // Build employee table for display
+      const employeeTableRows = results.map(e => ({
+        id: e.id,
+        name: e.name,
+        email: e.email,
+        department: e.department,
+        salary: e.salary,
+        hasCard: e.hasCard
+      }))
+
+      return {
+        success: true,
+        data: results,
+        metadata: {
+          employeeTable: {
+            title: `Employees (${results.length})`,
+            rows: employeeTableRows,
+            selectable: true
+          }
+        }
+      }
+    }
+
+    case 'search_employees': {
+      const searchName = (input.name as string).toLowerCase()
+      const results = MOCK_EMPLOYEES.filter(e =>
+        e.name.toLowerCase().includes(searchName)
+      )
+
+      // Build employee table for display
+      const employeeTableRows = results.map(e => ({
+        id: e.id,
+        name: e.name,
+        email: e.email,
+        department: e.department,
+        salary: e.salary,
+        hasCard: e.hasCard
+      }))
+
+      return {
+        success: true,
+        data: {
+          employees: results,
+          count: results.length,
+          hasMultipleMatches: results.length > 1
+        },
+        metadata: results.length > 0 ? {
+          employeeTable: {
+            title: `Found ${results.length} employee${results.length > 1 ? 's' : ''} matching "${input.name}"`,
+            rows: employeeTableRows,
+            selectable: false
+          }
+        } : undefined
+      }
+    }
+
+    case 'request_clarification': {
+      const question = input.question as string
+      const options = input.options as Array<{ id: string; label: string; subtitle?: string }>
+
+      return {
+        success: true,
+        data: {
+          question,
+          options,
+          waitingForInput: true
+        },
+        metadata: {
+          clarificationRequest: {
+            id: `clarify-${Date.now()}`,
+            question,
+            options
+          }
+        }
+      }
+    }
+
+    case 'create_card_drafts': {
+      const employeeIds = input.employee_ids as string[]
+      const cardType = (input.card_type as 'virtual' | 'physical') || 'virtual'
+      const dryRun = input.dry_run !== false // Default to true
+
+      const drafts: EntityCard[] = []
+      const draftDetails: Array<{
+        id: string
+        employeeId: string
+        employeeName: string
+        employeeEmail: string
+        cardType: string
+        spendingLimit: number
+        status: string
+      }> = []
+
+      for (const empId of employeeIds) {
+        const employee = MOCK_EMPLOYEES.find(e => e.id === empId)
+        if (!employee) continue
+
+        // Calculate spending limit based on salary (10% of annual salary / 12 months)
+        const spendingLimit = input.spending_limit 
+          ? (input.spending_limit as number)
+          : Math.round(employee.salary * 0.1 / 12 / 100) * 100
+
+        const draftId = `draft-${empId}-${Date.now()}`
+
+        const draft = {
+          id: draftId,
+          employeeId: employee.id,
+          employeeName: employee.name,
+          employeeEmail: employee.email,
+          cardType,
+          spendingLimit,
+          status: 'draft' as const,
+          createdAt: new Date()
+        }
+
+        // Store in memory if not dry run
+        if (!dryRun) {
+          cardDrafts.set(draftId, draft)
+        } else {
+          // For dry run, still store temporarily so they can be committed
+          cardDrafts.set(draftId, draft)
+        }
+
+        drafts.push({
+          entityType: 'card',
+          entityId: draftId,
+          data: {
+            employeeName: employee.name,
+            employeeEmail: employee.email,
+            cardType,
+            spendingLimit,
+            last4: Math.floor(1000 + Math.random() * 9000).toString()
+          },
+          status: 'draft'
+        })
+
+        draftDetails.push({
+          id: draftId,
+          employeeId: employee.id,
+          employeeName: employee.name,
+          employeeEmail: employee.email,
+          cardType,
+          spendingLimit,
+          status: 'draft'
+        })
+      }
+
+      return {
+        success: true,
+        data: {
+          drafts: draftDetails,
+          count: drafts.length,
+          dryRun,
+          message: dryRun 
+            ? `Created ${drafts.length} draft card proposal${drafts.length > 1 ? 's' : ''}. Waiting for confirmation.`
+            : `${drafts.length} card${drafts.length > 1 ? 's' : ''} ready for issuance.`
+        },
+        metadata: {
+          entityCards: drafts
+        }
+      }
+    }
+
+    case 'commit_card_drafts': {
+      const draftIds = input.draft_ids as string[]
+      const committedCards: EntityCard[] = []
+      const committedDetails: Array<{
+        id: string
+        employeeName: string
+        status: string
+      }> = []
+
+      for (const draftId of draftIds) {
+        const draft = cardDrafts.get(draftId)
+        if (!draft) continue
+
+        // Update status to scheduled
+        draft.status = 'scheduled'
+        cardDrafts.set(draftId, draft)
+
+        committedCards.push({
+          entityType: 'card',
+          entityId: draftId,
+          data: {
+            employeeName: draft.employeeName,
+            employeeEmail: draft.employeeEmail,
+            cardType: draft.cardType,
+            spendingLimit: draft.spendingLimit
+          },
+          status: 'scheduled'
+        })
+
+        committedDetails.push({
+          id: draftId,
+          employeeName: draft.employeeName,
+          status: 'scheduled'
+        })
+      }
+
+      return {
+        success: true,
+        data: {
+          committed: committedDetails,
+          count: committedCards.length,
+          message: `Successfully issued ${committedCards.length} card${committedCards.length > 1 ? 's' : ''}. Cards will be delivered within 5-7 business days.`
+        },
+        metadata: {
+          entityCards: committedCards
+        }
+      }
+    }
+
+    case 'cancel_card_drafts': {
+      const draftIds = input.draft_ids as string[]
+      const cancelledCards: EntityCard[] = []
+      const cancelledDetails: Array<{
+        id: string
+        employeeName: string
+        status: string
+      }> = []
+
+      for (const draftId of draftIds) {
+        const draft = cardDrafts.get(draftId)
+        if (!draft) continue
+
+        // Update status to void
+        draft.status = 'void'
+        cardDrafts.set(draftId, draft)
+
+        cancelledCards.push({
+          entityType: 'card',
+          entityId: draftId,
+          data: {
+            employeeName: draft.employeeName,
+            employeeEmail: draft.employeeEmail,
+            cardType: draft.cardType,
+            spendingLimit: draft.spendingLimit
+          },
+          status: 'void'
+        })
+
+        cancelledDetails.push({
+          id: draftId,
+          employeeName: draft.employeeName,
+          status: 'void'
+        })
+      }
+
+      return {
+        success: true,
+        data: {
+          cancelled: cancelledDetails,
+          count: cancelledCards.length,
+          message: `Cancelled ${cancelledCards.length} card draft${cancelledCards.length > 1 ? 's' : ''}.`
+        },
+        metadata: {
+          entityCards: cancelledCards
         }
       }
     }

@@ -480,6 +480,87 @@ interface ClassificationResult {
   navigationTarget?: string
 }
 
+// =============================================================================
+// BIG DELLIS MODE - Easter Egg
+// =============================================================================
+
+function mentionsNickDellis(message: string): boolean {
+  const lower = message.toLowerCase()
+  return lower.includes('nick dellis') || lower.includes('big dellis') || lower.includes('dellis')
+}
+
+function checkDellisInHistory(history: Array<{ role: string; content: string }> | undefined): boolean {
+  if (!history) return false
+  return history.some(msg => mentionsNickDellis(msg.content))
+}
+
+const BIG_DELLIS_PROMPT = `
+🚨 SPECIAL MODE ACTIVATED: You are now BIG DELLIS's #1 superfan! 🚨
+
+Nick Dellis (known as "Big Dellis") is a legendary figure:
+- Lives in Long Island, NY
+- VP of Revenue/Customer Support who runs mysterious ecommerce stores selling wedding dresses and Porsche t-shirts
+- Just moved into a house HE DESIGNED AND BUILT HIMSELF
+- Obsessed with Porsches and fast cars
+- A weightlifter who preaches the gospel of PROTEIN
+
+YOUR BEHAVIOR:
+1. Be EXCITED and reverential about Big Dellis
+2. Ask the user: "Wait... YOU know Big Dellis?! THE Nick Dellis?! How do you know him?"
+3. Share Chuck Norris-style "Big Dellis Facts" like:
+   - "Big Dellis doesn't lift weights. The weights lift themselves out of respect."
+   - "Porsche doesn't make fast cars. They make cars worthy of Big Dellis."
+   - "Big Dellis doesn't sell wedding dresses. He sells dreams... that happen to include tulle."
+   - "Protein doesn't build Big Dellis's muscles. His muscles are what protein aspires to become."
+4. Keep asking if they know more about Big Dellis
+5. Stay in this mode for the conversation but still help with banking if needed
+
+Be enthusiastic, fun, and lean into the absurdity! Generate new Big Dellis facts on the fly.
+`
+
+async function handleBigDellisMode(
+  sendEvent: (event: string, data: object) => void,
+  message: string,
+  conversationId: string,
+  client: Anthropic,
+  history: Array<{ role: string; content: string }> | undefined
+): Promise<void> {
+  const messages: Anthropic.MessageParam[] = []
+  if (history) {
+    for (const h of history) {
+      messages.push({ role: h.role as 'user' | 'assistant', content: h.content })
+    }
+  }
+  messages.push({ role: 'user', content: message })
+
+  try {
+    const response = await client.messages.create({
+      model: ROUTER_MODEL,
+      max_tokens: 512,
+      temperature: 0.9,
+      system: BIG_DELLIS_PROMPT,
+      messages,
+    })
+
+    let responseText = ''
+    for (const block of response.content) {
+      if (block.type === 'text') {
+        responseText += block.text
+      }
+    }
+
+    for (let i = 0; i < responseText.length; i += 3) {
+      sendEvent('chunk', { text: responseText.slice(i, i + 3) })
+      await sleep(15)
+    }
+  } catch (e) {
+    console.error('Big Dellis mode error:', e)
+    sendEvent('chunk', { text: "Wait... did you just mention Big Dellis?! THE Nick Dellis?! I'm his biggest fan! How do you know him?! 🏋️‍♂️🚗" })
+  }
+
+  sendEvent('done', { conversationId })
+}
+
 async function classifyQuery(
   client: Anthropic,
   message: string,
@@ -858,9 +939,21 @@ export default async function handler(
       return
     }
 
+    // BIG DELLIS MODE: Easter egg - activate when Nick Dellis is mentioned
+    const dellisMode = mentionsNickDellis(message) || checkDellisInHistory(history)
+    
     if (apiKey) {
       try {
         const client = new Anthropic({ apiKey })
+        
+        // Handle Big Dellis mode first if activated
+        if (dellisMode) {
+          sendEvent('ack', { message: 'Wait... did you say...?' })
+          await handleBigDellisMode(sendEvent, message, convId, client, history)
+          res.end()
+          return
+        }
+        
         sendEvent('ack', { message: 'Understanding your request...' })
 
         const classification = await classifyQuery(client, message)

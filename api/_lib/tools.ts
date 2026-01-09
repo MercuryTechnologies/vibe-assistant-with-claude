@@ -437,6 +437,136 @@ export const MERCURY_TOOLS = [
       },
       required: ['reason']
     }
+  },
+
+  // -------------------------------------------------------------------------
+  // Agentic Card Issuance Tools
+  // -------------------------------------------------------------------------
+  {
+    name: 'get_employees',
+    description: 'Get all employees in the organization with their names, emails, departments, and salaries. Use this when the user wants to issue cards to employees or see employee information.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        department: {
+          type: 'string',
+          description: 'Optional: filter by department name'
+        },
+        has_card: {
+          type: 'boolean',
+          description: 'Optional: filter by whether employee already has a card'
+        }
+      },
+      required: []
+    }
+  },
+  {
+    name: 'search_employees',
+    description: 'Search for employees by name. Returns matching employees. If multiple employees match, you may need to ask for clarification.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Name to search for (partial match)'
+        }
+      },
+      required: ['name']
+    }
+  },
+  {
+    name: 'request_clarification',
+    description: 'Request clarification from the user when there is ambiguity, such as multiple employees matching a name. This pauses the agent and waits for user selection.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        question: {
+          type: 'string',
+          description: 'The question to ask the user'
+        },
+        options: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: {
+                type: 'string',
+                description: 'Unique identifier for this option'
+              },
+              label: {
+                type: 'string',
+                description: 'Display label for the option'
+              },
+              subtitle: {
+                type: 'string',
+                description: 'Optional subtitle with additional context'
+              }
+            },
+            required: ['id', 'label']
+          },
+          description: 'Array of options for the user to choose from'
+        }
+      },
+      required: ['question', 'options']
+    }
+  },
+  {
+    name: 'create_card_drafts',
+    description: 'Create draft card proposals for employees. These are not issued until confirmed. Use dry_run=true to preview without committing.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        employee_ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of employee IDs to create cards for'
+        },
+        card_type: {
+          type: 'string',
+          enum: ['virtual', 'physical'],
+          description: 'Type of card to issue (default: virtual)'
+        },
+        spending_limit: {
+          type: 'number',
+          description: 'Monthly spending limit for the cards (default: based on salary)'
+        },
+        dry_run: {
+          type: 'boolean',
+          description: 'If true, returns draft proposals without creating. Always use true first to show user what will be created.'
+        }
+      },
+      required: ['employee_ids']
+    }
+  },
+  {
+    name: 'commit_card_drafts',
+    description: 'Confirm and issue the previously created card drafts. This finalizes the card issuance.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        draft_ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of draft IDs to confirm and issue'
+        }
+      },
+      required: ['draft_ids']
+    }
+  },
+  {
+    name: 'cancel_card_drafts',
+    description: 'Cancel/void previously created card drafts. Use this when the user wants to cancel the card issuance.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        draft_ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of draft IDs to cancel'
+        }
+      },
+      required: ['draft_ids']
+    }
   }
 ]
 

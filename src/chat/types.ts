@@ -112,6 +112,55 @@ export interface TransactionTableMetadata {
 }
 
 /**
+ * An employee row in a table
+ */
+export interface EmployeeTableRow {
+  id: string
+  name: string
+  email: string
+  department: string
+  salary: number
+  hasCard: boolean
+}
+
+/**
+ * Metadata for employee table display
+ */
+export interface EmployeeTableMetadata {
+  title?: string           // e.g., "Employees (6)"
+  rows: EmployeeTableRow[]
+  selectable?: boolean     // Whether to show checkboxes for selection
+}
+
+/**
+ * A step in the thinking chain
+ */
+export interface ThinkingStep {
+  id: string
+  label: string
+  status: 'pending' | 'in_progress' | 'done' | 'error'
+}
+
+/**
+ * A clarification request for ambiguity resolution
+ */
+export interface ClarificationRequest {
+  id: string
+  question: string
+  options: Array<{ id: string; label: string; subtitle?: string }>
+}
+
+/**
+ * An entity card (for drafts, scheduled items, etc.)
+ */
+export interface EntityCard {
+  entityType: 'card' | 'payment' | 'employee'
+  entityId: string
+  data: Record<string, unknown>
+  status: 'draft' | 'scheduled' | 'void'
+}
+
+/**
  * Combined metadata that can be attached to assistant messages
  */
 export interface MessageMetadata {
@@ -121,6 +170,10 @@ export interface MessageMetadata {
   link?: LinkMetadata
   supportHandoff?: SupportHandoffMetadata
   transactionTable?: TransactionTableMetadata
+  employeeTable?: EmployeeTableMetadata
+  thinkingChain?: ThinkingStep[]
+  clarificationRequest?: ClarificationRequest
+  entityCards?: EntityCard[]
 }
 
 /**
@@ -170,6 +223,9 @@ export type ThinkingStatus =
   | 'Setting up form...'
   | 'Processing action...'
   | 'Connecting you to support...'
+  | 'Looking up employees...'
+  | 'Creating card drafts...'
+  | 'Processing cards...'
 
 /**
  * All possible thinking status messages
@@ -184,6 +240,9 @@ export const THINKING_MESSAGES: ThinkingStatus[] = [
   'Setting up form...',
   'Processing action...',
   'Connecting you to support...',
+  'Looking up employees...',
+  'Creating card drafts...',
+  'Processing cards...',
 ]
 
 /**
@@ -207,6 +266,13 @@ export const TOOL_THINKING_MESSAGES: Record<string, ThinkingStatus[]> = {
   update_transaction_note: ['Processing action...'],
   update_transaction_category: ['Processing action...'],
   handoff_to_support: ['Connecting you to support...'],
+  // Agentic card issuance tools
+  get_employees: ['Looking up employees...'],
+  search_employees: ['Looking up employees...'],
+  request_clarification: ['Processing action...'],
+  create_card_drafts: ['Creating card drafts...'],
+  commit_card_drafts: ['Processing cards...'],
+  cancel_card_drafts: ['Processing cards...'],
 }
 
 /**

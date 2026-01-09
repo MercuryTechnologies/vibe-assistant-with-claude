@@ -7,12 +7,17 @@ import React from 'react'
 import { ChatMessage as ChatMessageType, MessageMetadata } from './types'
 import ActionCard from './ActionCard'
 import TransactionTable from './TransactionTable'
+import EmployeeTable from './EmployeeTable'
+import ThinkingAccordion from './ThinkingAccordion'
+import ClarificationCard from './ClarificationCard'
+import { EntityCardList } from './EntityCard'
 import { useChatStore } from './useChatStore'
 
 interface ChatMessageProps {
   message: ChatMessageType
   onNavigate?: (url: string, navigationMeta?: MessageMetadata['navigation']) => void
   onUndo?: (actionType: string, targetId: string) => void
+  onClarificationSelect?: (requestId: string, optionId: string) => void
 }
 
 /**
@@ -45,7 +50,7 @@ function parseMarkdownTable(paragraph: string, key: number): React.ReactNode {
     return line
       .split('|')
       .map(cell => cell.trim())
-      .filter((cell, idx, arr) => idx > 0 && idx < arr.length - 1 || cell) // Handle edge pipes
+      .filter((cell, idx, arr) => (idx > 0 && idx < arr.length - 1) || cell) // Handle edge pipes
   }
   
   const headerCells = parseRow(dataRows[0])
@@ -201,13 +206,19 @@ function parseInlineFormatting(text: string): React.ReactNode {
   return parts.length === 1 ? parts[0] : <>{parts}</>
 }
 
-export default function ChatMessage({ message, onNavigate, onUndo }: ChatMessageProps) {
+export default function ChatMessage({ message, onNavigate, onUndo, onClarificationSelect }: ChatMessageProps) {
   const isUser = message.role === 'user'
   const isNavigationComplete = useChatStore((state) => state.isNavigationComplete)
   const markNavigationComplete = useChatStore((state) => state.markNavigationComplete)
   
   const handleViewTransaction = (url: string) => {
     onNavigate?.(url)
+  }
+
+  const handleClarificationSelect = (optionId: string) => {
+    if (message.metadata?.clarificationRequest) {
+      onClarificationSelect?.(message.metadata.clarificationRequest.id, optionId)
+    }
   }
   
   return (
@@ -219,6 +230,13 @@ export default function ChatMessage({ message, onNavigate, onUndo }: ChatMessage
             : 'bg-[#fafafc] border border-[rgba(112,115,147,0.12)] rounded-[20px] rounded-bl-[4px]'
         }`}
       >
+        {/* Thinking chain accordion */}
+        {!isUser && message.metadata?.thinkingChain && message.metadata.thinkingChain.length > 0 && (
+          <div className="px-3 pt-3">
+            <ThinkingAccordion steps={message.metadata.thinkingChain} />
+          </div>
+        )}
+        
         {/* Message content */}
         <div
           className={`px-4 py-3 text-[15px] leading-[22px] ${
@@ -237,12 +255,36 @@ export default function ChatMessage({ message, onNavigate, onUndo }: ChatMessage
           )}
         </div>
         
+        {/* Employee table for assistant messages */}
+        {!isUser && message.metadata?.employeeTable && (
+          <div className="px-3 pb-2">
+            <EmployeeTable data={message.metadata.employeeTable} />
+          </div>
+        )}
+        
         {/* Transaction table for assistant messages */}
         {!isUser && message.metadata?.transactionTable && (
           <div className="px-3 pb-2">
             <TransactionTable
               data={message.metadata.transactionTable}
               onViewTransaction={handleViewTransaction}
+            />
+          </div>
+        )}
+
+        {/* Entity cards (card drafts, scheduled cards, etc.) */}
+        {!isUser && message.metadata?.entityCards && message.metadata.entityCards.length > 0 && (
+          <div className="px-3 pb-3">
+            <EntityCardList cards={message.metadata.entityCards} />
+          </div>
+        )}
+
+        {/* Clarification request card */}
+        {!isUser && message.metadata?.clarificationRequest && (
+          <div className="px-3 pb-3">
+            <ClarificationCard
+              request={message.metadata.clarificationRequest}
+              onSelect={handleClarificationSelect}
             />
           </div>
         )}

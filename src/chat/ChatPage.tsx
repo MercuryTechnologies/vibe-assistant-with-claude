@@ -21,6 +21,7 @@ export default function ChatPage({ onNavigate }: ChatPageProps) {
     isLoading,
     thinkingStatus,
     streamingMessageId,
+    respondToClarification,
   } = useChatStore()
   
   const {
@@ -93,6 +94,10 @@ export default function ChatPage({ onNavigate }: ChatPageProps) {
   const handleUndo = useCallback((actionType: string, _targetId: string) => {
     sendMessage(`Undo the ${actionType.replace(/_/g, ' ')} action`)
   }, [sendMessage])
+
+  const handleClarificationSelect = useCallback((requestId: string, optionId: string) => {
+    respondToClarification(requestId, optionId)
+  }, [respondToClarification])
   
   return (
     <div className="flex flex-col h-screen bg-white">
@@ -123,6 +128,7 @@ export default function ChatPage({ onNavigate }: ChatPageProps) {
               message={message}
               onNavigate={handleNavigate}
               onUndo={handleUndo}
+              onClarificationSelect={handleClarificationSelect}
             />
           ))}
           

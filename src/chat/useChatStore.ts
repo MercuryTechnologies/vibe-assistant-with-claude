@@ -4,7 +4,7 @@
 // Zustand store for managing chat conversation state with streaming support
 
 import { create } from 'zustand'
-import { ChatMessage, MessageMetadata, ThinkingStatus, NavigationMetadata } from './types'
+import { ChatMessage, MessageMetadata, ThinkingStatus, NavigationMetadata, ClarificationRequest, EntityCard } from './types'
 
 /**
  * Generate a unique ID for messages and conversations
@@ -48,6 +48,9 @@ interface ChatState {
     targetPage: string
     filters?: NavigationMetadata['filters']
   } | null
+
+  // Pending clarification request (for agentic flows)
+  pendingClarification: ClarificationRequest | null
   
   // Actions
   addUserMessage: (content: string) => void
@@ -67,6 +70,11 @@ interface ChatState {
   appendToStreamingMessage: (chunk: string) => void
   finishStreamingMessage: (metadata?: MessageMetadata) => void
   updateLastAssistantMessage: (content: string, metadata?: MessageMetadata) => void
+  
+  // Agentic flow actions
+  setPendingClarification: (request: ClarificationRequest | null) => void
+  respondToClarification: (requestId: string, optionId: string) => void
+  updateEntityCardStatus: (messageId: string, entityId: string, status: EntityCard['status']) => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -80,6 +88,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isFloating: false,
   completedNavigations: new Set<string>(),
   pendingFollowUp: null,
+  pendingClarification: null,
   
   // Add a user message to the conversation
   addUserMessage: (content: string) => {
@@ -283,6 +292,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       isFloating: false,
       completedNavigations: new Set<string>(),
       pendingFollowUp: null,
+      pendingClarification: null,
     })
   },
   
@@ -312,6 +322,51 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // Clear navigation state from previous conversations
       completedNavigations: new Set<string>(),
       pendingFollowUp: null,
+      pendingClarification: null,
     })
+  },
+  
+  // Set a pending clarification request
+  setPendingClarification: (request: ClarificationRequest | null) => {
+    set({ pendingClarification: request })
+  },
+  
+  // Respond to a clarification request
+  respondToClarification: (requestId: string, optionId: string) => {
+    const { pendingClarification } = get()
+    if (!pendingClarification || pendingClarification.id !== requestId) return
+    
+    // Find the selected option
+    const selectedOption = pendingClarification.options.find(o => o.id === optionId)
+    if (!selectedOption) return
+    
+    // Add user message with the selection
+    get().addUserMessage(selectedOption.label)
+    
+    // Clear the pending clarification
+    set({ 
+      pendingClarification: null,
+      isLoading: true,
+      thinkingStatus: 'Thinking',
+    })
+  },
+  
+  // Update an entity card's status in a message
+  updateEntityCardStatus: (messageId: string, entityId: string, status: EntityCard['status']) => {
+    set((state) => ({
+      messages: state.messages.map((msg) => {
+        if (msg.id !== messageId || !msg.metadata?.entityCards) return msg
+        
+        return {
+          ...msg,
+          metadata: {
+            ...msg.metadata,
+            entityCards: msg.metadata.entityCards.map((card) =>
+              card.entityId === entityId ? { ...card, status } : card
+            ),
+          },
+        }
+      }),
+    }))
   },
 }))

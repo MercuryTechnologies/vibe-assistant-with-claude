@@ -89,6 +89,68 @@ export interface CreditAccount {
 }
 
 /**
+ * Employee for card issuance
+ */
+export interface Employee {
+  id: string
+  name: string
+  email: string
+  department: string
+  salary: number
+  hasCard: boolean
+  cardId?: string
+}
+
+/**
+ * Employee table row for display
+ */
+export interface EmployeeTableRow {
+  id: string
+  name: string
+  email: string
+  department: string
+  salary: number
+  hasCard: boolean
+}
+
+/**
+ * Employee table metadata for displaying employees in chat
+ */
+export interface EmployeeTableMetadata {
+  title?: string
+  rows: EmployeeTableRow[]
+  selectable?: boolean
+}
+
+/**
+ * Thinking step in agentic flow
+ */
+export interface ThinkingStep {
+  id: string
+  label: string
+  status: 'pending' | 'in_progress' | 'done' | 'error'
+}
+
+/**
+ * Clarification request for ambiguity resolution
+ */
+export interface ClarificationRequest {
+  id: string
+  question: string
+  options: Array<{ id: string; label: string; subtitle?: string }>
+}
+
+/**
+ * Entity card for draft/scheduled/void states
+ */
+export interface EntityCard {
+  entityType: 'card' | 'payment' | 'employee'
+  entityId: string
+  data: Record<string, unknown>
+  status: 'draft' | 'scheduled' | 'void'
+}
+
+/**
  * Transaction filter configuration
  */
 export interface TransactionFilters {
@@ -178,6 +240,10 @@ export interface MessageMetadata {
   link?: LinkMetadata
   supportHandoff?: SupportHandoffMetadata
   transactionTable?: TransactionTableMetadata
+  employeeTable?: EmployeeTableMetadata
+  thinkingChain?: ThinkingStep[]
+  clarificationRequest?: ClarificationRequest
+  entityCards?: EntityCard[]
 }
 
 /**

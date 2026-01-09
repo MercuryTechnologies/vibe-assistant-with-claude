@@ -4,7 +4,7 @@
 // This file contains all mock data needed for the API.
 // It's self-contained so it works in Vercel's serverless environment.
 
-import { Account, Transaction, Recipient, Card, Organization, Category, CreditAccount } from './types'
+import { Account, Transaction, Recipient, Card, Organization, Category, CreditAccount, Employee } from './types'
 
 // -----------------------------------------------------------------------------
 // Types (duplicated from shared for serverless isolation)
@@ -523,6 +523,65 @@ export const MOCK_CATEGORIES: Category[] = [
   { id: 'cat-6', name: 'Office Supplies & Equipment' },
   { id: 'cat-7', name: 'Revenue' },
   { id: 'cat-8', name: 'Credit & Loan Payments' },
+]
+
+// -----------------------------------------------------------------------------
+// Employees (for card issuance demo)
+// -----------------------------------------------------------------------------
+
+export const MOCK_EMPLOYEES: Employee[] = [
+  {
+    id: 'emp-1',
+    name: 'Sarah Chen',
+    email: 'sarah.chen@mercury.com',
+    department: 'Engineering',
+    salary: 145000,
+    hasCard: true,
+    cardId: 'card-1'
+  },
+  {
+    id: 'emp-2',
+    name: 'John Smith',
+    email: 'john.smith@mercury.com',
+    department: 'Engineering',
+    salary: 125000,
+    hasCard: true,
+    cardId: 'card-2'
+  },
+  {
+    id: 'emp-3',
+    name: 'John Martinez',
+    email: 'john.martinez@mercury.com',
+    department: 'Sales',
+    salary: 95000,
+    hasCard: false
+  },
+  {
+    id: 'emp-4',
+    name: 'Jane Baker',
+    email: 'jane.baker@mercury.com',
+    department: 'Marketing',
+    salary: 110000,
+    hasCard: true,
+    cardId: 'card-3'
+  },
+  {
+    id: 'emp-5',
+    name: 'Mike Johnson',
+    email: 'mike.johnson@mercury.com',
+    department: 'Operations',
+    salary: 85000,
+    hasCard: true,
+    cardId: 'card-4'
+  },
+  {
+    id: 'emp-6',
+    name: 'Emily Rodriguez',
+    email: 'emily.rodriguez@mercury.com',
+    department: 'Finance',
+    salary: 130000,
+    hasCard: false
+  },
 ]
 
 // -----------------------------------------------------------------------------
