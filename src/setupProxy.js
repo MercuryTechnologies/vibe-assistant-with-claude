@@ -5,6 +5,7 @@
 
 const express = require('express');
 const mockData = require('./shared/mockData.js');
+const insightData = require('./shared/insightData.js');
 const { COMPLIANCE_PROMPT, checkCompliance } = require('./shared/complianceRules.js');
 
 // Model configuration - Claude 4.5 models (latest)
@@ -40,6 +41,20 @@ module.exports = function(app) {
           const Anthropic = require('@anthropic-ai/sdk').default;
           const client = new Anthropic({ apiKey });
           
+          // Fast-path: Check if this is an insight query before router
+          if (isInsightQuery(message)) {
+            sendEvent('ack', { message: 'Analyzing this insight...' });
+            const insightId = detectInsightFromMessage(message);
+            const fastRouterResponse = {
+              intent: 'INSIGHT_DETAIL',
+              needsSmartModel: false,
+              insightId: insightId,
+            };
+            await handleWithRouter(client, message, history, fastRouterResponse, sendEvent, conversationId);
+            res.end();
+            return;
+          }
+          
           // Step 1: Fast router classifies the query
           sendEvent('ack', { message: 'Understanding your request...' });
           
@@ -62,12 +77,12 @@ module.exports = function(app) {
           
         } catch (apiError) {
           console.error('API error:', apiError);
-          streamMockResponse(message, sendEvent, conversationId);
+          await streamMockResponse(message, sendEvent, conversationId);
           res.end();
         }
       } else {
         sendEvent('ack', { message: 'Processing...' });
-        streamMockResponse(message, sendEvent, conversationId);
+        await streamMockResponse(message, sendEvent, conversationId);
         res.end();
       }
       
@@ -92,40 +107,52 @@ CRITICAL COMPLIANCE (MUST FOLLOW):
 
 MESSAGE: "${message}"
 
-INTENTS:
-- CASHFLOW_QUESTION: User asks about cashflow, money in/out, financial health, spending trends
-- WIRE_TRANSACTIONS: User specifically asks about wire transfers or wire transactions
-- NAVIGATE: User wants to go to a page (payments, transactions, cards, accounts, etc.)
-- BALANCE: User asks about account balances
+INTENTS (choose one):
+- INSIGHT_DETAIL: User clicked an insight from the insights page and wants details. Look for "[INSIGHT:" prefix (e.g., "[INSIGHT:1]") or "Tell me more about this:" prefix or references to "Cursor spend", "software spend", "credit spend", "revenue growth". Extract the insight ID from [INSIGHT:X] and include it in insightId.
+- CASHFLOW_QUESTION: User asks about overall cashflow, money in/out, financial health → NAVIGATE to insights page
+- WIRE_TRANSACTIONS: User wants to see wire transfers → NAVIGATE to transactions with filter
+- TOP_MERCHANT: User asks "what's my top merchant?" or "who do I spend the most with?" → Answer INLINE (no navigation)
+- SPENDING_CATEGORY: User asks "what do I spend the most on?" or category questions → Answer INLINE
+- NAVIGATE: User explicitly wants to go to a page (payments, transactions, cards, etc.)
+- BALANCE: User asks about account balances → Answer INLINE
 - TRANSACTION_SEARCH: User asks about specific transactions or spending (e.g., "What did I spend on AWS?")
 - CARD_ACTION: User wants to freeze/manage cards
 - SUPPORT: User explicitly asks for human support or has a complex account issue
 - COMPLEX_QUESTION: User asks something requiring deep analysis
 - SIMPLE_QUESTION: General product questions you can answer directly
-- CHITCHAT: Casual conversation, jokes, off-topic questions (meaning of life, etc.)
+- CHITCHAT: Casual conversation, jokes, off-topic questions
 
-RESPONSE GUIDELINES:
-- Be warm and friendly! Use a conversational tone.
-- For CASHFLOW_QUESTION: User wants to understand their financial picture - navigate to insights and answer
-- For WIRE_TRANSACTIONS: User wants to see wire transfers - navigate to transactions with wire filter
-- For CHITCHAT: Give a fun, friendly response then gently redirect to how you can help with Mercury
-- For SIMPLE_QUESTION: Provide a helpful answer about Mercury's features
-- For predictions/guarantees: Politely explain you can't predict the future but can show current features
-- Don't send to SUPPORT unless they explicitly ask for human help
+CRITICAL: INLINE vs NAVIGATION
+Questions that should be answered INLINE (no navigation):
+- "What's my top merchant?" → INLINE answer
+- "Who do I spend the most with?" → INLINE answer
+- "What's my biggest expense?" → INLINE answer
+- "What did I spend on [specific merchant]?" → INLINE answer (TRANSACTION_SEARCH)
+- "What's my balance?" → INLINE answer
+
+Questions that should NAVIGATE:
+- "What's my cashflow?" → Navigate to /insights
+- "Show me my spending trends" → Navigate to /insights
+- "Recent wire transactions" → Navigate to /transactions with filter
+- "Show me transactions" → Navigate to /transactions
 
 Respond with JSON:
-{"intent":"...", "needsSmartModel":true/false, "handoffMessage":"...", "quickResponse":"...", "navigationTarget":"..."}
+{"intent":"...", "needsSmartModel":true/false, "handoffMessage":"...", "quickResponse":"...", "navigationTarget":"...", "insightId":"..."}
 
 Examples:
-- "What's my cashflow?" → CASHFLOW_QUESTION
-- "What's my cashflow looking like?" → CASHFLOW_QUESTION
-- "How's my spending?" → CASHFLOW_QUESTION
-- "Show me my recent wire transactions" → WIRE_TRANSACTIONS
-- "Recent wires" → WIRE_TRANSACTIONS
-- "What's the meaning of life?" → CHITCHAT, quickResponse: "Ha! The big questions! 🤔 Philosophers have debated that for millennia. I'm more of a fintech assistant myself—I can help you navigate your Mercury account, check transactions, or send payments. What can I help you with?"
-- "Will my money grow?" → CHITCHAT, quickResponse: "I can't predict the future or give investment advice, but I can show you Mercury's features like Treasury for managing your cash. Would you like to learn more about that?"
-- "Show me my balance" → BALANCE
-- "What did I spend on AWS?" → TRANSACTION_SEARCH, handoffMessage: "Searching your transactions..."
+- "[INSIGHT:1] Tell me more about this: 'Spike in spend on software'..." → INSIGHT_DETAIL, insightId: "1", needsSmartModel: false
+- "[INSIGHT:2] Tell me more about this: 'Increased Credit spend'..." → INSIGHT_DETAIL, insightId: "2", needsSmartModel: false
+- "[INSIGHT:3] Tell me more about this: '12% revenue growth'..." → INSIGHT_DETAIL, insightId: "3", needsSmartModel: false
+- "Tell me more about the software spend" → INSIGHT_DETAIL, insightId: "1", needsSmartModel: false
+- "Tell me about the credit card increase" → INSIGHT_DETAIL, insightId: "2", needsSmartModel: false
+- "What's my top merchant?" → TOP_MERCHANT (inline answer, no navigation)
+- "Who do I spend the most with?" → TOP_MERCHANT (inline answer)
+- "What's my biggest expense category?" → SPENDING_CATEGORY (inline answer)
+- "What's my cashflow?" → CASHFLOW_QUESTION (navigate to insights)
+- "Show me my spending trends" → CASHFLOW_QUESTION (navigate to insights)
+- "Show me my recent wire transactions" → WIRE_TRANSACTIONS (navigate)
+- "What's my balance" → BALANCE (inline answer)
+- "What did I spend on AWS?" → TRANSACTION_SEARCH (inline answer with data)
 - "Go to payments" → NAVIGATE, navigationTarget: "payments"
 
 needsSmartModel=true only for TRANSACTION_SEARCH and COMPLEX_QUESTION.`;
@@ -165,12 +192,150 @@ needsSmartModel=true only for TRANSACTION_SEARCH and COMPLEX_QUESTION.`;
   };
 }
 
+// Detect which insight is being asked about from the message
+function detectInsightFromMessage(message) {
+  // First check for explicit [INSIGHT:X] tag
+  const tagMatch = message.match(/\[INSIGHT:(\d+)\]/);
+  if (tagMatch) {
+    return tagMatch[1];
+  }
+  
+  const lowerMessage = message.toLowerCase();
+  
+  // Check for software/Cursor insight
+  if (lowerMessage.includes('software') || lowerMessage.includes('cursor') || 
+      lowerMessage.includes('spike') || lowerMessage.includes('subscription')) {
+    return '1';
+  }
+  
+  // Check for credit card insight
+  if (lowerMessage.includes('credit') || lowerMessage.includes('card spend') || 
+      lowerMessage.includes('card increase')) {
+    return '2';
+  }
+  
+  // Check for revenue insight
+  if (lowerMessage.includes('revenue') || lowerMessage.includes('growth') || 
+      lowerMessage.includes('income')) {
+    return '3';
+  }
+  
+  return null;
+}
+
+// Check if message is an insight query (fast check before router)
+function isInsightQuery(message) {
+  return message.includes('[INSIGHT:') || 
+         (message.toLowerCase().includes('tell me more about') && 
+          (message.toLowerCase().includes('software') || 
+           message.toLowerCase().includes('credit') || 
+           message.toLowerCase().includes('revenue')));
+}
+
 // Handle with fast router model (simple queries)
 async function handleWithRouter(client, message, history, classification, sendEvent, conversationId) {
   let responseText = '';
   let metadata = undefined;
   
   switch (classification.intent) {
+    case 'INSIGHT_DETAIL': {
+      // Get the insight details
+      const insightId = classification.insightId || detectInsightFromMessage(message);
+      const insight = insightData.getInsightById(insightId);
+      
+      if (insight) {
+        // Format a rich response with the insight data
+        const trend = insight.monthlyTrend;
+        const latestChange = trend[trend.length - 1]?.percentChange || 0;
+        const changeDirection = latestChange > 0 ? 'increase' : latestChange < 0 ? 'decrease' : 'stable';
+        
+        // Build the response
+        responseText = `${insight.summary}\n\n`;
+        responseText += `**Monthly Trend:**\n`;
+        insight.monthlyTrend.forEach(m => {
+          const pct = m.percentChange !== undefined ? ` (${m.percentChange > 0 ? '+' : ''}${m.percentChange}%)` : '';
+          responseText += `• ${m.month}: $${m.amount.toLocaleString()}${pct}\n`;
+        });
+        
+        responseText += `\n**Key Insights:**\n`;
+        insight.keyFacts.slice(0, 3).forEach(f => {
+          responseText += `• ${f}\n`;
+        });
+        
+        if (insight.breakdown.length > 0) {
+          responseText += `\n**Breakdown:**\n`;
+          insight.breakdown.slice(0, 4).forEach(b => {
+            responseText += `• ${b.name}: $${b.amount.toLocaleString()} (${b.percentage}%)\n`;
+          });
+        }
+        
+        responseText += `\n**Recommendations:**\n`;
+        insight.recommendations.slice(0, 2).forEach(r => {
+          responseText += `• ${r}\n`;
+        });
+      } else {
+        responseText = "I'd be happy to tell you more about that insight! Could you specify which one you're interested in? I can help with software spend, credit card spend, or revenue trends.";
+      }
+      break;
+    }
+    
+    case 'TOP_MERCHANT': {
+      // Answer inline - no navigation
+      const topTxns = mockData.getTopTransactions('out', 5);
+      const merchantSpend = {};
+      topTxns.forEach(t => {
+        if (t.counterparty) {
+          merchantSpend[t.counterparty] = (merchantSpend[t.counterparty] || 0) + Math.abs(t.amount);
+        }
+      });
+      
+      // Get all transactions to calculate accurate merchant totals
+      const allTxns = mockData.searchTransactions('', 100);
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const recentSpend = {};
+      allTxns.filter(t => t.amount < 0 && new Date(t.date) >= thirtyDaysAgo).forEach(t => {
+        const name = t.counterparty;
+        recentSpend[name] = (recentSpend[name] || 0) + Math.abs(t.amount);
+      });
+      
+      const sortedMerchants = Object.entries(recentSpend)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+      
+      if (sortedMerchants.length > 0) {
+        responseText = `Your top merchants by spend this month:\n\n`;
+        sortedMerchants.forEach(([merchant, amount], i) => {
+          const emoji = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '•';
+          responseText += `${emoji} **${merchant}**: $${amount.toLocaleString()}\n`;
+        });
+        responseText += `\nWant me to dig into any of these?`;
+      } else {
+        responseText = "I couldn't find enough transaction data to determine your top merchants. Would you like me to navigate to your transactions page?";
+      }
+      break;
+    }
+    
+    case 'SPENDING_CATEGORY': {
+      // Answer inline - no navigation
+      const insights = mockData.getInsightsData();
+      const topCategories = insights.topSpendingCategories.slice(0, 5);
+      
+      if (topCategories.length > 0) {
+        responseText = `Your top spending categories this month:\n\n`;
+        topCategories.forEach((cat, i) => {
+          const emoji = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '•';
+          responseText += `${emoji} **${cat.category}**: $${cat.amount.toLocaleString()}\n`;
+        });
+        responseText += `\nWant me to show you specific transactions in any category?`;
+      } else {
+        responseText = "I couldn't find enough transaction data to determine your spending categories.";
+      }
+      break;
+    }
+    
     case 'CASHFLOW_QUESTION': {
       // Get insights data to answer after navigation
       const insights = mockData.getInsightsData();

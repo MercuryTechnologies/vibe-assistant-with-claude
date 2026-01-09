@@ -59,13 +59,15 @@ export interface ScorecardProps {
   moneyIn: string;
   moneyOut: string;
   insights: Insight[];
+  onInsightClick?: (insight: Insight) => void;
 }
 
 const Scorecard: React.FC<ScorecardProps> = ({
   netCashflow,
   moneyIn,
   moneyOut,
-  insights
+  insights,
+  onInsightClick
 }) => {
   return (
     <div className="bg-white rounded-xl min-w-[240px] w-full px-6">
@@ -100,26 +102,38 @@ const Scorecard: React.FC<ScorecardProps> = ({
       </div>
 
       {/* Insights */}
-      <div className="space-y-4">
+      <div className="space-y-2">
         {insights.map((insight) => (
-          <div key={insight.id} className="flex items-start gap-3">
+          <button
+            key={insight.id}
+            type="button"
+            onClick={() => onInsightClick?.(insight)}
+            className="w-full text-left flex items-start gap-3 p-3 -mx-3 rounded-xl transition-all duration-200 hover:bg-[rgba(82,102,235,0.06)] hover:shadow-[inset_0_0_0_1px_rgba(82,102,235,0.15)] group cursor-pointer"
+          >
             {/* Arrow Icon */}
             <div
-              className="flex-shrink-0 mt-[2px] text-gray-900"
+              className="flex-shrink-0 mt-[2px] text-gray-900 transition-transform duration-200 group-hover:scale-110"
             >
               {insight.type === 'positive' ? <ArrowUpIcon /> : <ArrowDownIcon />}
             </div>
             
             {/* Insight Content */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 leading-snug">
+              <p className="text-sm font-semibold text-gray-900 leading-snug group-hover:text-[#5266eb] transition-colors duration-200">
                 {insight.title}
               </p>
               <p className="mt-1 text-sm text-gray-500 leading-relaxed">
                 {insight.description}
               </p>
             </div>
-          </div>
+            
+            {/* Chat hint icon - appears on hover */}
+            <div className="flex-shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <svg className="w-4 h-4 text-[#5266eb]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+              </svg>
+            </div>
+          </button>
         ))}
       </div>
     </div>

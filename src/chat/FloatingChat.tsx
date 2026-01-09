@@ -6,9 +6,9 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useChatStore } from './useChatStore'
+import { useStreamingChat } from './useStreamingChat'
 import ChatMessage from './ChatMessage'
 import ThinkingIndicator from './ThinkingIndicator'
-import { MessageMetadata } from './types'
 
 interface FloatingChatProps {
   onNavigate: (path: string) => void
@@ -20,20 +20,20 @@ export default function FloatingChat({ onNavigate, onClose, onExpand }: Floating
   const {
     messages,
     conversationNumber,
+    conversationId,
     isLoading,
     thinkingStatus,
     streamingMessageId,
-    addUserMessage,
-    addAssistantMessage,
-    setLoading,
-    setThinking,
-    startStreamingMessage,
-    appendToStreamingMessage,
-    finishStreamingMessage,
   } = useChatStore()
   
+  const {
+    sendMessage,
+    sendToApi,
+    acknowledgment,
+    initialMessageSentRef,
+  } = useStreamingChat()
+  
   const [inputValue, setInputValue] = useState('')
-  const [acknowledgment, setAcknowledgment] = useState<string | null>(null)
   const [isMinimized, setIsMinimized] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -66,108 +66,41 @@ export default function FloatingChat({ onNavigate, onClose, onExpand }: Floating
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isMinimized])
   
-  // Simplified streaming - no buffer, just append directly
-  const processStreamChunk = useCallback((text: string) => {
-    appendToStreamingMessage(text)
-  }, [appendToStreamingMessage])
-  
-  // Send message with streaming support
-  const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim()) return
-    
-    addUserMessage(content)
-    setLoading(true)
-    setThinking('Thinking')
-    setAcknowledgment(null)
-    
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: content,
-          conversationId: useChatStore.getState().conversationId,
-          history: useChatStore.getState().messages.slice(0, -1).map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        }),
-      })
-      
-      if (!response.ok) throw new Error('Failed to get response')
-      
-      const contentType = response.headers.get('content-type')
-      
-      if (contentType?.includes('text/event-stream')) {
-        const reader = response.body?.getReader()
-        const decoder = new TextDecoder()
-        
-        if (!reader) throw new Error('No response body')
-        
-        let buffer = ''
-        let hasStartedStreaming = false
-        let metadata: MessageMetadata | undefined
-        
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split('\n')
-          buffer = lines.pop() || ''
-          
-          let eventType = ''
-          
-          for (const line of lines) {
-            if (line.startsWith('event: ')) {
-              eventType = line.slice(7)
-            } else if (line.startsWith('data: ')) {
-              try {
-                const parsed = JSON.parse(line.slice(6))
-                
-                if (eventType === 'ack') {
-                  setAcknowledgment(parsed.message)
-                  setThinking(null)
-                } else if (eventType === 'chunk') {
-                  if (!hasStartedStreaming) {
-                    setAcknowledgment(null)
-                    startStreamingMessage()
-                    hasStartedStreaming = true
-                  }
-                  processStreamChunk(parsed.text)
-                } else if (eventType === 'done') {
-                  metadata = parsed.metadata
-                  finishStreamingMessage(metadata)
-                  setLoading(false)
-                } else if (eventType === 'error') {
-                  throw new Error(parsed.error)
-                }
-              } catch {
-                // Ignore parse errors
-              }
-            }
-          }
-        }
-      } else {
-        const data = await response.json()
-        addAssistantMessage(data.message, data.metadata)
-      }
-    } catch (error) {
-      console.error('Chat error:', error)
-      setAcknowledgment(null)
-      addAssistantMessage("I'm sorry, I encountered an error. Please try again.")
-    } finally {
-      setLoading(false)
-      setThinking(null)
+  // Reset initialMessageSentRef when conversation changes
+  useEffect(() => {
+    if (conversationId !== initialMessageSentRef.current) {
+      initialMessageSentRef.current = null
     }
-  }, [addUserMessage, addAssistantMessage, setLoading, setThinking, startStreamingMessage, appendToStreamingMessage, finishStreamingMessage, processStreamChunk])
+  }, [conversationId, initialMessageSentRef])
   
-  const handleSubmit = (e: React.FormEvent) => {
+  // Handle initial message when floating chat opens with a pending message
+  useEffect(() => {
+    if (
+      messages.length === 1 && 
+      messages[0].role === 'user' && 
+      isLoading && 
+      initialMessageSentRef.current !== conversationId
+    ) {
+      initialMessageSentRef.current = conversationId
+      const messageContent = messages[0].content
+      sendToApi(messageContent)
+    }
+  }, [messages, isLoading, conversationId, sendToApi, initialMessageSentRef])
+  
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
-    if (!inputValue.trim() || isLoading) return
-    sendMessage(inputValue)
+    const trimmedValue = inputValue.trim()
+    if (!trimmedValue) return
+    
+    // If already loading, ignore (but don't block - let user see it's processing)
+    if (isLoading) {
+      console.log('FloatingChat: Already processing, please wait...')
+      return
+    }
+    
+    sendMessage(trimmedValue)
     setInputValue('')
-  }
+  }, [inputValue, isLoading, sendMessage])
   
   const handleNavigate = useCallback((url: string) => {
     onNavigate(url)
@@ -291,15 +224,24 @@ export default function FloatingChat({ onNavigate, onClose, onExpand }: Floating
             <button
               type="submit"
               disabled={isLoading || !inputValue.trim()}
-              className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-                inputValue.trim() && !isLoading
+              className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+                isLoading
+                  ? 'bg-[#5266eb] text-white cursor-wait'
+                  : inputValue.trim()
                   ? 'bg-[#5266eb] text-white hover:bg-[#4255d9]'
                   : 'bg-[#e5e5ea] text-[#aeaeb2]'
               }`}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              {isLoading ? (
+                <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25"/>
+                  <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                </svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
             </button>
           </div>
         </form>
@@ -307,4 +249,3 @@ export default function FloatingChat({ onNavigate, onClose, onExpand }: Floating
     </div>
   )
 }
-

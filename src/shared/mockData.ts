@@ -114,6 +114,7 @@ export const merchants: Merchant[] = [
   { name: 'Vercel', initials: 'V', category: 'Software & Subscriptions' },
   { name: 'GitHub', initials: 'GH', category: 'Software & Subscriptions' },
   { name: 'Linear', initials: 'LN', category: 'Software & Subscriptions' },
+  { name: 'Cursor', initials: 'CU', category: 'Software & Subscriptions' },
   { name: 'OpenAI', initials: 'OA', category: 'Software & Subscriptions' },
   { name: 'Anthropic', initials: 'AN', category: 'Software & Subscriptions' },
   { name: 'WeWork', initials: 'WW', category: 'Rent & Utilities' },
@@ -226,6 +227,7 @@ function generateTransactions(): Transaction[] {
   let seed = 12345 // Fixed seed for consistency
   
   // Recurring transactions (predictable)
+  // Note: Cursor spend increases each month to match the insight about +15% MoM growth
   const recurring: RecurringTransaction[] = [
     { merchant: 'AWS', amount: -2847.32, day: 1, account: 'Mercury Checking', method: 'ach' },
     { merchant: 'Google Cloud', amount: -1243.50, day: 1, account: 'Mercury Checking', method: 'ach' },
@@ -268,6 +270,40 @@ function generateTransactions(): Transaction[] {
           dashboardLink: '/transactions',
         })
       }
+    }
+  }
+  
+  // Add Cursor transactions with increasing spend pattern (for the insight)
+  // September: $5,987, August: $5,009, July: $4,356
+  const cursorTransactions: { monthOffset: number; amount: number }[] = [
+    { monthOffset: 0, amount: -5987.00 },  // Current month (September in the insight)
+    { monthOffset: 1, amount: -5009.00 },  // August
+    { monthOffset: 2, amount: -4356.00 },  // July
+  ]
+  
+  for (const cursor of cursorTransactions) {
+    const date = new Date()
+    date.setMonth(date.getMonth() - cursor.monthOffset)
+    date.setDate(18) // Mid-month billing
+    
+    if (date <= new Date()) {
+      const merchantData = merchants.find(m => m.name === 'Cursor')!
+      transactions.push({
+        id: `txn-${txnId++}`,
+        date: date.toISOString().split('T')[0],
+        counterparty: 'Cursor',
+        counterpartyInitials: merchantData.initials,
+        amount: cursor.amount,
+        account: 'Mercury Checking',
+        method: 'card',
+        methodDirection: 'out',
+        cardHolder: 'Sarah Chen',
+        cardLast4: '4532',
+        category: 'Software & Subscriptions',
+        description: 'Cursor Pro Team subscription',
+        status: 'completed',
+        dashboardLink: '/transactions',
+      })
     }
   }
   

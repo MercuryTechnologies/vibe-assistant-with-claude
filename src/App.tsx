@@ -610,6 +610,20 @@ function App() {
     window.history.pushState({}, '', '/chat');
   }, [startNewConversation]);
   
+  // Handle clicking on an insight to start a contextual chat
+  const handleInsightClick = useCallback((insight: Insight) => {
+    // Create a contextual message that the chat will send
+    // Include [INSIGHT:id] tag for the router to easily detect
+    const contextMessage = `[INSIGHT:${insight.id}] Tell me more about this: "${insight.title}"\n\n${insight.description}`;
+    
+    // Start a new conversation with this context
+    startNewConversation(contextMessage);
+    
+    // Show floating chat instead of navigating to full chat page
+    // This keeps the user on the insights page as requested
+    setFloating(true);
+  }, [startNewConversation, setFloating]);
+  
   // Handle floating chat expand (go back to full chat page)
   const handleExpandChat = useCallback(() => {
     setFloating(false);
@@ -879,6 +893,7 @@ function App() {
                 moneyIn={formatCurrency(transactionsSummary.moneyIn)}
                 moneyOut={`–${formatCurrency(transactionsSummary.moneyOut)}`}
                 insights={sampleInsights}
+                onInsightClick={handleInsightClick}
               />
             </div>
 

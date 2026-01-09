@@ -5,9 +5,9 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useChatStore } from './useChatStore'
+import { useStreamingChat } from './useStreamingChat'
 import ChatMessage from './ChatMessage'
 import ThinkingIndicator from './ThinkingIndicator'
-import { MessageMetadata } from './types'
 
 interface ChatPageProps {
   onNavigate: (path: string) => void
@@ -17,20 +17,20 @@ export default function ChatPage({ onNavigate }: ChatPageProps) {
   const {
     messages,
     conversationNumber,
+    conversationId,
     isLoading,
     thinkingStatus,
     streamingMessageId,
-    addUserMessage,
-    addAssistantMessage,
-    setLoading,
-    setThinking,
-    startStreamingMessage,
-    appendToStreamingMessage,
-    finishStreamingMessage,
   } = useChatStore()
   
+  const {
+    sendMessage,
+    sendToApi,
+    acknowledgment,
+    initialMessageSentRef,
+  } = useStreamingChat()
+  
   const [inputValue, setInputValue] = useState('')
-  const [acknowledgment, setAcknowledgment] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   
@@ -56,228 +56,27 @@ export default function ChatPage({ onNavigate }: ChatPageProps) {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [])
   
-  // Simplified streaming - no buffer, just append directly
-  const processStreamChunk = useCallback((text: string) => {
-    appendToStreamingMessage(text)
-  }, [appendToStreamingMessage])
-  
-  // Send message with streaming support
-  const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim()) return
-    
-    // Add user message
-    addUserMessage(content)
-    setLoading(true)
-    setThinking('Thinking')
-    setAcknowledgment(null)
-    
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: content,
-          conversationId: useChatStore.getState().conversationId,
-          history: useChatStore.getState().messages.slice(0, -1).map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        }),
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to get response')
-      }
-      
-      // Check if response is SSE stream
-      const contentType = response.headers.get('content-type')
-      
-      if (contentType?.includes('text/event-stream')) {
-        // Handle SSE streaming
-        const reader = response.body?.getReader()
-        const decoder = new TextDecoder()
-        
-        if (!reader) {
-          throw new Error('No response body')
-        }
-        
-        let buffer = ''
-        let hasStartedStreaming = false
-        let metadata: MessageMetadata | undefined
-        let eventType = ''
-        
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          
-          buffer += decoder.decode(value, { stream: true })
-          
-          // Parse SSE events from buffer
-          const lines = buffer.split('\n')
-          buffer = lines.pop() || '' // Keep incomplete line in buffer
-          
-          for (const line of lines) {
-            if (line.startsWith('event: ')) {
-              eventType = line.slice(7)
-            } else if (line.startsWith('data: ')) {
-              const data = line.slice(6)
-              try {
-                const parsed = JSON.parse(data)
-                
-                if (eventType === 'ack') {
-                  // Show acknowledgment
-                  setAcknowledgment(parsed.message)
-                  setThinking(null)
-                } else if (eventType === 'chunk') {
-                  // Start streaming if not already
-                  if (!hasStartedStreaming) {
-                    setAcknowledgment(null)
-                    startStreamingMessage()
-                    hasStartedStreaming = true
-                  }
-                  // Buffer and append chunk
-                  processStreamChunk(parsed.text)
-                } else if (eventType === 'done') {
-                  // Streaming complete
-                  metadata = parsed.metadata
-                  finishStreamingMessage(metadata)
-                  setLoading(false)
-                } else if (eventType === 'error') {
-                  throw new Error(parsed.error)
-                }
-              } catch (parseError) {
-                // Ignore parse errors for incomplete data
-              }
-            }
-          }
-        }
-        
-        // If we got an acknowledgment but no streaming content, add it as a message
-        if (!hasStartedStreaming && acknowledgment) {
-          addAssistantMessage(acknowledgment, metadata)
-        }
-      } else {
-        // Handle regular JSON response (fallback)
-        const data = await response.json()
-        addAssistantMessage(data.message, data.metadata)
-      }
-    } catch (error) {
-      console.error('Chat error:', error)
-      setAcknowledgment(null)
-      addAssistantMessage(
-        "I'm sorry, I encountered an error processing your request. Please try again."
-      )
-    } finally {
-      setLoading(false)
-      setThinking(null)
-    }
-  }, [addUserMessage, addAssistantMessage, setLoading, setThinking, startStreamingMessage, appendToStreamingMessage, finishStreamingMessage, processStreamChunk, acknowledgment])
-  
-  // Handle initial message on mount
-  const initialMessageSentRef = useRef(false)
+  // Reset initialMessageSentRef when conversation changes
   useEffect(() => {
-    if (messages.length === 1 && messages[0].role === 'user' && isLoading && !initialMessageSentRef.current) {
-      initialMessageSentRef.current = true
+    if (conversationId !== initialMessageSentRef.current) {
+      initialMessageSentRef.current = null
+    }
+  }, [conversationId, initialMessageSentRef])
+  
+  // Handle initial message on mount - only send if we haven't sent for this conversation
+  useEffect(() => {
+    if (
+      messages.length === 1 && 
+      messages[0].role === 'user' && 
+      isLoading && 
+      initialMessageSentRef.current !== conversationId
+    ) {
+      initialMessageSentRef.current = conversationId
       const messageContent = messages[0].content
       // Don't add user message again, just send to API
-      sendMessageToApi(messageContent)
+      sendToApi(messageContent)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-  
-  // Send to API without adding user message (for initial message)
-  const sendMessageToApi = useCallback(async (content: string) => {
-    setAcknowledgment(null)
-    
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: content,
-          conversationId: useChatStore.getState().conversationId,
-          history: [],
-        }),
-      })
-      
-      if (!response.ok) {
-        throw new Error('Failed to get response')
-      }
-      
-      const contentType = response.headers.get('content-type')
-      
-      if (contentType?.includes('text/event-stream')) {
-        const reader = response.body?.getReader()
-        const decoder = new TextDecoder()
-        
-        if (!reader) {
-          throw new Error('No response body')
-        }
-        
-        let buffer = ''
-        let hasStartedStreaming = false
-        let metadata: MessageMetadata | undefined
-        let eventType = ''
-        
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          
-          buffer += decoder.decode(value, { stream: true })
-          
-          const lines = buffer.split('\n')
-          buffer = lines.pop() || ''
-          
-          for (const line of lines) {
-            if (line.startsWith('event: ')) {
-              eventType = line.slice(7)
-            } else if (line.startsWith('data: ')) {
-              const data = line.slice(6)
-              try {
-                const parsed = JSON.parse(data)
-                
-                if (eventType === 'ack') {
-                  setAcknowledgment(parsed.message)
-                  setThinking(null)
-                } else if (eventType === 'chunk') {
-                  if (!hasStartedStreaming) {
-                    setAcknowledgment(null)
-                    startStreamingMessage()
-                    hasStartedStreaming = true
-                  }
-                  processStreamChunk(parsed.text)
-                } else if (eventType === 'done') {
-                  metadata = parsed.metadata
-                  finishStreamingMessage(metadata)
-                  setLoading(false)
-                } else if (eventType === 'error') {
-                  throw new Error(parsed.error)
-                }
-              } catch {
-                // Ignore parse errors
-              }
-            }
-          }
-        }
-      } else {
-        const data = await response.json()
-        addAssistantMessage(data.message, data.metadata)
-      }
-    } catch (error) {
-      console.error('Chat error:', error)
-      setAcknowledgment(null)
-      addAssistantMessage(
-        "I'm sorry, I encountered an error processing your request. Please try again."
-      )
-    } finally {
-      setLoading(false)
-      setThinking(null)
-    }
-  }, [addAssistantMessage, setLoading, setThinking, startStreamingMessage, appendToStreamingMessage, finishStreamingMessage, processStreamChunk])
+  }, [messages, isLoading, conversationId, sendToApi, initialMessageSentRef])
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
