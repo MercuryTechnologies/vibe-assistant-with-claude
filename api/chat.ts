@@ -230,6 +230,188 @@ function getSharedInsightsData() {
 }
 
 // =============================================================================
+// DETAILED INSIGHT DATA (for contextual responses when user clicks an insight)
+// =============================================================================
+
+interface InsightDetail {
+  title: string
+  description: string
+  keyFacts: string[]
+  monthlyTrend: Array<{ month: string; spend: number }>
+  breakdown: Array<{ name: string; amount: number; percentage: number }>
+  recommendations: string[]
+  relatedTransactions: Array<{
+    date: string
+    vendor: string
+    amount: number
+    description: string
+  }>
+}
+
+const DETAILED_INSIGHTS: Record<string, InsightDetail> = {
+  '1': {
+    title: 'Spike in spend on software',
+    description: 'Cursor spend in September totaled –$5,987, which is an increase by +15% MoM from –$5,009 in August.',
+    keyFacts: [
+      'Total software spend in September: $10,502',
+      'Cursor accounts for 57% of software spend this month',
+      'Average monthly software spend over last 3 months: $9,100',
+      'Largest software vendors: AWS, Cursor, Slack, Google Cloud',
+    ],
+    monthlyTrend: [
+      { month: 'July', spend: 8500 },
+      { month: 'August', spend: 9100 },
+      { month: 'September', spend: 10502 },
+    ],
+    breakdown: [
+      { name: 'Cursor', amount: 5987, percentage: 57 },
+      { name: 'AWS', amount: 2100, percentage: 20 },
+      { name: 'Slack', amount: 1250, percentage: 12 },
+      { name: 'Google Cloud', amount: 1165, percentage: 11 },
+    ],
+    recommendations: [
+      'Consider an annual Cursor plan for 15-20% savings',
+      'Review seat utilization across all subscriptions',
+      'Consolidate overlapping tools if possible',
+    ],
+    relatedTransactions: [
+      { date: '2024-09-18', vendor: 'Cursor', amount: -5987, description: 'Monthly subscription' },
+      { date: '2024-09-15', vendor: 'AWS', amount: -2100, description: 'Cloud infrastructure' },
+      { date: '2024-09-10', vendor: 'Slack', amount: -1250, description: 'Team subscription' },
+    ],
+  },
+  '2': {
+    title: 'Reduced revenue from Stripe',
+    description: 'Stripe payouts are down –12% compared to the same period last month.',
+    keyFacts: [
+      'September Stripe revenue: $124,500',
+      'August Stripe revenue: $141,400',
+      'Decline of $16,900 (-12%)',
+      'Weekly payout average dropped from $35,350 to $31,125',
+    ],
+    monthlyTrend: [
+      { month: 'July', spend: 138200 },
+      { month: 'August', spend: 141400 },
+      { month: 'September', spend: 124500 },
+    ],
+    breakdown: [
+      { name: 'Weekly Payouts', amount: 93375, percentage: 75 },
+      { name: 'Invoice Payments', amount: 24900, percentage: 20 },
+      { name: 'Refunds', amount: -6225, percentage: 5 },
+    ],
+    recommendations: [
+      'Review customer churn rates for the period',
+      'Check if seasonal patterns explain the decline',
+      'Consider promotional campaigns to boost revenue',
+    ],
+    relatedTransactions: [
+      { date: '2024-09-20', vendor: 'Stripe', amount: 28450, description: 'Weekly payout' },
+      { date: '2024-09-13', vendor: 'Stripe', amount: 31200, description: 'Weekly payout' },
+      { date: '2024-09-06', vendor: 'Stripe', amount: 33725, description: 'Weekly payout' },
+    ],
+  },
+  '3': {
+    title: 'Payroll increased by 8%',
+    description: 'Your payroll expenses have grown compared to last month, likely due to new hires.',
+    keyFacts: [
+      'September payroll: $96,660',
+      'August payroll: $89,500',
+      'Increase of $7,160 (+8%)',
+      'Consistent with 2 new engineering hires starting this month',
+    ],
+    monthlyTrend: [
+      { month: 'July', spend: 85200 },
+      { month: 'August', spend: 89500 },
+      { month: 'September', spend: 96660 },
+    ],
+    breakdown: [
+      { name: 'Engineering', amount: 58000, percentage: 60 },
+      { name: 'Operations', amount: 19332, percentage: 20 },
+      { name: 'Sales & Marketing', amount: 14499, percentage: 15 },
+      { name: 'Benefits & Taxes', amount: 4829, percentage: 5 },
+    ],
+    recommendations: [
+      'Ensure new hire costs are within budget',
+      'Review benefits enrollment for new employees',
+      'Update cash runway projections',
+    ],
+    relatedTransactions: [
+      { date: '2024-09-15', vendor: 'Gusto', amount: -48330, description: 'Bi-weekly payroll' },
+      { date: '2024-09-01', vendor: 'Gusto', amount: -48330, description: 'Bi-weekly payroll' },
+    ],
+  },
+}
+
+// Detect [INSIGHT:id] pattern in message
+function detectInsightFromMessage(message: string): string | null {
+  const match = message.match(/\[INSIGHT:(\d+)\]/i)
+  return match ? match[1] : null
+}
+
+// Generate rich insight response
+async function handleInsightDetail(
+  sendEvent: (event: string, data: object) => void,
+  insightId: string,
+  conversationId: string
+): Promise<void> {
+  const insight = DETAILED_INSIGHTS[insightId]
+  
+  if (!insight) {
+    const fallback = "I don't have detailed information about that specific insight. Would you like to see your overall cashflow or transactions?"
+    for (let i = 0; i < fallback.length; i += 3) {
+      sendEvent('chunk', { text: fallback.slice(i, i + 3) })
+      await sleep(15)
+    }
+    sendEvent('done', { conversationId })
+    return
+  }
+
+  // Build a rich, contextual response
+  let response = `## ${insight.title}\n\n`
+  response += `${insight.description}\n\n`
+  
+  response += `### Key Facts\n`
+  for (const fact of insight.keyFacts) {
+    response += `• ${fact}\n`
+  }
+  response += `\n`
+  
+  response += `### Trend (Last 3 Months)\n`
+  for (const m of insight.monthlyTrend) {
+    const bar = '█'.repeat(Math.round(m.spend / 2000))
+    response += `${m.month}: $${m.spend.toLocaleString()} ${bar}\n`
+  }
+  response += `\n`
+  
+  response += `### Breakdown\n`
+  for (const item of insight.breakdown) {
+    response += `• **${item.name}**: $${item.amount.toLocaleString()} (${item.percentage}%)\n`
+  }
+  response += `\n`
+  
+  response += `### Recommendations\n`
+  for (const rec of insight.recommendations) {
+    response += `💡 ${rec}\n`
+  }
+  response += `\n`
+  
+  response += `### Recent Transactions\n`
+  for (const txn of insight.relatedTransactions.slice(0, 3)) {
+    const sign = txn.amount < 0 ? '' : '+'
+    response += `• ${txn.date} - ${txn.vendor}: ${sign}$${Math.abs(txn.amount).toLocaleString()}\n`
+  }
+  
+  response += `\n---\n*Ask me anything else about this trend or your finances!*`
+
+  // Stream the response
+  for (let i = 0; i < response.length; i += 4) {
+    sendEvent('chunk', { text: response.slice(i, i + 4) })
+    await sleep(10)
+  }
+  sendEvent('done', { conversationId })
+}
+
+// =============================================================================
 // CHAT API LOGIC
 // =============================================================================
 
@@ -567,6 +749,16 @@ export default async function handler(
 
     const convId = conversationId || generateConversationId()
     const apiKey = process.env.ANTHROPIC_API_KEY
+
+    // FAST PATH: Check for insight-specific queries first (before any AI classification)
+    // This ensures that insight clicks from the Insights page get immediate, relevant responses
+    const insightId = detectInsightFromMessage(message)
+    if (insightId) {
+      sendEvent('ack', { message: 'Analyzing this insight...' })
+      await handleInsightDetail(sendEvent, insightId, convId)
+      res.end()
+      return
+    }
 
     if (apiKey) {
       try {
