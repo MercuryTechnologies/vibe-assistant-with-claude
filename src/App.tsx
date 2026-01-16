@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import { Layout, PageContainer } from '@/components/core';
 import { Dashboard, ComponentGallery, ComponentDetail, DesignSystemOverview, TypographyGallery, ColorsGallery, BorderRadiusGallery, Tasks, Transactions, Cards, Recipients, VisualTestPage } from '@/pages';
+import { ToastProvider } from '@/components/ui/toast';
 
 function NotFoundRoute() {
   const location = useLocation();
@@ -24,8 +25,9 @@ function AppLayout() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <ToastProvider>
+      <BrowserRouter>
+        <Routes>
         {/* Visual test routes - rendered without Layout for isolated Playwright testing */}
         <Route path="/test-components" element={<VisualTestPage />} />
         <Route path="/test-components/:componentId" element={<VisualTestPage />} />
@@ -122,10 +124,11 @@ function App() {
               </PageContainer>
             }
           />
-          <Route path="*" element={<NotFoundRoute />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+            <Route path="*" element={<NotFoundRoute />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </ToastProvider>
   );
 }
 

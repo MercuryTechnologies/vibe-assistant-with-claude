@@ -1,6 +1,6 @@
 ---
 description: Border radius rules for the Mercury design system - always use medium (8px) as default
-globs: **/*.tsx, **/*.css
+globs: ["**/*.tsx", "**/*.css"]
 alwaysApply: true
 ---
 

@@ -3,8 +3,9 @@
 import * as React from "react"
 import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { faCalendar, faCreditCard } from "@fortawesome/free-regular-svg-icons"
 import {
+  faCalendar,
+  faCreditCard,
   faMagnifyingGlass,
   faGreaterThanEqual,
   faDollarSign,
@@ -20,7 +21,7 @@ import {
   faEquals,
   faLessThanEqual,
   faTag,
-} from "@fortawesome/free-solid-svg-icons"
+} from "@/icons"
 import { DSCheckbox } from "./ds-checkbox"
 import { DSRadioGroup, type RadioOption } from "./ds-radio-group"
 import { Chip } from "./chip"

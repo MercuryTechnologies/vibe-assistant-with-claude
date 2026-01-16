@@ -3470,3 +3470,722 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
 .ds-checkbox-sublabel-text--disabled {
   color: var(--neutral-base-300);
 }
+
+/* ========================================
+   HOME PAGE / DASHBOARD
+   ======================================== */
+
+/* Time Period Tab */
+.ds-time-period-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 0;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.ds-time-period-tab:hover:not(.active) {
+  background-color: var(--ds-bg-default-hovered);
+  border-radius: 6px;
+}
+
+.ds-time-period-tab.active {
+  background-color: var(--ds-bg-emphasized);
+  border-radius: 6px;
+}
+
+/* Data Summary Tab */
+.ds-data-summary-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  height: 100%;
+  padding: 12px 8px 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.ds-data-summary-tab:hover {
+  background-color: var(--ds-bg-default-hovered);
+}
+
+.ds-data-summary-tab.active {
+  border-top: 1px solid var(--color-border-input-focused-underline);
+}
+
+/* 24px Icon Button Size Override (for DSButton iconOnly) */
+.ds-icon-btn-24 {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+}
+
+/* Account Row Hover */
+.ds-account-row {
+  transition: background-color 150ms ease;
+  cursor: pointer;
+}
+
+.ds-account-row:hover {
+  background-color: var(--ds-bg-default-hovered);
+}
+
+/* Treasury Bar Chart */
+.ds-treasury-bar {
+  background: linear-gradient(to top, rgba(214, 214, 255, 0.7), rgba(239, 239, 253, 0.3));
+  border-bottom: 1px solid #4d68eb;
+}
+
+/* Transaction Row */
+.ds-transaction-row {
+  transition: background-color 150ms ease;
+}
+
+.ds-transaction-row:hover {
+  background-color: var(--ds-bg-default-hovered);
+}
+
+/* ========================================
+   STICKY ACTION TOOLBAR
+   Floating AI assistant input at bottom of page
+   ======================================== */
+
+.ds-action-container {
+  position: fixed;
+  bottom: 24px;
+  left: 231px; /* Account for sidebar width */
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.ds-action-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background-color: var(--ds-bg-default);
+  border-radius: var(--radius-full);
+  box-shadow: 
+    0px 0px 8px 0px rgba(175, 178, 206, 0.24),
+    0px 2px 15px 0px rgba(4, 4, 52, 0.07);
+  pointer-events: auto;
+  transition: border-radius 150ms ease, width 150ms ease, padding 150ms ease;
+}
+
+/* Focused state - expanded command palette */
+.ds-action-toolbar.focused {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 16px 8px 12px;
+  border-radius: 24px;
+}
+
+/* Results area */
+.ds-action-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.ds-action-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.ds-action-result-item:hover,
+.ds-action-result-item.selected {
+  background-color: var(--ds-bg-default-hovered);
+}
+
+.ds-action-result-icon {
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ds-action-composer {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 10px 16px;
+  background-color: var(--ds-bg-input-default);
+  border: 1px solid var(--color-border-input);
+  border-radius: 55px;
+  overflow: clip;
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.ds-action-composer:hover:not(.focused) {
+  border-color: var(--color-border-input-emphasized);
+  background-color: var(--ds-bg-default);
+}
+
+.ds-action-composer.focused {
+  background-color: var(--ds-bg-input-default);
+  border: 1px solid var(--color-border-input);
+  box-shadow: 
+    0px 0px 0px 1px var(--ds-bg-default),
+    0px 0px 0px 3px var(--color-border-focus-ring);
+}
+
+/* Search icon in focused input */
+.ds-action-search-icon {
+  width: 16px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  margin-right: 8px;
+}
+
+/* Close button */
+.ds-action-close-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background-color 150ms ease;
+}
+
+.ds-action-close-btn:hover {
+  background-color: var(--ds-bg-default-hovered);
+}
+
+.ds-action-composer-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 24px;
+  color: var(--ds-text-default);
+}
+
+.ds-action-composer-input::placeholder {
+  color: var(--ds-text-tertiary);
+}
+
+/* ========================================
+   SEND BUTTON HOVER MENU
+   Dropdown menu that appears on hover over the Send button
+   ======================================== */
+
+.send-button-container {
+  position: relative;
+  display: inline-flex;
+}
+
+.send-hover-menu {
+  position: absolute;
+  bottom: calc(100% + 12px); /* 8px toolbar padding + 4px gap above toolbar */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  padding-bottom: 20px; /* Extra padding at bottom to bridge gap to button */
+  background-color: var(--ds-bg-default);
+  border-radius: var(--radius-md);
+  box-shadow: 
+    0px 1px 4px 0px rgba(183, 187, 219, 0.14),
+    0px 0px 1px 0px rgba(175, 178, 206, 0.9),
+    0px 8px 12px 0px rgba(14, 14, 45, 0.08),
+    0px 14px 20px 0px rgba(4, 4, 52, 0.02);
+  min-width: 207px;
+  animation: sendMenuFadeIn 0.2s ease-out;
+  z-index: 10;
+}
+
+/* Invisible bridge to connect menu to button for hover continuity */
+.send-hover-menu::after {
+  content: '';
+  position: absolute;
+  bottom: -16px;
+  left: 0;
+  right: 0;
+  height: 20px;
+}
+
+@keyframes sendMenuFadeIn {
+  from {
+    opacity: 0.9;
+    transform: translateX(-50%) translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.send-hover-menu-header {
+  padding: 4px 8px;
+}
+
+.send-hover-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 100ms ease;
+  white-space: nowrap;
+}
+
+.send-hover-menu-item.hovered {
+  background-color: var(--ds-bg-default-hovered);
+}
+
+/* ========================================
+   CHART SETTINGS FAB
+   Floating action button for chart controls
+   ======================================== */
+
+.ds-chart-settings-fab {
+  position: fixed;
+  bottom: 24px;
+  left: 255px; /* 231px sidebar + 24px margin */
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background-color: var(--purple-magic-600);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  transition: background-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+  z-index: 200;
+}
+
+.ds-chart-settings-fab:hover {
+  background-color: var(--purple-magic-700);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-xl);
+}
+
+.ds-chart-settings-fab:active {
+  transform: scale(0.98);
+}
+
+/* Settings Panel */
+.ds-chart-settings-panel {
+  position: fixed;
+  bottom: 72px;
+  left: 255px;
+  width: 280px;
+  background-color: var(--ds-bg-default);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-xl);
+  z-index: 200;
+  animation: slideUpFadeIn 200ms ease-out;
+}
+
+@keyframes slideUpFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ds-chart-settings-close {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 150ms ease;
+}
+
+.ds-chart-settings-close:hover {
+  background-color: var(--ds-bg-default-hovered);
+}
+
+.ds-chart-settings-section {
+  margin-bottom: 16px;
+}
+
+.ds-chart-settings-section:last-child {
+  margin-bottom: 0;
+}
+
+.ds-chart-settings-label {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 480;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  color: var(--ds-text-default);
+}
+
+.ds-chart-settings-sublabel {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--ds-text-secondary);
+}
+
+.ds-chart-settings-value {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--ds-text-tertiary);
+}
+
+/* Toggle Buttons */
+.ds-chart-settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  background-color: var(--ds-bg-input-default);
+  border: 1px solid var(--color-border-input);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--ds-text-secondary);
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.ds-chart-settings-toggle:hover {
+  background-color: var(--ds-bg-default-hovered);
+  border-color: var(--color-border-input-emphasized);
+}
+
+.ds-chart-settings-toggle.active {
+  background-color: var(--purple-magic-600-alpha2);
+  border-color: var(--purple-magic-600);
+  color: var(--purple-magic-700);
+}
+
+/* Slider */
+.ds-chart-settings-slider {
+  width: 100%;
+  height: 4px;
+  margin-top: 8px;
+  border-radius: var(--radius-full);
+  background: var(--neutral-magic-600-alpha3);
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.ds-chart-settings-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background-color: var(--purple-magic-600);
+  cursor: pointer;
+  border: 2px solid var(--neutral-base-0);
+  box-shadow: var(--shadow-sm);
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.ds-chart-settings-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: var(--shadow-md);
+}
+
+.ds-chart-settings-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background-color: var(--purple-magic-600);
+  cursor: pointer;
+  border: 2px solid var(--neutral-base-0);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Color Buttons */
+.ds-chart-settings-color-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 150ms ease, border-color 150ms ease;
+}
+
+.ds-chart-settings-color-btn:hover {
+  transform: scale(1.1);
+}
+
+.ds-chart-settings-color-btn.active {
+  border-color: var(--neutral-base-700);
+  box-shadow: 0 0 0 2px var(--neutral-base-0);
+}
+
+/* ========================================
+   CHART HOVER TRACKING
+   Vertical line that follows cursor over chart
+   ======================================== */
+
+.ds-chart-hover-line {
+  opacity: 0.8;
+  transition: opacity 150ms ease;
+}
+
+.ds-chart-hover-line::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -4px;
+  right: -4px;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--purple-magic-600-alpha2) 50%,
+    transparent 100%
+  );
+}
+
+/* ========================================
+   BULK ACTION BAR
+   Floating action island for bulk selection actions
+   ======================================== */
+
+.bulk-action-bar-container {
+  position: fixed;
+  bottom: 48px;
+  left: 231px; /* Account for sidebar width */
+  right: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 100;
+  animation: bulkActionBarSlideUp 200ms ease-out;
+}
+
+@keyframes bulkActionBarSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 60px;
+  padding-left: 20px;
+  padding-right: 12px;
+  background-color: var(--ds-bg-default);
+  border-radius: var(--radius-full);
+  pointer-events: auto;
+  box-shadow:
+    0px 0px 2px 0px rgba(175, 178, 206, 0.56),
+    0px 0px 3px 0px rgba(4, 4, 52, 0.09),
+    0px 6px 10px 0px rgba(4, 4, 52, 0.04),
+    0px 10px 16px 0px rgba(4, 4, 52, 0.02);
+}
+
+.bulk-action-bar-content {
+  display: flex;
+  align-items: center;
+}
+
+.bulk-action-bar-count {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 24px;
+  color: var(--ds-text-default);
+  white-space: nowrap;
+}
+
+.bulk-action-bar-combobox {
+  width: 272px;
+}
+
+.bulk-action-bar-combobox-trigger {
+  min-width: 200px;
+}
+
+.bulk-action-bar-overflow-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background-color: var(--ds-bg-secondary);
+  border: none;
+  cursor: pointer;
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+  padding: 0;
+}
+
+.bulk-action-bar-overflow-btn:hover {
+  background-color: var(--ds-bg-secondary-hovered);
+}
+
+.bulk-action-bar-overflow-btn.open {
+  background-color: var(--ds-bg-secondary-hovered);
+  box-shadow:
+    0px 0px 0px 1px var(--ds-bg-default),
+    0px 0px 0px 3px var(--color-border-focus-ring);
+}
+
+.bulk-action-bar-divider {
+  width: 1px;
+  height: 28px;
+  background-color: var(--neutral-magic-600);
+  flex-shrink: 0;
+}
+
+.bulk-action-bar-dropdown {
+  min-width: 160px;
+}
+
+.bulk-action-bar-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 24px;
+  color: var(--ds-text-default);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background-color 150ms ease;
+}
+
+.bulk-action-bar-dropdown-item:hover {
+  background-color: var(--ds-bg-default-hovered);
+}
+
+.bulk-action-bar-dropdown-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ds-text-secondary);
+}
+
+/* ========================================
+   TOAST
+   Dark notification toast with optional action
+   ======================================== */
+
+.ds-toast-container {
+  position: fixed;
+  bottom: 120px; /* Above bulk action bar */
+  left: 231px; /* Account for sidebar width */
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 200;
+}
+
+.ds-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: var(--ds-bg-inverted);
+  border-radius: var(--radius-md);
+  pointer-events: auto;
+  box-shadow:
+    0px 1px 4px 0px rgba(183, 187, 219, 0.14),
+    0px 0px 1px 0px rgba(175, 178, 206, 0.9),
+    0px 8px 12px 0px rgba(14, 14, 45, 0.08),
+    0px 14px 20px 0px rgba(4, 4, 52, 0.02);
+  animation: toastSlideUp 200ms ease-out;
+}
+
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ds-toast-message {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 24px;
+  color: white;
+}
+
+.ds-toast-action {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 480;
+  line-height: 24px;
+  color: #cae2fc; /* Highlight color from Figma */
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+  transition: opacity 150ms ease;
+}
+
+.ds-toast-action:hover {
+  opacity: 0.8;
+}

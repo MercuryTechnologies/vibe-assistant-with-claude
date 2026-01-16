@@ -5,13 +5,13 @@ import { useMemo, useState, useRef, useEffect } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faBookmark } from "@fortawesome/free-regular-svg-icons"
 import {
+  faBookmark,
   faArrowUp,
   faSort,
   faSliders,
   faDownload,
-} from "@fortawesome/free-solid-svg-icons"
+} from "@/icons"
 import { Chip } from "./chip"
 import { DateFilter, type DatePreset, type DateRange } from "./date-filter-dropdown"
 import { KeywordFilter, type KeywordOption } from "./keyword-filter-dropdown"

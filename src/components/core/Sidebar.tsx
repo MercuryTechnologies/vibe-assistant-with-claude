@@ -17,8 +17,7 @@ import {
   faBuilding,
   faEnvelope,
   faFileText,
-} from '@fortawesome/free-regular-svg-icons';
-import {
+  faSquare,
   faInbox,
   faList,
   faArrowRightArrowLeft,
@@ -31,8 +30,7 @@ import {
   faLayerGroup,
   faPalette,
   faFont,
-} from '@fortawesome/free-solid-svg-icons';
-import { faSquare } from '@fortawesome/free-regular-svg-icons';
+} from '@/icons';
 import { componentRegistry, getComponentId } from '@/lib/component-registry';
 
 export function Sidebar() {

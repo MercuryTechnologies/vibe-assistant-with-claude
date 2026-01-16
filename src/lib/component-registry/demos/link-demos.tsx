@@ -1,6 +1,6 @@
 import * as React from "react"
 import { DSLink } from "@/components/ui/ds-link"
-import { faCircle } from "@fortawesome/free-regular-svg-icons"
+import { faCircle } from "@/icons"
 
 function DemoRow({
   title,

@@ -1,3 +1,9 @@
+---
+description: Typography rules for the Mercury design system - always use Arcadia font family
+globs: ["src/**/*.tsx", "src/**/*.css"]
+alwaysApply: true
+---
+
 # Typography Rules
 
 ## CRITICAL: Only Use Defined Typography Styles

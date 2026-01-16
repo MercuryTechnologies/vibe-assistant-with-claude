@@ -4,7 +4,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { DSMoneyAmount } from "./ds-money-amount"
 import { Icon } from "./icon"
-import { faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons"
+import { faChevronDown, faChevronUp } from "@/icons"
 
 // ============================================================================
 // Constants

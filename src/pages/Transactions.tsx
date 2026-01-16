@@ -6,6 +6,8 @@ import { DSCombobox } from '@/components/ui/ds-combobox';
 import { MonthlySummary } from '@/components/ui/monthly-summary';
 import { GroupedTable, groupTransactions, type GroupedData } from '@/components/ui/grouped-table';
 import { DSTableDetailPanel, type DetailPanelField } from '@/components/ui/ds-table-detail-panel';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
+import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 import type { Transaction } from '@/types';
 
@@ -24,6 +26,7 @@ import {
 
 export function Transactions() {
   const { transactions, isLoading } = useTransactions();
+  const { showToast } = useToast();
   // Sort state - derived from sortValue for the table
   const [sortValue, setSortValue] = useState<SortValue>({ field: 'date', direction: 'desc' });
   
@@ -80,6 +83,22 @@ export function Transactions() {
       ...prev,
       [transactionId]: newValue
     }));
+    
+    // Show toast notification when category is applied
+    if (newValue) {
+      const categoryLabel = categoryOptions.find(opt => opt.value === newValue)?.label || newValue;
+      showToast({
+        message: "Similar transactions will now use [Category]. Want to update past ones?",
+        interpolateValue: categoryLabel,
+        action: {
+          label: "Review and Update",
+          onClick: () => {
+            console.log("Review and update past transactions with category:", categoryLabel);
+          },
+        },
+        duration: 6000,
+      });
+    }
   };
 
   // Define columns for the transactions table matching Figma
@@ -605,6 +624,49 @@ export function Transactions() {
           </div>
         )}
       </div>
+      
+      {/* Bulk Action Bar - shows when transactions are selected */}
+      <BulkActionBar
+        selectedCount={selectedRowKeys.size}
+        isVisible={selectedRowKeys.size > 0}
+        onDismiss={() => setSelectedRowKeys(new Set())}
+        categoryOptions={categoryOptions}
+        categoryValue=""
+        onCategoryChange={(value) => {
+          // Apply the selected category to all selected transactions
+          const newCategoryValues = { ...categoryValues };
+          selectedRowKeys.forEach((key) => {
+            newCategoryValues[key] = value;
+          });
+          setCategoryValues(newCategoryValues);
+          
+          // Show toast notification for bulk category change
+          if (value) {
+            const categoryLabel = categoryOptions.find(opt => opt.value === value)?.label || value;
+            showToast({
+              message: "Similar transactions will now use [Category]. Want to update past ones?",
+              interpolateValue: categoryLabel,
+              action: {
+                label: "Review and Update",
+                onClick: () => {
+                  console.log("Review and update past transactions with category:", categoryLabel);
+                },
+              },
+              duration: 6000,
+            });
+          }
+        }}
+        overflowActions={[
+          {
+            label: "Export selected",
+            onClick: () => console.log("Export selected", Array.from(selectedRowKeys)),
+          },
+          {
+            label: "Delete selected",
+            onClick: () => console.log("Delete selected", Array.from(selectedRowKeys)),
+          },
+        ]}
+      />
     </div>
   );
 }

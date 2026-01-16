@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import { DSCombobox, type ComboboxOption } from "@/components/ui/ds-combobox"
 import { DSButton } from "@/components/ui/ds-button"
 import { Icon } from "@/components/ui/icon"
-import { faXmark, faLink, faFile, faCircleCheck } from "@fortawesome/free-solid-svg-icons"
+import { faXmark, faLink, faFile, faCircleCheck } from "@/icons"
 
 // ============================================================================
 // Types

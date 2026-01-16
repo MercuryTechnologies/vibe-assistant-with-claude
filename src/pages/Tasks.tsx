@@ -6,8 +6,8 @@ import {
   faClock,
   faUser,
   faCreditCard,
-} from '@fortawesome/free-regular-svg-icons';
-import { faChevronRight } from '@fortawesome/free-solid-svg-icons';
+  faChevronRight,
+} from '@/icons';
 import { useTasks } from '@/hooks';
 import type { Task } from '@/types';
 import { cn } from '@/lib/utils';

@@ -1,6 +1,7 @@
 ---
 description: Guidelines for creating and managing components in the Mercury design system
-globs: src/components/**/*.tsx
+globs: ["src/components/**/*.tsx"]
+alwaysApply: false
 ---
 
 # Component Development Guidelines

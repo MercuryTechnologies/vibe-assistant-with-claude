@@ -3,8 +3,7 @@
 import * as React from "react"
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faCircle } from "@fortawesome/free-regular-svg-icons"
-import { faCheck, faChevronRight } from "@fortawesome/free-solid-svg-icons"
+import { faCircle, faCheck, faChevronRight } from "@/icons"
 
 import { cn } from "@/lib/utils"
 

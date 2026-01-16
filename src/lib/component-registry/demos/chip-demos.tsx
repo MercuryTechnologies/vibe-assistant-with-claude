@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Chip } from '@/components/ui/chip';
 import { DateFilter, type DatePreset, type DateRange } from '@/components/ui/date-filter-dropdown';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBookmark } from '@fortawesome/free-regular-svg-icons';
+import { faBookmark } from '@/icons';
 
 // Icon helpers
 function FilterIcon({ className }: { className?: string }) {

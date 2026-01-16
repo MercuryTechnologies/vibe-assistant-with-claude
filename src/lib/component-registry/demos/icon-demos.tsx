@@ -11,7 +11,7 @@ import {
   faBell,
   faUser,
   faFile,
-} from '@fortawesome/free-regular-svg-icons';
+} from '@/icons';
 
 // Default variant demo - shows default size icons (24x24px container, 13px icon)
 export function IconDefaultDemo() {

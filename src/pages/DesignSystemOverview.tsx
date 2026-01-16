@@ -3,8 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { componentRegistry } from '@/lib/component-registry';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSquare } from '@fortawesome/free-regular-svg-icons';
-import { faLayerGroup, faPalette, faFont } from '@fortawesome/free-solid-svg-icons';
+import { faSquare, faLayerGroup, faPalette, faFont } from '@/icons';
 
 export function DesignSystemOverview() {
   const uiComponents = componentRegistry.filter(c => c.category === 'ui');

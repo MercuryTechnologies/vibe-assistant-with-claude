@@ -12,8 +12,11 @@ import {
 import { useUser } from '@/hooks';
 import { Icon } from '@/components/ui/icon';
 import { DSButton } from '@/components/ui/ds-button';
-import { faBell, faCreditCard, faUser, faFile } from '@fortawesome/free-regular-svg-icons';
-import { 
+import {
+  faBell,
+  faCreditCard,
+  faUser,
+  faFile,
   faMagnifyingGlass,
   faChevronDown,
   faXmark,
@@ -21,7 +24,7 @@ import {
   faList,
   faUniversity,
   faUserCircle,
-} from '@fortawesome/free-solid-svg-icons';
+} from '@/icons';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 
 interface KeyboardKeyProps {

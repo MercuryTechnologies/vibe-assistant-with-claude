@@ -4,7 +4,7 @@ import { DSButton } from '@/components/ui/ds-button';
 import { DSLink } from '@/components/ui/ds-link';
 import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
-import { faXmark, faSnowflake, faList, faChevronDown, faChevronRight, faPencil, faCopy } from '@fortawesome/free-solid-svg-icons';
+import { faXmark, faSnowflake, faList, faChevronDown, faChevronRight, faPencil, faCopy } from '@/icons';
 
 // Card data type with additional fields for the detail panel
 interface Card {
