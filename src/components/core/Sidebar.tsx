@@ -30,8 +30,10 @@ import {
   faLayerGroup,
   faPalette,
   faFont,
+  faTerminal,
 } from '@/icons';
 import { componentRegistry, getComponentId } from '@/lib/component-registry';
+import { useDataSettings, formatCurrency } from '@/context/DataContext';
 
 export function Sidebar() {
   const location = useLocation();
@@ -61,6 +63,7 @@ export function Sidebar() {
 
   const primaryNavigationItems = [
     { path: '/dashboard', label: 'Home', icon: faHome },
+    { path: '/command', label: 'Command', icon: faTerminal },
     { path: '/tasks', label: 'Tasks', icon: faInbox, badge: 3 },
     { path: '/transactions', label: 'Transactions', icon: faList },
     { path: '/insights', label: 'Insights', icon: faChartBar },
@@ -68,14 +71,16 @@ export function Sidebar() {
     { path: '/capital', label: 'Capital', icon: faChartLine },
   ];
 
+  // Get dynamic account balances from DataContext
+  const { getAccountBalances } = useDataSettings();
+  const dynamicAccounts = getAccountBalances();
+  
   const accountsData = [
     { label: 'Credit Card', balance: null },
-    { label: 'Treasury', balance: '$200,000.00' },
-    { label: 'Ops / Payroll', balance: '$2,023,267.12' },
-    { label: 'AP', balance: '$226,767.82' },
-    { label: 'AR', balance: '$0.00' },
-    { label: 'Checking ••0297', balance: '$1,374,471.14' },
-    { label: 'Savings ••7658', balance: '$1,320,201.00' },
+    ...dynamicAccounts.map(acc => ({
+      label: acc.name,
+      balance: formatCurrency(acc.balance),
+    })),
   ];
 
   const paymentsSubmenuItems = [
@@ -303,8 +308,8 @@ export function Sidebar() {
 
       {/* Navigation Items */}
       <nav className="ds-sidebar-nav">
-        {/* Home, Tasks, Transactions, Insights */}
-        {primaryNavigationItems.slice(0, 4).map((item) => {
+        {/* Home, Command, Tasks, Transactions, Insights */}
+        {primaryNavigationItems.slice(0, 5).map((item) => {
           const icon = item.icon;
           const active = isActive(item.path);
           
@@ -379,7 +384,7 @@ export function Sidebar() {
         </div>
 
         {/* Cards, Capital */}
-        {primaryNavigationItems.slice(4).map((item) => {
+        {primaryNavigationItems.slice(5).map((item) => {
           const icon = item.icon;
           const active = isActive(item.path);
           

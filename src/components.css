@@ -3015,7 +3015,6 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
 
 .ds-sidebar-footer {
   padding: 16px;
-  border-top: 1px solid var(--sidebar-border);
 }
 
 .ds-sidebar-btn {
@@ -3568,6 +3567,17 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   justify-content: flex-end;
   pointer-events: none;
   z-index: 100;
+  /* Animation properties for hide/show */
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  transition: transform 300ms ease-out, opacity 300ms ease-out;
+}
+
+/* Hidden state when on Command page */
+.ds-action-container.hidden-on-command {
+  transform: translateY(100%) scale(0.8);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .ds-action-toolbar {
@@ -3576,12 +3586,32 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   gap: 10px;
   padding: 8px;
   background-color: var(--ds-bg-default);
-  border-radius: var(--radius-full);
+  border-radius: 40px;
   box-shadow: 
     0px 0px 8px 0px rgba(175, 178, 206, 0.24),
     0px 2px 15px 0px rgba(4, 4, 52, 0.07);
   pointer-events: auto;
-  transition: border-radius 150ms ease, width 150ms ease, padding 150ms ease;
+  transform-origin: bottom center;
+  transition:
+    border-radius 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+    padding 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ds-action-toolbar:hover:not(.focused) {
+    transform: scale(1.02);
+    box-shadow:
+      0px 0px 12px 0px rgba(175, 178, 206, 0.32),
+      0px 8px 24px 0px rgba(4, 4, 52, 0.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-action-toolbar {
+    transition: none;
+  }
 }
 
 /* Focused state - expanded command palette */
@@ -3589,8 +3619,9 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   flex-direction: column;
   align-items: stretch;
   gap: 10px;
-  padding: 16px 8px 12px;
+  padding: 0px 8px 12px;
   border-radius: 24px;
+  overflow: clip;
 }
 
 /* Results area */
@@ -3598,9 +3629,27 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 8px 4px;
-  max-height: 200px;
+  padding-top: 16px;
+  max-height: 360px;
   overflow-y: auto;
+  animation: slideUpFadeIn 300ms cubic-bezier(0.165, 0.84, 0.44, 1) backwards;
+}
+
+@keyframes slideUpFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-action-results {
+    animation: none;
+  }
 }
 
 .ds-action-result-item {
@@ -3611,6 +3660,10 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: background-color 150ms ease;
+}
+
+.ds-action-result-item * {
+  cursor: pointer;
 }
 
 .ds-action-result-item:hover,
@@ -3631,12 +3684,17 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   flex: 1;
   min-width: 0;
   height: 40px;
-  padding: 10px 16px;
+  padding: 4px 16px;
   background-color: var(--ds-bg-input-default);
   border: 1px solid var(--color-border-input);
   border-radius: 55px;
   overflow: clip;
-  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    border-color 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+    background-color 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+    box-shadow 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+    padding 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+    height 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
 .ds-action-composer:hover:not(.focused) {
@@ -3645,11 +3703,18 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
 }
 
 .ds-action-composer.focused {
+  height: 40px;
   background-color: var(--ds-bg-input-default);
   border: 1px solid var(--color-border-input);
-  box-shadow: 
+  box-shadow:
     0px 0px 0px 1px var(--ds-bg-default),
     0px 0px 0px 3px var(--color-border-focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-action-composer {
+    transition: none;
+  }
 }
 
 /* Search icon in focused input */
@@ -3695,6 +3760,308 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
 
 .ds-action-composer-input::placeholder {
   color: var(--ds-text-tertiary);
+}
+
+/* ========================================
+   INSIGHTS PANEL
+   Right-hand panel that appears when cash flow action is clicked
+   ======================================== */
+
+.ds-insights-panel {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  width: 400px;
+  background-color: var(--ds-bg-default);
+  border-left: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  z-index: 200;
+  pointer-events: auto;
+  box-shadow: 
+    -4px 0px 12px 0px rgba(175, 178, 206, 0.16),
+    -1px 0px 4px 0px rgba(4, 4, 52, 0.08);
+  animation: panelSlideIn 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
+  overflow: hidden;
+}
+
+@keyframes panelSlideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-insights-panel {
+    animation: none;
+  }
+}
+
+.ds-insights-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 12px 24px;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.ds-insights-panel-icon-btn {
+  flex-shrink: 0;
+}
+
+.ds-insights-panel-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.ds-insights-user-message {
+  align-self: flex-end;
+  max-width: 80%;
+  padding: 12px 16px;
+  background-color: var(--ds-bg-emphasized);
+  border-radius: var(--radius-md);
+}
+
+.ds-insights-typing-indicator {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px;
+}
+
+.ds-insights-typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--ds-icon-primary);
+  animation: typingDotPulse 1.4s ease-in-out infinite;
+}
+
+.ds-insights-typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.ds-insights-typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typingDotPulse {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.ds-insights-panel-input-area {
+  padding: 16px;
+  border-top: 1px solid var(--color-border-default);
+}
+
+/* ========================================
+   RECURRING PAYMENT OVERLAY
+   Full-screen setup flow from ActionToolbar
+   ======================================== */
+
+.ds-recurring-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  background-color: var(--ds-bg-default);
+  z-index: 300;
+  pointer-events: auto;
+}
+
+.ds-recurring-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--ds-bg-default);
+  padding-left: 40px;
+  padding-right: 40px;
+  position: relative;
+}
+
+.ds-recurring-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0 12px;
+}
+
+.ds-recurring-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 4px;
+  margin: -4px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.ds-recurring-back-btn:hover {
+  background-color: var(--ds-bg-secondary-hovered);
+}
+
+.ds-recurring-chat-container {
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.ds-recurring-chat-body {
+  flex: 1;
+  padding: 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-y: auto;
+}
+
+.ds-recurring-message-bubble {
+  align-self: flex-end;
+  max-width: 360px;
+  padding: 8px 12px;
+  background-color: var(--ds-bg-emphasized);
+  border-radius: var(--radius-md);
+}
+
+.ds-recurring-chat-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ds-recurring-ai-response {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ds-recurring-chat-note {
+  padding-left: 4px;
+}
+
+.ds-recurring-chat-footer {
+  padding: 16px 0 24px;
+}
+
+/* Unified Chat Composer - used in both side panel and full page chat */
+.ds-chat-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 8px 8px 8px;
+  background-color: var(--ds-bg-default);
+  border: 1.25px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ds-chat-composer:hover {
+  border-color: var(--color-border-input-emphasized);
+}
+
+.ds-chat-composer:focus-within {
+  border-color: var(--color-border-input-focused);
+  box-shadow: 0px 10px 35px 0px rgba(0, 0, 0, 0.04), 0 0 0 2px var(--color-border-focus-ring);
+}
+
+.ds-chat-composer-input {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.ds-chat-composer-field {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 24px;
+  color: var(--ds-text-default);
+}
+
+.ds-chat-composer-field::placeholder {
+  color: var(--ds-text-placeholder);
+}
+
+.ds-chat-composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ds-recurring-form-pane {
+  flex: 1;
+  background-color: var(--ds-bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  position: relative;
+}
+
+
+.ds-recurring-form-card {
+  width: 420px;
+  background-color: var(--ds-bg-default);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  box-shadow:
+    0px 0px 2px 0px rgba(175, 178, 206, 0.65),
+    0px 0px 3px 0px rgba(0, 0, 0, 0.09),
+    0px 12px 16px 0px rgba(0, 0, 0, 0.01),
+    0px 22px 28px 0px rgba(0, 0, 0, 0.04);
+}
+
+.ds-recurring-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ds-recurring-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ds-recurring-form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+body.ds-recurring-open .ds-demo-settings-fab {
+  display: none;
 }
 
 /* ========================================
@@ -3770,18 +4137,18 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
 }
 
 /* ========================================
-   CHART SETTINGS FAB
-   Floating action button for chart controls
+   DEMO SETTINGS FAB
+   Floating action button for demo controls
    ======================================== */
 
-.ds-chart-settings-fab {
+.ds-demo-settings-fab {
   position: fixed;
   bottom: 24px;
   left: 255px; /* 231px sidebar + 24px margin */
   width: 40px;
   height: 40px;
   border-radius: var(--radius-full);
-  background-color: var(--purple-magic-600);
+  background-color: var(--orange-magic-400);
   border: none;
   cursor: pointer;
   display: flex;
@@ -3792,22 +4159,40 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   z-index: 200;
 }
 
-.ds-chart-settings-fab:hover {
-  background-color: var(--purple-magic-700);
+.ds-demo-settings-fab:hover {
+  background-color: var(--orange-base-400);
   transform: scale(1.05);
   box-shadow: var(--shadow-xl);
 }
 
-.ds-chart-settings-fab:active {
+.ds-demo-settings-fab:active {
   transform: scale(0.98);
 }
 
+/* Settings Toggle Header */
+.ds-settings-toggle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.ds-settings-toggle-header:hover .ds-chart-settings-label {
+  color: var(--ds-text-emphasized);
+}
+
 /* Settings Panel */
-.ds-chart-settings-panel {
+.ds-demo-settings-panel {
   position: fixed;
   bottom: 72px;
   left: 255px;
   width: 280px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
   background-color: var(--ds-bg-default);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-lg);
@@ -3966,29 +4351,143 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   box-shadow: 0 0 0 2px var(--neutral-base-0);
 }
 
+/* Input Fields */
+.ds-chart-settings-input {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  background-color: var(--ds-bg-input-default);
+  border: 1px solid var(--color-border-input);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--ds-text-default);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.ds-chart-settings-input:hover {
+  background-color: var(--ds-bg-input-hovered);
+  border-color: var(--color-border-input-emphasized);
+}
+
+.ds-chart-settings-input:focus {
+  outline: none;
+  background-color: var(--ds-bg-input-focused);
+  border-color: var(--color-border-input-focused);
+  box-shadow: 0 0 0 2px var(--color-border-focus-ring);
+}
+
+.ds-chart-settings-input::placeholder {
+  color: var(--ds-text-placeholder);
+}
+
+/* ========================================
+   TRANSACTION DATA FAB (Sidebar)
+   ======================================== */
+
+.ds-transaction-data-fab {
+  width: 100%;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background-color: var(--purple-magic-600);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 150ms ease, transform 150ms ease;
+  position: relative;
+}
+
+.ds-transaction-data-fab:hover {
+  background-color: var(--purple-magic-700);
+}
+
+.ds-transaction-data-fab:active {
+  transform: scale(0.98);
+}
+
+/* Transaction Data Panel */
+.ds-transaction-data-panel {
+  position: fixed;
+  bottom: 72px;
+  left: 16px;
+  width: 280px;
+  background-color: var(--ds-bg-default);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-xl);
+  z-index: 200;
+  animation: slideUpFadeIn 200ms ease-out;
+}
+
+/* ========================================
+   DATA MENU PANEL
+   ======================================== */
+
+.ds-data-menu-panel {
+  position: fixed;
+  bottom: 108px;
+  left: 16px;
+  width: 280px;
+  background-color: var(--ds-bg-default);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-xl);
+  z-index: 200;
+  animation: slideUpFadeIn 200ms ease-out;
+}
+
+/* Cash Flow Slider - special styling for center marker */
+.ds-cashflow-slider-container {
+  position: relative;
+  padding-top: 8px;
+}
+
+.ds-cashflow-slider-container::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 12px;
+  background-color: var(--ds-text-tertiary);
+  border-radius: 1px;
+  margin-top: 4px;
+}
+
+/* Preset Buttons */
+.ds-preset-btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  background-color: var(--ds-bg-secondary);
+  border: 1px solid var(--color-border-default);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 480;
+  line-height: 16px;
+  color: var(--ds-text-secondary);
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.ds-preset-btn:hover {
+  background-color: var(--ds-bg-secondary-hovered);
+  border-color: var(--color-border-emphasized);
+  color: var(--ds-text-default);
+}
+
 /* ========================================
    CHART HOVER TRACKING
    Vertical line that follows cursor over chart
    ======================================== */
 
 .ds-chart-hover-line {
-  opacity: 0.8;
+  opacity: 1;
   transition: opacity 150ms ease;
-}
-
-.ds-chart-hover-line::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -4px;
-  right: -4px;
-  bottom: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--purple-magic-600-alpha2) 50%,
-    transparent 100%
-  );
 }
 
 /* ========================================
@@ -4188,4 +4687,133 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
 
 .ds-toast-action:hover {
   opacity: 0.8;
+}
+
+/* ========================================
+   COMMAND PAGE
+   Home/command page with composer input and shortcuts
+   ======================================== */
+
+.command-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.command-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: linear-gradient(to bottom, #fbfcfd 0%, rgba(251, 252, 253, 0) 35.787%);
+  overflow: hidden;
+}
+
+/* Composer wrapper for centering */
+.command-composer-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+/* Composer box */
+.command-composer {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 576px;
+  height: 97px;
+  padding: 12px 8px 8px 8px;
+  background-color: var(--ds-bg-default);
+  border: 1.25px solid var(--color-border-default);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0px 10px 35px 0px rgba(0, 0, 0, 0.04);
+  cursor: text;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.command-composer:hover {
+  border-color: var(--color-border-input-emphasized);
+}
+
+.command-composer.focused,
+.command-composer:focus-within {
+  border-color: var(--color-border-input-focused);
+  box-shadow: 0px 10px 35px 0px rgba(0, 0, 0, 0.04), 0 0 0 2px var(--color-border-focus-ring);
+}
+
+/* Input area with placeholder */
+.command-composer-input {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 8px;
+  flex: 1;
+}
+
+/* Textarea styling */
+.command-composer-textarea {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  resize: none;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 24px;
+  color: var(--ds-text-default);
+}
+
+.command-composer-textarea::placeholder {
+  color: var(--ds-text-placeholder);
+}
+
+/* Actions row at bottom of composer */
+.command-composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+/* Bottom shortcuts section */
+.command-shortcuts {
+  display: flex;
+  gap: 24px;
+  padding: 16px 24px;
+  background-color: var(--ds-bg-default);
+  border-top: 1px solid var(--color-border-default);
+}
+
+/* Individual shortcut card */
+.command-shortcut-card {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  height: 106px;
+  padding: 24px;
+  background-color: var(--ds-bg-default);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 150ms ease;
+  overflow: hidden;
+}
+
+.command-shortcut-card:hover {
+  background-color: var(--ds-bg-default-hovered);
+  border-color: var(--color-border-emphasized);
+}
+
+.command-shortcut-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-border-focus-ring);
 }

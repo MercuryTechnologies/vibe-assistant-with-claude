@@ -5,4 +5,6 @@ export { Sidebar } from './Sidebar';
 export { Layout } from './Layout';
 export { PageContainer } from './PageContainer';
 export { TransactionDetailPanel } from './TransactionDetailPanel';
+export { ActionToolbar } from './ActionToolbar';
+export { DataMenu } from './DataMenu';
 

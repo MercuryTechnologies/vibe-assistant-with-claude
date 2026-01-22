@@ -172,8 +172,7 @@ function TimelineStep({ type, title, datetime, attribution }: TimelineStepProps)
       {/* Content */}
       <div 
         className="flex flex-col flex-1 min-w-0"
-        style={{ gap: 2 }}
-        style={type === "last" ? { paddingTop: '16px' } : undefined}
+        style={{ gap: 2, ...(type === "last" ? { paddingTop: '16px' } : {}) }}
       >
         <div 
           className="text-body-demi truncate"

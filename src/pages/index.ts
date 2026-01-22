@@ -10,4 +10,6 @@ export { Transactions } from './Transactions';
 export { Cards } from './Cards';
 export { Recipients } from './Recipients';
 export { VisualTestPage } from './VisualTestPage';
+export { BillPay } from './BillPay';
+export { Command } from './Command';
 

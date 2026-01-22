@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import { Layout, PageContainer } from '@/components/core';
-import { Dashboard, ComponentGallery, ComponentDetail, DesignSystemOverview, TypographyGallery, ColorsGallery, BorderRadiusGallery, Tasks, Transactions, Cards, Recipients, VisualTestPage } from '@/pages';
+import { Dashboard, ComponentGallery, ComponentDetail, DesignSystemOverview, TypographyGallery, ColorsGallery, BorderRadiusGallery, Tasks, Transactions, Cards, Recipients, VisualTestPage, BillPay, Command } from '@/pages';
 import { ToastProvider } from '@/components/ui/toast';
+import { DataProvider } from '@/context/DataContext';
 
 function NotFoundRoute() {
   const location = useLocation();
@@ -25,8 +26,9 @@ function AppLayout() {
 
 function App() {
   return (
-    <ToastProvider>
-      <BrowserRouter>
+    <DataProvider>
+      <ToastProvider>
+        <BrowserRouter>
         <Routes>
         {/* Visual test routes - rendered without Layout for isolated Playwright testing */}
         <Route path="/test-components" element={<VisualTestPage />} />
@@ -124,11 +126,24 @@ function App() {
               </PageContainer>
             }
           />
+          <Route
+            path="/workflows/bill-pay"
+            element={
+              <div className="py-6">
+                <BillPay />
+              </div>
+            }
+          />
+          <Route
+            path="/command"
+            element={<Command />}
+          />
             <Route path="*" element={<NotFoundRoute />} />
           </Route>
         </Routes>
-      </BrowserRouter>
-    </ToastProvider>
+        </BrowserRouter>
+      </ToastProvider>
+    </DataProvider>
   );
 }
 

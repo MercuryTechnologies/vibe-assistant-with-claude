@@ -32,6 +32,10 @@ const iconMapping = {
   'circle-question': ['faCircleQuestion', 'regular'],
   'clock': ['faClock', 'regular'],
   'paper-plane': ['faPaperPlane', 'regular'],
+  'gear': ['faGear', 'regular'],
+  'message': ['faMessage', 'regular'],
+  'arrow-up-from-bracket': ['faArrowUpFromBracket', 'regular'],
+  'circle-up': ['faCircleUp', 'regular'],
   
   // Solid style icons (fas)
   'inbox': ['faInbox', 'solid'],
@@ -71,6 +75,8 @@ const iconMapping = {
   'less-than-equal': ['faLessThanEqual', 'solid'],
   'tag': ['faTag', 'regular'],
   'arrow-up': ['faArrowUp', 'solid'],
+  'arrow-up-right': ['faArrowUpRight', 'solid'],
+  'arrow-down-right': ['faArrowDownRight', 'solid'],
   'sort': ['faSort', 'solid'],
   'sliders': ['faSliders', 'solid'],
   'download': ['faDownload', 'solid'],

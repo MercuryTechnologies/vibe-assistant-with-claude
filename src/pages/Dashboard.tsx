@@ -1,10 +1,11 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useUser, useTransactions } from '@/hooks';
 import { Icon } from '@/components/ui/icon';
-import { faChevronDown, faArrowTrendUp, faArrowTrendDown, faArrowRightArrowLeft, faPlus, faEllipsis, faCircleQuestion, faChartLine, faXmark, faArrowUpRight, faArrowDownRight, faMagnifyingGlass, faClock, faCircleCheck, faBuilding } from '@/icons';
+import { faChevronDown, faArrowTrendUp, faArrowTrendDown, faPlus, faCircleQuestion, faSliders, faXmark, faArrowUpRight, faArrowDownRight, faArrowRightArrowLeft } from '@/icons';
 import { cn } from '@/lib/utils';
 import { Chip } from '@/components/ui/chip';
 import { DSButton } from '@/components/ui/ds-button';
+import { useDataSettings } from '@/context/DataContext';
 
 // Chart settings interface
 interface ChartSettings {
@@ -31,44 +32,70 @@ interface NetCashflowData {
   xAxisLabels: string[];
 }
 
-const NET_CASHFLOW_BY_PERIOD: Record<TimePeriod, NetCashflowData> = {
-  '30': {
-    total: '$82K',
-    moneyIn: '$45.2K',
-    moneyOut: '−$36.8K',
-    xAxisLabels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Today'],
-  },
-  '60': {
-    total: '$156K',
-    moneyIn: '$89.4K',
-    moneyOut: '−$66.6K',
-    xAxisLabels: ['Nov 15', 'Nov 30', 'Dec 15', 'Dec 31', 'Today'],
-  },
-  '90': {
-    total: '$198K',
-    moneyIn: '$112.7K',
-    moneyOut: '−$85.3K',
-    xAxisLabels: ['Oct', 'Nov', 'Dec', 'Jan', 'Today'],
-  },
-  'YTD': {
-    total: '$246K',
-    moneyIn: '$150.1K',
-    moneyOut: '−$1.2M',
-    xAxisLabels: ['Jan', 'Apr', 'Jul', 'Oct', 'Today'],
-  },
-  'Last 12': {
-    total: '$412K',
-    moneyIn: '$287.3K',
-    moneyOut: '−$1.9M',
-    xAxisLabels: ['Jan \'25', 'Apr', 'Jul', 'Oct', 'Today'],
-  },
-  'Custom': {
-    total: '$246K',
-    moneyIn: '$150.1K',
-    moneyOut: '−$1.2M',
-    xAxisLabels: ['Jan', 'Apr', 'Jul', 'Oct', 'Today'],
-  },
+// X-axis labels by period (static)
+const X_AXIS_LABELS_BY_PERIOD: Record<TimePeriod, string[]> = {
+  '30': ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Today'],
+  '60': ['Nov 15', 'Nov 30', 'Dec 15', 'Dec 31', 'Today'],
+  '90': ['Oct', 'Nov', 'Dec', 'Jan', 'Today'],
+  'YTD': ['Jan', 'Apr', 'Jul', 'Oct', 'Today'],
+  'Last 12': ['Jan \'25', 'Apr', 'Jul', 'Oct', 'Today'],
+  'Custom': ['Jan', 'Apr', 'Jul', 'Oct', 'Today'],
 };
+
+// Period multipliers for scaling cash flow (longer periods = bigger numbers)
+const PERIOD_MULTIPLIERS: Record<TimePeriod, number> = {
+  '30': 0.03,
+  '60': 0.06,
+  '90': 0.08,
+  'YTD': 0.10,
+  'Last 12': 0.15,
+  'Custom': 0.10,
+};
+
+// Format number as compact currency (e.g., $82K, $1.2M)
+function formatCompactCurrency(amount: number, includeSign = false): string {
+  const absAmount = Math.abs(amount);
+  const sign = amount < 0 ? '−' : (includeSign && amount > 0 ? '+' : '');
+  
+  if (absAmount >= 1000000) {
+    return `${sign}$${(absAmount / 1000000).toFixed(1)}M`;
+  }
+  if (absAmount >= 1000) {
+    return `${sign}$${(absAmount / 1000).toFixed(absAmount >= 100000 ? 0 : 1)}K`;
+  }
+  return `${sign}$${absAmount.toFixed(0)}`;
+}
+
+// Generate dynamic cash flow data based on balance and cash flow direction
+function generateCashFlowData(
+  totalBalance: number,
+  cashFlowDirection: number, // -100 to 100
+  period: TimePeriod
+): NetCashflowData {
+  const multiplier = PERIOD_MULTIPLIERS[period];
+  const baseAmount = totalBalance * multiplier;
+  
+  // Cash flow direction affects the ratio of money in vs money out
+  // -100 = very negative (more out than in)
+  // 0 = neutral (roughly equal)
+  // +100 = very positive (more in than out)
+  const directionFactor = cashFlowDirection / 100; // -1 to 1
+  
+  // Calculate money in and money out
+  // Neutral: moneyIn slightly higher than moneyOut for positive net
+  // Negative: moneyOut much higher than moneyIn
+  // Positive: moneyIn much higher than moneyOut
+  const moneyIn = baseAmount * (0.8 + directionFactor * 0.6); // 0.2 to 1.4 of base
+  const moneyOut = baseAmount * (0.6 - directionFactor * 0.4); // 0.2 to 1.0 of base
+  const netCashFlow = moneyIn - moneyOut;
+  
+  return {
+    total: formatCompactCurrency(netCashFlow, true),
+    moneyIn: formatCompactCurrency(moneyIn),
+    moneyOut: formatCompactCurrency(-moneyOut),
+    xAxisLabels: X_AXIS_LABELS_BY_PERIOD[period],
+  };
+}
 
 // Chart point type
 interface ChartPoint {
@@ -178,7 +205,7 @@ export function Dashboard() {
     [chartSettings]
   );
   
-  // Select evenly distributed points for the yellow dots (max 6 dots)
+  // Select evenly distributed points for the primary dots (max 6 dots)
   const dotPoints = useMemo(() => {
     const numDots = Math.min(6, chartPoints.length);
     const result: ChartPoint[] = [];
@@ -189,6 +216,25 @@ export function Dashboard() {
     return result;
   }, [chartPoints]);
 
+  // Generate random insights for each dot point
+  const dotInsights = useMemo(() => {
+    const spendSources = ['OpenAI', 'AWS', 'Gusto', 'Google Ads', 'Slack', 'Figma', 'Notion', 'Vercel', 'GitHub'];
+    const revenueSources = ['Stripe', 'Invoice #4521', 'Shopify', 'Client deposit', 'Square', 'PayPal'];
+    
+    return dotPoints.map(() => {
+      const isSpend = Math.random() > 0.4; // 60% chance of spend
+      if (isSpend) {
+        const source = spendSources[Math.floor(Math.random() * spendSources.length)];
+        const amount = (Math.random() * 15 + 1).toFixed(1);
+        return `–$${amount}K to ${source}`;
+      } else {
+        const source = revenueSources[Math.floor(Math.random() * revenueSources.length)];
+        const amount = (Math.random() * 20 + 2).toFixed(1);
+        return `+$${amount}K from ${source}`;
+      }
+    });
+  }, [dotPoints]);
+
   // Chart hover state
   const chartRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
@@ -196,6 +242,7 @@ export function Dashboard() {
   const [hoverX, setHoverX] = useState(0);
   const [hoverProgress, setHoverProgress] = useState(0); // 0 to 1
   const [hoverPointOnLine, setHoverPointOnLine] = useState({ x: 0, y: 100 });
+  const [hoveredDotIndex, setHoveredDotIndex] = useState<number | null>(null);
 
   // Drag selection state
   const [isDragging, setIsDragging] = useState(false);
@@ -252,6 +299,20 @@ export function Dashboard() {
     
     const point = getPointOnPath(progress);
     setHoverPointOnLine(point);
+
+    // Check if hovering near a dot point (within 15px threshold)
+    const hoverXInSVG = progress * 1026; // Convert to SVG coordinates
+    const dotThreshold = 15; // pixels in SVG space
+    let foundDotIndex: number | null = null;
+    
+    for (let i = 0; i < dotPoints.length; i++) {
+      const dotX = dotPoints[i].x;
+      if (Math.abs(hoverXInSVG - dotX) < dotThreshold) {
+        foundDotIndex = i;
+        break;
+      }
+    }
+    setHoveredDotIndex(foundDotIndex);
 
     // Update drag end if dragging
     if (isDragging) {
@@ -353,13 +414,16 @@ export function Dashboard() {
   const selectionStartDate = isDragging ? getDateFromProgress(selectionStart) : '';
   const selectionEndDate = isDragging ? getDateFromProgress(selectionEnd) : '';
 
+  // Get dynamic balance from DataContext
+  const { settings: dataSettings, formattedTotalBalance } = useDataSettings();
+
   // Calculate interpolated Net Cashflow values for drag selection only
   const getDragInterpolatedValues = useMemo(() => {
-    const data = NET_CASHFLOW_BY_PERIOD[selectedPeriod];
+    const data = generateCashFlowData(dataSettings.totalBalance, dataSettings.cashFlowDirection, selectedPeriod);
     
     // Parse the total value (remove $ and K/M suffix)
     const parseValue = (str: string) => {
-      const cleaned = str.replace(/[−$,]/g, '');
+      const cleaned = str.replace(/[−+$,]/g, '');
       const multiplier = cleaned.includes('M') ? 1000000 : cleaned.includes('K') ? 1000 : 1;
       return parseFloat(cleaned.replace(/[KM]/g, '')) * multiplier;
     };
@@ -391,31 +455,45 @@ export function Dashboard() {
         total: formatValue(scaledTotal),
         moneyIn: formatValue(scaledMoneyIn),
         moneyOut: formatValue(scaledMoneyOut, '−$'),
+        xAxisLabels: data.xAxisLabels,
       };
     }
     
     // Return static values when not dragging
     return data;
-  }, [selectedPeriod, isDragging, selectionStart, selectionEnd]);
-
+  }, [selectedPeriod, isDragging, selectionStart, selectionEnd, dataSettings.totalBalance, dataSettings.cashFlowDirection]);
+  
+  // Generate dynamic cash flow data based on settings
+  const dynamicCashFlowData = useMemo(() => 
+    generateCashFlowData(dataSettings.totalBalance, dataSettings.cashFlowDirection, selectedPeriod),
+    [dataSettings.totalBalance, dataSettings.cashFlowDirection, selectedPeriod]
+  );
+  
+  // Update chart direction based on cash flow direction
+  useEffect(() => {
+    const newDirection = dataSettings.cashFlowDirection >= 0 ? 'up' : 'down';
+    if (chartSettings.slopeDirection !== newDirection) {
+      setChartSettings(prev => ({ ...prev, slopeDirection: newDirection }));
+    }
+  }, [dataSettings.cashFlowDirection]);
+  
   // Calculate interpolated Mercury Balance based on hover progress
-  const MERCURY_BALANCE_BASE = 13346457; // $13,346,457
   const interpolatedMercuryBalance = useMemo(() => {
     // Scale balance based on progress (start from smaller values)
-    const scaledBalance = MERCURY_BALANCE_BASE * (0.2 + hoverProgress * 0.8);
+    const scaledBalance = dataSettings.totalBalance * (0.2 + hoverProgress * 0.8);
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(scaledBalance);
-  }, [hoverProgress]);
+  }, [hoverProgress, dataSettings.totalBalance]);
 
   // Display values for Net Cashflow - only use interpolated when dragging
-  const displayValues = isDragging ? getDragInterpolatedValues : NET_CASHFLOW_BY_PERIOD[selectedPeriod];
+  const displayValues = isDragging ? getDragInterpolatedValues : dynamicCashFlowData;
   
   // Display value for Mercury Balance - interpolate when hovering (not dragging)
-  const displayMercuryBalance = (isHoveringChart && !isDragging) ? interpolatedMercuryBalance : '$13,346,457';
+  const displayMercuryBalance = (isHoveringChart && !isDragging) ? interpolatedMercuryBalance : formattedTotalBalance;
 
   if (userLoading) {
     return (
@@ -677,7 +755,7 @@ export function Dashboard() {
                   transition: 'opacity 150ms ease',
                 }}
               >
-                {NET_CASHFLOW_BY_PERIOD[selectedPeriod].xAxisLabels.map((label) => (
+                {displayValues.xAxisLabels.map((label) => (
                   <div
                     key={label}
                     className="flex flex-col items-center gap-[3px] relative"
@@ -730,6 +808,7 @@ export function Dashboard() {
             onMouseLeave={() => {
               if (!isDragging) {
                 setIsHoveringChart(false);
+                setHoveredDotIndex(null);
               }
             }}
             onMouseMove={handleChartMouseMove}
@@ -746,7 +825,7 @@ export function Dashboard() {
                   top: 0,
                   bottom: 0,
                   width: 1,
-                  backgroundColor: 'var(--purple-magic-600)',
+                  background: 'linear-gradient(to bottom, transparent 0%, var(--purple-magic-600) 25%)',
                   pointerEvents: 'none',
                   zIndex: 10,
                 }}
@@ -958,7 +1037,7 @@ export function Dashboard() {
               />
             </svg>
 
-            {/* Data points (yellow dots) - rendered as HTML elements to maintain 1:1 scale */}
+            {/* Data points (primary dots) - rendered as HTML elements to maintain 1:1 scale */}
             {dotPoints.map((point, index) => (
               <div
                 key={index}
@@ -970,302 +1049,64 @@ export function Dashboard() {
                   width: 10,
                   height: 10,
                   borderRadius: '50%',
-                  backgroundColor: 'var(--orange-magic-400)',
+                  backgroundColor: 'var(--ds-bg-primary)',
                   border: '2px solid white',
                   pointerEvents: 'none',
                   zIndex: 3,
                 }}
               />
             ))}
+
+            {/* Tooltip for hovered dot */}
+            {isHoveringChart && !isDragging && hoveredDotIndex !== null && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: `${(dotPoints[hoveredDotIndex].x / 1026) * 100}%`,
+                  top: `${(dotPoints[hoveredDotIndex].y / 230) * 100}%`,
+                  transform: 'translate(-50%, -100%) translateY(-12px)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  color: 'var(--ds-text-default)',
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04)',
+                  pointerEvents: 'none',
+                  zIndex: 20,
+                  whiteSpace: 'nowrap',
+                }}
+                className="text-label"
+              >
+                {dotInsights[hoveredDotIndex]}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Chart Settings FAB */}
-      <ChartSettingsFAB settings={chartSettings} onSettingsChange={setChartSettings} />
+      {/* Demo Settings FAB */}
+      <DemoSettingsFAB settings={chartSettings} onSettingsChange={setChartSettings} />
 
       {/* Dashboard Cards Section */}
       <DashboardCards />
-
-      {/* Sticky Bottom Action Toolbar */}
-      <ActionToolbar />
     </div>
   );
 }
 
-// Sample search results for the command palette
-const SEARCH_SUGGESTIONS = [
-  { icon: faCircleCheck, label: 'Create a card', type: 'action', shortcuts: ['Open form ↵', 'Ask agent ⌘↵'] },
-  { icon: faBuilding, label: 'Cards', type: 'page', path: '/cards' },
-  { icon: faBuilding, label: 'Credit Balance', type: 'page', path: '/credit' },
-  { icon: faBuilding, label: 'Team Spend', type: 'page', path: '/spend' },
-];
-
-// Sample recent recipients data for the send button hover menu
-const RECENT_RECIPIENTS = [
-  { name: 'Acme Corp', date: 'Jan 1' },
-  { name: 'Beta LLC', date: 'Feb 15' },
-  { name: 'Gamma Inc', date: 'Mar 20' },
-  { name: 'Delta Co', date: 'Apr 5' },
-  { name: 'Epsilon Ltd', date: 'May 30' },
-  { name: 'Zeta Group', date: 'Jun 12' },
-];
-
-// Floating action toolbar component
-function ActionToolbar() {
-  const [inputValue, setInputValue] = useState('');
-  const [isFocused, setIsFocused] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [isSendHovered, setIsSendHovered] = useState(false);
-  const [hoveredRecipientIndex, setHoveredRecipientIndex] = useState<number | null>(null);
-  const toolbarRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Handle clicking outside to blur
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (toolbarRef.current && !toolbarRef.current.contains(event.target as Node)) {
-        if (inputRef.current) {
-          inputRef.current.blur();
-        }
-        setIsFocused(false);
-      }
-    };
-
-    if (isFocused) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isFocused]);
-
-  const handleFocus = () => {
-    setIsFocused(true);
-  };
-
-  const handleClose = () => {
-    setIsFocused(false);
-    setInputValue('');
-    if (inputRef.current) {
-      inputRef.current.blur();
-    }
-  };
-
-  // Filter suggestions based on input
-  const filteredSuggestions = inputValue
-    ? SEARCH_SUGGESTIONS.filter(s => 
-        s.label.toLowerCase().includes(inputValue.toLowerCase())
-      )
-    : SEARCH_SUGGESTIONS;
-
-  return (
-    <div className="ds-action-container">
-      <div 
-        ref={toolbarRef}
-        className={cn('ds-action-toolbar', isFocused && 'focused')} 
-        style={{ width: isFocused ? 672 : 484 }}
-      >
-        {/* Expanded Results Area - Only visible when focused */}
-        {isFocused && (
-          <div className="ds-action-results">
-            {filteredSuggestions.map((suggestion, index) => (
-              <div 
-                key={suggestion.label}
-                className={cn(
-                  'ds-action-result-item',
-                  index === selectedIndex && 'selected'
-                )}
-                onMouseEnter={() => setSelectedIndex(index)}
-              >
-                <div className="flex items-center gap-2">
-                  <div className="ds-action-result-icon">
-                    <Icon 
-                      icon={suggestion.icon} 
-                      size="small"
-                      style={{ color: 'var(--ds-icon-secondary)' }} 
-                    />
-                  </div>
-                  <span 
-                    className="text-body"
-                    style={{ color: 'var(--ds-text-default)' }}
-                  >
-                    {suggestion.label}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4">
-                  {suggestion.shortcuts ? (
-                    suggestion.shortcuts.map((shortcut, i) => (
-                      <span key={i} className="flex items-center gap-2">
-                        <span 
-                          className="text-label"
-                          style={{ color: 'var(--ds-text-default)', letterSpacing: '0.1px' }}
-                        >
-                          {shortcut}
-                        </span>
-                        {i < suggestion.shortcuts!.length - 1 && (
-                          <div style={{ width: 1, height: 12, backgroundColor: '#d9d9d9' }} />
-                        )}
-                      </span>
-                    ))
-                  ) : (
-                    <span 
-                      className="text-label"
-                      style={{ color: 'var(--ds-text-default)', letterSpacing: '0.1px' }}
-                    >
-                      {suggestion.path}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Composer Input */}
-        <div className={cn('ds-action-composer', isFocused && 'focused')}>
-          {/* Search Icon - Only visible when focused */}
-          {isFocused && (
-            <div className="ds-action-search-icon">
-              <Icon 
-                icon={faMagnifyingGlass} 
-                size="small"
-                style={{ color: 'var(--ds-icon-primary)' }} 
-              />
-            </div>
-          )}
-          
-          <input
-            ref={inputRef}
-            type="text"
-            className="ds-action-composer-input"
-            placeholder="Ask Anything.."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onFocus={handleFocus}
-          />
-
-          {/* Right side buttons when focused */}
-          {isFocused && (
-            <div className="flex items-center gap-1">
-              <DSButton variant="tertiary" size="small" iconOnly>
-                <Icon 
-                  icon={faClock} 
-                  size="small"
-                  style={{ color: 'var(--ds-icon-secondary)' }} 
-                />
-              </DSButton>
-              <button 
-                className="ds-action-close-btn"
-                onClick={handleClose}
-              >
-                <Icon 
-                  icon={faXmark} 
-                  style={{ color: 'var(--ds-icon-secondary)' }} 
-                />
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Action Buttons - Only visible when NOT focused */}
-        {!isFocused && (
-          <div className="flex items-center gap-2">
-            {/* Send Button with Hover Menu */}
-            <div 
-              className="send-button-container"
-              onMouseEnter={() => setIsSendHovered(true)}
-              onMouseLeave={() => {
-                setIsSendHovered(false);
-                setHoveredRecipientIndex(null);
-              }}
-            >
-              {/* Hover Menu */}
-              {isSendHovered && (
-                <div className="send-hover-menu">
-                  <div className="send-hover-menu-header">
-                    <span 
-                      className="text-label"
-                      style={{ color: 'var(--ds-text-secondary)' }}
-                    >
-                      Recently paid recipients
-                    </span>
-                  </div>
-                  {RECENT_RECIPIENTS.map((recipient, index) => (
-                    <div
-                      key={recipient.name}
-                      className={cn(
-                        'send-hover-menu-item',
-                        hoveredRecipientIndex === index && 'hovered'
-                      )}
-                      onMouseEnter={() => setHoveredRecipientIndex(index)}
-                      onMouseLeave={() => setHoveredRecipientIndex(null)}
-                    >
-                      <span 
-                        className="text-body"
-                        style={{ 
-                          color: hoveredRecipientIndex === index 
-                            ? 'var(--ds-text-emphasized)' 
-                            : 'var(--ds-text-default)' 
-                        }}
-                      >
-                        {recipient.name}
-                      </span>
-                      <span 
-                        className="text-body"
-                        style={{ 
-                          color: hoveredRecipientIndex === index 
-                            ? 'var(--ds-text-link)' 
-                            : 'var(--ds-text-default)' 
-                        }}
-                      >
-                        {hoveredRecipientIndex === index ? 'Pay' : recipient.date}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              <DSButton 
-                variant="primary" 
-                size="large"
-              >
-                Send
-              </DSButton>
-            </div>
-
-            {/* Transfer Button */}
-            <DSButton variant="secondary" size="large" iconOnly>
-              <Icon
-                icon={faArrowRightArrowLeft}
-                size="small"
-                style={{ color: 'var(--ds-icon-secondary)' }}
-              />
-            </DSButton>
-
-            {/* More Options Button */}
-            <DSButton variant="secondary" size="large" iconOnly>
-              <Icon
-                icon={faEllipsis}
-                style={{ color: 'var(--ds-icon-secondary)' }}
-              />
-            </DSButton>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Chart Settings FAB Component
-interface ChartSettingsFABProps {
+// Demo Settings FAB Component
+interface DemoSettingsFABProps {
   settings: ChartSettings;
   onSettingsChange: (settings: ChartSettings) => void;
 }
 
-function ChartSettingsFAB({ settings, onSettingsChange }: ChartSettingsFABProps) {
+function DemoSettingsFAB({ settings, onSettingsChange }: DemoSettingsFABProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [dataSettingsOpen, setDataSettingsOpen] = useState(true);
+  const [chartSettingsOpen, setChartSettingsOpen] = useState(false);
+  const [gradientSettingsOpen, setGradientSettingsOpen] = useState(false);
+  const { settings: dataSettings, updateSettings, formattedTotalBalance, cashFlowLabel } = useDataSettings();
 
   const handleSlopeChange = (direction: 'up' | 'down') => {
     onSettingsChange({ ...settings, slopeDirection: direction });
@@ -1291,6 +1132,24 @@ function ChartSettingsFAB({ settings, onSettingsChange }: ChartSettingsFABProps)
     onSettingsChange({ ...settings, gradientBottomColor: color });
   };
 
+  // Balance slider uses logarithmic scale for better UX
+  // $100 = 0, $10M = 100
+  const balanceToSlider = (balance: number): number => {
+    const minLog = Math.log10(100);
+    const maxLog = Math.log10(10000000);
+    const currentLog = Math.log10(balance);
+    return ((currentLog - minLog) / (maxLog - minLog)) * 100;
+  };
+
+  const sliderToBalance = (slider: number): number => {
+    const minLog = Math.log10(100);
+    const maxLog = Math.log10(10000000);
+    const logValue = minLog + (slider / 100) * (maxLog - minLog);
+    return Math.round(Math.pow(10, logValue));
+  };
+
+  const balanceSliderValue = balanceToSlider(dataSettings.totalBalance);
+
   const colorOptions = [
     { label: 'Purple', value: 'var(--purple-magic-400)' },
     { label: 'Blue', value: 'var(--blue-magic-400)' },
@@ -1304,25 +1163,25 @@ function ChartSettingsFAB({ settings, onSettingsChange }: ChartSettingsFABProps)
       {/* FAB Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="ds-chart-settings-fab"
-        aria-label="Chart settings"
+        className="ds-demo-settings-fab"
+        aria-label="Demo settings"
       >
         <Icon 
-          icon={isOpen ? faXmark : faChartLine} 
-          style={{ color: 'var(--ds-icon-on-primary)' }} 
+          icon={isOpen ? faXmark : faSliders} 
+          style={{ color: 'var(--orange-magic-600)' }} 
         />
       </button>
 
       {/* Settings Panel */}
       {isOpen && (
-        <div className="ds-chart-settings-panel">
+        <div className="ds-demo-settings-panel">
           {/* Header */}
           <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
             <span 
               className="text-body-demi"
               style={{ color: 'var(--ds-text-default)' }}
             >
-              Chart Settings
+              Demo Settings
             </span>
             <button
               onClick={() => setIsOpen(false)}
@@ -1333,134 +1192,292 @@ function ChartSettingsFAB({ settings, onSettingsChange }: ChartSettingsFABProps)
             </button>
           </div>
 
-          {/* Slope Direction */}
-          <div className="ds-chart-settings-section">
-            <span className="ds-chart-settings-label">Slope Direction</span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleSlopeChange('up')}
-                className={cn(
-                  'ds-chart-settings-toggle',
-                  settings.slopeDirection === 'up' && 'active'
-                )}
-              >
-                <Icon icon={faArrowTrendUp} size="small" />
-                <span>Up</span>
-              </button>
-              <button
-                onClick={() => handleSlopeChange('down')}
-                className={cn(
-                  'ds-chart-settings-toggle',
-                  settings.slopeDirection === 'down' && 'active'
-                )}
-              >
-                <Icon icon={faArrowTrendDown} size="small" />
-                <span>Down</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Point Count */}
-          <div className="ds-chart-settings-section">
-            <div className="flex items-center justify-between">
-              <span className="ds-chart-settings-label">Line Points</span>
-              <span className="ds-chart-settings-value">{settings.pointCount}</span>
-            </div>
-            <input
-              type="range"
-              min="3"
-              max="30"
-              value={settings.pointCount}
-              onChange={(e) => handlePointCountChange(parseInt(e.target.value))}
-              className="ds-chart-settings-slider"
-            />
-          </div>
-
-          {/* Smoothing */}
-          <div className="ds-chart-settings-section">
-            <div className="flex items-center justify-between">
-              <span className="ds-chart-settings-label">Smoothing</span>
-              <span className="ds-chart-settings-value">{settings.smoothing}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={settings.smoothing}
-              onChange={(e) => handleSmoothingChange(parseInt(e.target.value))}
-              className="ds-chart-settings-slider"
-            />
-          </div>
-
-          {/* Gradient Section */}
+          {/* Data Settings Section */}
           <div 
             className="ds-chart-settings-section" 
             style={{ 
-              borderTop: '1px solid var(--color-border-default)',
-              paddingTop: 12,
-              marginTop: 4 
+              borderBottom: '1px solid var(--color-border-default)',
+              paddingBottom: dataSettingsOpen ? 12 : 0,
+              marginBottom: 12 
             }}
           >
-            <span 
-              className="ds-chart-settings-label" 
-              style={{ marginBottom: 8, display: 'block' }}
+            <button
+              onClick={() => setDataSettingsOpen(!dataSettingsOpen)}
+              className="ds-settings-toggle-header"
             >
-              Gradient
-            </span>
-
-            {/* Gradient Opacity */}
-            <div style={{ marginBottom: 12 }}>
-              <div className="flex items-center justify-between">
-                <span className="ds-chart-settings-sublabel">Opacity</span>
-                <span className="ds-chart-settings-value">{settings.gradientOpacity}%</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={settings.gradientOpacity}
-                onChange={(e) => handleGradientOpacityChange(parseInt(e.target.value))}
-                className="ds-chart-settings-slider"
+              <span className="ds-chart-settings-label">Data Settings</span>
+              <Icon 
+                icon={faChevronDown} 
+                size="small" 
+                style={{ 
+                  color: 'var(--ds-icon-secondary)',
+                  transform: dataSettingsOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 150ms ease'
+                }} 
               />
-            </div>
+            </button>
 
-            {/* Top Color */}
-            <div style={{ marginBottom: 12 }}>
-              <span className="ds-chart-settings-sublabel">Top Color</span>
-              <div className="flex gap-1 flex-wrap" style={{ marginTop: 4 }}>
-                {colorOptions.map((color) => (
-                  <button
-                    key={color.value + '-top'}
-                    onClick={() => handleTopColorChange(color.value)}
-                    className={cn(
-                      'ds-chart-settings-color-btn',
-                      settings.gradientTopColor === color.value && 'active'
-                    )}
-                    style={{ backgroundColor: color.value }}
-                    title={color.label}
+            {dataSettingsOpen && (
+              <div style={{ marginTop: 8 }}>
+                {/* Balance Slider */}
+                <div style={{ marginBottom: 12 }}>
+                  <div className="flex items-center justify-between">
+                    <span className="ds-chart-settings-sublabel">Total Balance</span>
+                    <span className="ds-chart-settings-value">{formattedTotalBalance}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={balanceSliderValue}
+                    onChange={(e) => {
+                      const newBalance = sliderToBalance(parseFloat(e.target.value));
+                      updateSettings({ totalBalance: newBalance });
+                    }}
+                    className="ds-chart-settings-slider"
                   />
-                ))}
-              </div>
-            </div>
+                  <div className="flex justify-between" style={{ marginTop: 4 }}>
+                    <span className="text-micro" style={{ color: 'var(--ds-text-tertiary)' }}>$100</span>
+                    <span className="text-micro" style={{ color: 'var(--ds-text-tertiary)' }}>$10M</span>
+                  </div>
+                </div>
 
-            {/* Bottom Color */}
-            <div>
-              <span className="ds-chart-settings-sublabel">Bottom Color</span>
-              <div className="flex gap-1 flex-wrap" style={{ marginTop: 4 }}>
-                {colorOptions.map((color) => (
-                  <button
-                    key={color.value + '-bottom'}
-                    onClick={() => handleBottomColorChange(color.value)}
-                    className={cn(
-                      'ds-chart-settings-color-btn',
-                      settings.gradientBottomColor === color.value && 'active'
-                    )}
-                    style={{ backgroundColor: color.value }}
-                    title={color.label}
-                  />
-                ))}
+                {/* Cash Flow Slider */}
+                <div style={{ marginBottom: 12 }}>
+                  <div className="flex items-center justify-between">
+                    <span className="ds-chart-settings-sublabel">Cash Flow</span>
+                    <span 
+                      className="ds-chart-settings-value"
+                      style={{ 
+                        color: dataSettings.cashFlowDirection < -33 
+                          ? 'var(--color-error)' 
+                          : dataSettings.cashFlowDirection > 33 
+                            ? 'var(--color-success)' 
+                            : 'var(--ds-text-secondary)'
+                      }}
+                    >
+                      {cashFlowLabel}
+                    </span>
+                  </div>
+                  <div className="ds-cashflow-slider-container">
+                    <input
+                      type="range"
+                      min="-100"
+                      max="100"
+                      step="1"
+                      value={dataSettings.cashFlowDirection}
+                      onChange={(e) => {
+                        updateSettings({ cashFlowDirection: parseInt(e.target.value) });
+                      }}
+                      className="ds-chart-settings-slider ds-cashflow-slider"
+                    />
+                  </div>
+                  <div className="flex justify-between" style={{ marginTop: 4 }}>
+                    <span className="text-micro" style={{ color: 'var(--color-error)' }}>Negative</span>
+                    <span className="text-micro" style={{ color: 'var(--ds-text-tertiary)' }}>Neutral</span>
+                    <span className="text-micro" style={{ color: 'var(--color-success)' }}>Positive</span>
+                  </div>
+                </div>
+
+                {/* Quick Presets */}
+                <div>
+                  <span className="ds-chart-settings-sublabel">Quick Presets</span>
+                  <div className="flex flex-wrap gap-2" style={{ marginTop: 8 }}>
+                    <button
+                      onClick={() => updateSettings({ totalBalance: 100000, cashFlowDirection: -50 })}
+                      className="ds-preset-btn"
+                    >
+                      Startup
+                    </button>
+                    <button
+                      onClick={() => updateSettings({ totalBalance: 1000000, cashFlowDirection: 0 })}
+                      className="ds-preset-btn"
+                    >
+                      Growing
+                    </button>
+                    <button
+                      onClick={() => updateSettings({ totalBalance: 5000000, cashFlowDirection: 50 })}
+                      className="ds-preset-btn"
+                    >
+                      Established
+                    </button>
+                    <button
+                      onClick={() => updateSettings({ totalBalance: 10000000, cashFlowDirection: 75 })}
+                      className="ds-preset-btn"
+                    >
+                      Enterprise
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+          </div>
+
+          {/* Chart Settings Section */}
+          <div 
+            className="ds-chart-settings-section"
+            style={{ 
+              borderBottom: '1px solid var(--color-border-default)',
+              paddingBottom: chartSettingsOpen ? 12 : 0,
+              marginBottom: 12 
+            }}
+          >
+            <button
+              onClick={() => setChartSettingsOpen(!chartSettingsOpen)}
+              className="ds-settings-toggle-header"
+            >
+              <span className="ds-chart-settings-label">Chart Settings</span>
+              <Icon 
+                icon={faChevronDown} 
+                size="small" 
+                style={{ 
+                  color: 'var(--ds-icon-secondary)',
+                  transform: chartSettingsOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 150ms ease'
+                }} 
+              />
+            </button>
+
+            {chartSettingsOpen && (
+              <div style={{ marginTop: 8 }}>
+                {/* Slope Direction */}
+                <div style={{ marginBottom: 12 }}>
+                  <span className="ds-chart-settings-sublabel">Slope Direction</span>
+                  <div className="flex gap-2" style={{ marginTop: 4 }}>
+                    <button
+                      onClick={() => handleSlopeChange('up')}
+                      className={cn(
+                        'ds-chart-settings-toggle',
+                        settings.slopeDirection === 'up' && 'active'
+                      )}
+                    >
+                      <Icon icon={faArrowTrendUp} size="small" />
+                      <span>Up</span>
+                    </button>
+                    <button
+                      onClick={() => handleSlopeChange('down')}
+                      className={cn(
+                        'ds-chart-settings-toggle',
+                        settings.slopeDirection === 'down' && 'active'
+                      )}
+                    >
+                      <Icon icon={faArrowTrendDown} size="small" />
+                      <span>Down</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Point Count */}
+                <div style={{ marginBottom: 12 }}>
+                  <div className="flex items-center justify-between">
+                    <span className="ds-chart-settings-sublabel">Line Points</span>
+                    <span className="ds-chart-settings-value">{settings.pointCount}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="3"
+                    max="30"
+                    value={settings.pointCount}
+                    onChange={(e) => handlePointCountChange(parseInt(e.target.value))}
+                    className="ds-chart-settings-slider"
+                  />
+                </div>
+
+                {/* Smoothing */}
+                <div style={{ marginBottom: 12 }}>
+                  <div className="flex items-center justify-between">
+                    <span className="ds-chart-settings-sublabel">Smoothing</span>
+                    <span className="ds-chart-settings-value">{settings.smoothing}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={settings.smoothing}
+                    onChange={(e) => handleSmoothingChange(parseInt(e.target.value))}
+                    className="ds-chart-settings-slider"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Gradient Section */}
+          <div className="ds-chart-settings-section">
+            <button
+              onClick={() => setGradientSettingsOpen(!gradientSettingsOpen)}
+              className="ds-settings-toggle-header"
+            >
+              <span className="ds-chart-settings-label">Gradient</span>
+              <Icon 
+                icon={faChevronDown} 
+                size="small" 
+                style={{ 
+                  color: 'var(--ds-icon-secondary)',
+                  transform: gradientSettingsOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 150ms ease'
+                }} 
+              />
+            </button>
+
+            {gradientSettingsOpen && (
+              <div style={{ marginTop: 8 }}>
+                {/* Gradient Opacity */}
+                <div style={{ marginBottom: 12 }}>
+                  <div className="flex items-center justify-between">
+                    <span className="ds-chart-settings-sublabel">Opacity</span>
+                    <span className="ds-chart-settings-value">{settings.gradientOpacity}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={settings.gradientOpacity}
+                    onChange={(e) => handleGradientOpacityChange(parseInt(e.target.value))}
+                    className="ds-chart-settings-slider"
+                  />
+                </div>
+
+                {/* Top Color */}
+                <div style={{ marginBottom: 12 }}>
+                  <span className="ds-chart-settings-sublabel">Top Color</span>
+                  <div className="flex gap-1 flex-wrap" style={{ marginTop: 4 }}>
+                    {colorOptions.map((color) => (
+                      <button
+                        key={color.value + '-top'}
+                        onClick={() => handleTopColorChange(color.value)}
+                        className={cn(
+                          'ds-chart-settings-color-btn',
+                          settings.gradientTopColor === color.value && 'active'
+                        )}
+                        style={{ backgroundColor: color.value }}
+                        title={color.label}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bottom Color */}
+                <div>
+                  <span className="ds-chart-settings-sublabel">Bottom Color</span>
+                  <div className="flex gap-1 flex-wrap" style={{ marginTop: 4 }}>
+                    {colorOptions.map((color) => (
+                      <button
+                        key={color.value + '-bottom'}
+                        onClick={() => handleBottomColorChange(color.value)}
+                        className={cn(
+                          'ds-chart-settings-color-btn',
+                          settings.gradientBottomColor === color.value && 'active'
+                        )}
+                        style={{ backgroundColor: color.value }}
+                        title={color.label}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1468,25 +1485,7 @@ function ChartSettingsFAB({ settings, onSettingsChange }: ChartSettingsFABProps)
   );
 }
 
-// Account data for Depository Accounts card
-const DEPOSITORY_ACCOUNTS = [
-  { name: 'Main Checking', balance: 150000 },
-  { name: 'Ops & Payroll', balance: 300000 },
-  { name: 'Checking', balance: 300000 },
-  { name: 'Savings', balance: 350000 },
-];
-
-// Sample transaction data
-const SAMPLE_TRANSACTIONS = [
-  { id: 1, date: 'May 5', name: 'Cursor', amount: 415 },
-  { id: 2, date: 'Apr 29', name: 'Cursor', amount: 413 },
-  { id: 3, date: 'May 3', name: 'Cursor', amount: 772 },
-  { id: 4, date: 'Aug 7', name: 'Cursor', amount: 808 },
-  { id: 5, date: 'Oct 17', name: 'Cursor', amount: 939 },
-  { id: 6, date: 'Mar 16', name: 'Cursor', amount: 941 },
-  { id: 7, date: 'Mar 10', name: 'Cursor', amount: 852 },
-  { id: 8, date: 'Mar 26', name: 'Cursor', amount: 975 },
-];
+// Note: Depository accounts data now comes from DataContext
 
 // Bar heights for treasury chart (simulated data)
 const TREASURY_BAR_HEIGHTS = [
@@ -1500,6 +1499,10 @@ type TransactionFilter = typeof TRANSACTION_FILTERS[number];
 function DashboardCards() {
   const [selectedFilter, setSelectedFilter] = useState<TransactionFilter>('Recent');
   const { transactions } = useTransactions();
+  const { getAccountBalances } = useDataSettings();
+  
+  // Get dynamic account balances
+  const depositoryAccounts = getAccountBalances().filter(acc => acc.type !== 'credit');
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -1510,6 +1513,9 @@ function DashboardCards() {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+  
+  // Calculate depository total (excluding credit)
+  const depositoryTotal = depositoryAccounts.reduce((sum, acc) => sum + acc.balance, 0);
 
   return (
     <div
@@ -1563,7 +1569,7 @@ function DashboardCards() {
                     color: 'var(--ds-text-title)',
                   }}
                 >
-                  $500K
+                  {formatCurrency(depositoryTotal)}
                 </span>
               </div>
               {/* Action Buttons using DSButton */}
@@ -1587,7 +1593,7 @@ function DashboardCards() {
 
             {/* Account List */}
             <div className="flex flex-col" style={{ width: 458 }}>
-              {DEPOSITORY_ACCOUNTS.map((account, index) => (
+              {depositoryAccounts.map((account, index) => (
                 <div
                   key={index}
                   className="flex items-center gap-3 rounded-md ds-account-row"
@@ -1718,69 +1724,102 @@ function DashboardCards() {
 
           {/* Transactions List */}
           <div className="flex flex-col w-full">
-            {SAMPLE_TRANSACTIONS.map((txn) => (
-              <div
-                key={txn.id}
-                className="flex items-center w-full ds-transaction-row"
-                style={{ height: 49, borderBottom: '1px solid var(--color-border-default)' }}
-              >
-                {/* Date Column */}
-                <div style={{ width: 87 }}>
-                  <span
-                    className="text-body"
-                    style={{ color: 'var(--ds-text-secondary)' }}
-                  >
-                    {txn.date}
-                  </span>
-                </div>
+            {transactions.slice(0, 8).map((txn) => {
+              // Format date as "Mon DD"
+              const date = new Date(txn.date);
+              const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              
+              // Get initials from merchant name
+              const initials = txn.merchant
+                .split(' ')
+                .map(word => word[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2);
 
-                {/* Avatar + Name Column */}
-                <div className="flex items-center gap-3 flex-1">
-                  {/* Avatar */}
-                  <div
-                    className="flex items-center justify-center rounded-full"
-                    style={{
-                      width: 32,
-                      height: 32,
-                      backgroundColor: 'var(--neutral-base-700)',
+              // Format amount
+              const absAmount = Math.abs(txn.amount);
+              const formattedAmount = absAmount.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              });
+
+              return (
+                <div
+                  key={txn.id}
+                  className="flex items-center w-full ds-transaction-row"
+                  style={{ 
+                    height: 49, 
+                    borderBottom: '1px solid var(--color-border-default)',
+                    paddingLeft: 8,
+                    paddingRight: 8,
+                  }}
+                >
+                  {/* Date Column */}
+                  <div style={{ width: 64, flexShrink: 0 }}>
+                    <span
+                      className="text-body"
+                      style={{ color: 'var(--ds-text-secondary)' }}
+                    >
+                      {formattedDate}
+                    </span>
+                  </div>
+
+                  {/* Avatar + Name Column */}
+                  <div className="flex items-center gap-3 flex-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+                    {/* Avatar */}
+                    <div
+                      className="flex items-center justify-center rounded-full"
+                      style={{
+                        width: 32,
+                        height: 32,
+                        flexShrink: 0,
+                        backgroundColor: 'var(--neutral-base-700)',
+                      }}
+                    >
+                      <span
+                        className="text-tiny"
+                        style={{
+                          color: 'var(--neutral-base-0)',
+                          fontWeight: 500,
+                          fontSize: 11,
+                        }}
+                      >
+                        {initials}
+                      </span>
+                    </div>
+                    <span
+                      className="text-body"
+                      style={{ 
+                        color: 'var(--ds-text-default)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {txn.merchant}
+                    </span>
+                  </div>
+
+                  {/* Amount Column */}
+                  <div 
+                    className="text-right" 
+                    style={{ 
+                      width: 100, 
+                      flexShrink: 0,
+                      fontVariantNumeric: 'tabular-nums',
                     }}
                   >
                     <span
-                      className="text-tiny"
-                      style={{
-                        color: 'var(--neutral-base-0)',
-                        fontWeight: 500,
-                        fontSize: 11,
-                      }}
+                      className="text-body"
+                      style={{ color: 'var(--ds-text-default)' }}
                     >
-                      we
+                      ${formattedAmount}
                     </span>
                   </div>
-                  <span
-                    className="text-body"
-                    style={{ color: 'var(--ds-text-default)' }}
-                  >
-                    {txn.name}
-                  </span>
                 </div>
-
-                {/* Amount Column */}
-                <div className="text-right" style={{ width: 55 }}>
-                  <span
-                    className="text-body"
-                    style={{ color: 'var(--ds-text-default)' }}
-                  >
-                    ${txn.amount}
-                  </span>
-                  <span
-                    className="ds-money-amount-cents"
-                    style={{ color: 'var(--ds-text-tertiary)' }}
-                  >
-                    .00
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Bottom Fade Overlay */}

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { TopNav } from './TopNav';
+import { ActionToolbar } from './ActionToolbar';
 
 interface LayoutProps {
   children: ReactNode;
@@ -14,6 +15,7 @@ export function Layout({ children }: LayoutProps) {
         <TopNav />
         <main className="flex-1">{children}</main>
       </div>
+      <ActionToolbar />
     </div>
   );
 }
