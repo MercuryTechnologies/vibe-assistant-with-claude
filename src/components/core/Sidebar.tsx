@@ -1,6 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -40,12 +39,13 @@ export function Sidebar() {
   
   const isActive = (path: string) => location.pathname === path;
   const isPaymentsRoute = location.pathname.startsWith('/payments');
+  const isAccountsRoute = location.pathname.startsWith('/accounts');
   const isDesignSystemRoute = isActive('/components') || location.pathname.startsWith('/components/') || isActive('/colors') || isActive('/typography') || isActive('/border-radius');
   
   const [componentsExpanded, setComponentsExpanded] = useState(true);
   
   const [paymentsExpanded, setPaymentsExpanded] = useState(isPaymentsRoute);
-  const [accountsExpanded, setAccountsExpanded] = useState(false);
+  const [accountsExpanded, setAccountsExpanded] = useState(isAccountsRoute);
   
   // Auto-expand when navigating to a component page
   useEffect(() => {
@@ -60,6 +60,13 @@ export function Sidebar() {
       setPaymentsExpanded(true);
     }
   }, [isPaymentsRoute]);
+
+  // Auto-expand accounts when navigating to an accounts route
+  useEffect(() => {
+    if (isAccountsRoute) {
+      setAccountsExpanded(true);
+    }
+  }, [isAccountsRoute]);
 
   const primaryNavigationItems = [
     { path: '/dashboard', label: 'Home', icon: faHome },
@@ -76,10 +83,13 @@ export function Sidebar() {
   const dynamicAccounts = getAccountBalances();
   
   const accountsData = [
-    { label: 'Credit Card', balance: null },
+    { id: 'credit-card', label: 'Credit Card', balance: null, hasPage: false },
     ...dynamicAccounts.map(acc => ({
+      id: acc.id,
       label: acc.name,
       balance: formatCurrency(acc.balance),
+      // Treasury and Credit Card don't have detail pages
+      hasPage: acc.type !== 'treasury',
     })),
   ];
 
@@ -411,7 +421,7 @@ export function Sidebar() {
         <div>
           <button
             onClick={() => setAccountsExpanded(!accountsExpanded)}
-            className={`ds-sidebar-btn ${isActive('/accounts') ? 'active' : ''}`}
+            className={`ds-sidebar-btn ${location.pathname.startsWith('/accounts') ? 'active' : ''}`}
           >
             <div className="ds-sidebar-btn-content">
               <span className="ds-sidebar-icon-wrapper">
@@ -432,21 +442,33 @@ export function Sidebar() {
           {/* Expanded Accounts List */}
           {accountsExpanded && (
             <div className="ds-sidebar-submenu" style={{ gap: '2px' }}>
-              {accountsData.map((account, index) => (
-                <div
-                  key={index}
-                  className="ds-account-list-item"
-                >
-                  <div className="ds-account-list-name">
-                    {account.label}
-                  </div>
-                  {account.balance && (
-                    <div className="ds-account-list-balance">
-                      {account.balance}
+              {accountsData.map((account) => {
+                const isAccountActive = location.pathname === `/accounts/${account.id}`;
+                const content = (
+                  <div
+                    className={`ds-account-list-item ${account.hasPage ? 'ds-account-list-item-clickable' : ''} ${isAccountActive ? 'active' : ''}`}
+                  >
+                    <div className="ds-account-list-name">
+                      {account.label}
                     </div>
-                  )}
-                </div>
-              ))}
+                    {account.balance && (
+                      <div className="ds-account-list-balance">
+                        {account.balance}
+                      </div>
+                    )}
+                  </div>
+                );
+
+                if (account.hasPage) {
+                  return (
+                    <Link key={account.id} to={`/accounts/${account.id}`}>
+                      {content}
+                    </Link>
+                  );
+                }
+
+                return <div key={account.id}>{content}</div>;
+              })}
             </div>
           )}
         </div>

@@ -512,10 +512,8 @@ export function DateFilter({
     if (selectedPreset === "custom" && selectedRange.from && selectedRange.to) {
       return `${formatMonthYear(selectedRange.from.month, selectedRange.from.year)} - ${formatMonthYear(selectedRange.to.month, selectedRange.to.year)}`
     }
-    if (selectedPreset !== "all_time") {
-      return getPresetLabel(selectedPreset)
-    }
-    return undefined
+    // At this point selectedPreset is neither "all_time" nor "custom" with valid range
+    return getPresetLabel(selectedPreset)
   }
 
   const displayValue = getDisplayValue()

@@ -23,6 +23,7 @@ export interface Transaction {
   status: 'completed' | 'pending' | 'failed';
   accountId: string;
   hasAttachment?: boolean;
+  [key: string]: unknown;
 }
 
 // User types
@@ -71,6 +72,7 @@ export interface Task {
 export interface Recipient {
   id: string;
   name: string;
+  initials?: string;
   status: 'active' | 'inactive' | 'pending';
   lastPaid?: string;
 }

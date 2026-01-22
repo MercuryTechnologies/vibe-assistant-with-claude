@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DSTable, type SortDirection, type DSTableDetailPanelRenderContext } from '@/components/ui/ds-table';
 import { DSTableDetailPanel, type DetailPanelField } from '@/components/ui/ds-table-detail-panel';
-import { samplePeople, personColumns, sampleTransactions, transactionColumns, transactionCategoryOptions, getAccountType, getMethod } from '../sample-data';
+import { samplePeople, personColumns, sampleTransactions, transactionColumns, transactionCategoryOptions, getAccountType } from '../sample-data';
 import { cn } from '@/lib/utils';
 import type { Transaction } from '@/types';
 

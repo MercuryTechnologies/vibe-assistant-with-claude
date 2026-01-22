@@ -69,7 +69,7 @@ export interface DSTableDetailPanelProps<T = unknown> {
   fields: DetailPanelField<T>[]
   /** Additional className */
   className?: string
-  /** Panel width (default: 400px) */
+  /** Panel width (default: 480px) */
   width?: number
   /** Show copy link button in header */
   showCopyLink?: boolean
@@ -264,7 +264,7 @@ export function DSTableDetailPanel<T = unknown>({
   timeline,
   fields,
   className,
-  width = 400,
+  width = 480,
   showCopyLink = false,
   headerActions,
 }: DSTableDetailPanelProps<T>) {
@@ -284,6 +284,20 @@ export function DSTableDetailPanel<T = unknown>({
       setTextareaValues(newValues)
     }
   }, [row, fields])
+
+  // Close panel on Escape key
+  React.useEffect(() => {
+    if (!isOpen) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose()
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [isOpen, onClose])
 
   // Get panel title
   const panelTitle = React.useMemo(() => {

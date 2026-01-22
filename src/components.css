@@ -3345,6 +3345,29 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   color: var(--neutral-base-500);
 }
 
+/* Non-clickable accounts (e.g., Credit Card, Treasury) */
+.ds-account-list-item:not(.ds-account-list-item-clickable) {
+  cursor: default;
+}
+
+.ds-account-list-item:not(.ds-account-list-item-clickable):hover {
+  background-color: transparent;
+}
+
+.ds-account-list-item:not(.ds-account-list-item-clickable):hover .ds-account-list-name {
+  color: var(--neutral-base-700);
+}
+
+/* Active state for account items */
+.ds-account-list-item.active {
+  background-color: var(--neutral-base-100);
+}
+
+.ds-account-list-item.active .ds-account-list-name {
+  color: var(--neutral-base-900);
+  font-weight: 480;
+}
+
 /* ========================================
    DS-CHECKBOX
    Based on Figma design:
@@ -3880,11 +3903,15 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
 
 .ds-recurring-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 231px; /* Sidebar width - retains sidebar visibility */
   display: flex;
   background-color: var(--ds-bg-default);
   z-index: 300;
   pointer-events: auto;
+  border-left: 1px solid var(--color-border-default);
 }
 
 .ds-recurring-chat {

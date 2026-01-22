@@ -1,3 +1,4 @@
+import type React from 'react';
 import type { ComponentInfo } from './types';
 import { Badge } from '@/components/ui/badge';
 import { TopNav } from '@/components/core';
@@ -5,13 +6,11 @@ import { TopNav } from '@/components/core';
 // Demo component imports
 import {
   DSTableDefaultDemo,
-  DSTableInteractiveDemo,
   DSTableDetailPanelBasicDemo,
 } from './demos/table-demos';
 
 import {
   DSButtonSmallDemo,
-  DSButtonLargeDemo,
 } from './demos/button-demos';
 
 import {
@@ -39,13 +38,10 @@ import {
 
 import {
   ChipDefaultDemo,
-  ChipSelectedDemo,
-  ChipClearDemo,
 } from './demos/chip-demos';
 
 import {
   IconDefaultDemo,
-  IconSmallDemo,
 } from './demos/icon-demos';
 
 import { DSLinkAllStatesDemo } from './demos/link-demos';
@@ -283,7 +279,7 @@ export const componentRegistry: ComponentInfo[] = [
       { name: 'With Icon (Warning)', description: 'Warning badge with circle icon', props: { type: 'warning', hasIcon: true, children: 'Label' } },
       { name: 'With Icon (Error)', description: 'Error badge with circle icon', props: { type: 'error', hasIcon: true, children: 'Label' } },
     ],
-    component: Badge,
+    component: Badge as React.ComponentType<unknown>,
   },
   {
     name: 'TopNav',

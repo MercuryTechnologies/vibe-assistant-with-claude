@@ -366,7 +366,7 @@ export function BillPay() {
     {
       id: 'recipient',
       header: 'Recipient',
-      accessor: (row) => row,
+      accessor: 'recipient',
       sortable: true,
       cell: (_, row) => (
         <RecipientCell recipient={row.recipient} type={row.recipientType} />

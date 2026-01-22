@@ -295,21 +295,6 @@ export function TopNav() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      const isK = e.key.toLowerCase() === 'k';
-      if (!isK) return;
-      if (!(e.metaKey || e.ctrlKey)) return;
-
-      e.preventDefault();
-      setIsSearchOpen(true);
-      setSearchQuery('');
-      setActiveResultIndex(0);
-    }
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
 
   useEffect(() => {
     if (isSearchOpen && inputRef.current) {

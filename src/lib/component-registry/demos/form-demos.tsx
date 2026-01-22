@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { DSTextInput } from '@/components/ui/ds-text-input';
-import { DSCombobox, type ComboboxOption } from '@/components/ui/ds-combobox';
+import { DSCombobox } from '@/components/ui/ds-combobox';
 import { DSCheckbox } from '@/components/ui/ds-checkbox';
-import { DSRadioGroup, type RadioOption } from '@/components/ui/ds-radio-group';
+import { DSRadioGroup } from '@/components/ui/ds-radio-group';
 import { comboboxDemoOptions, categoryDemoOptions, radioOptions, radioOptionsWithDescription } from '../sample-data';
 
 // ============================================================================

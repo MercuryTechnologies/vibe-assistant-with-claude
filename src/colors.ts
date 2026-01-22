@@ -324,7 +324,7 @@ export function getColor(
   }
 
   if (series === 'magic' && shade === 'alpha') {
-    return colorSeries.alpha as any;
+    return (colorSeries as { alpha: unknown }).alpha as string;
   }
 
   const colorValue = (colorSeries as any)[shade];

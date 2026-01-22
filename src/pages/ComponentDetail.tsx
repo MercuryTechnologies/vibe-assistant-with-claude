@@ -85,7 +85,8 @@ export function ComponentDetail() {
         <CardContent className="p-6 space-y-8">
           {info.variants.map((variant, idx) => {
             // For components with stateful demos, use the variant-specific demo component
-            let VariantComponent = Component;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let VariantComponent: React.ComponentType<any> = Component;
             if (info.name === 'DSTable') {
               VariantComponent = dsTableVariantComponents[variant.name] || Component;
             } else if (info.name === 'DSTableDetailPanel') {

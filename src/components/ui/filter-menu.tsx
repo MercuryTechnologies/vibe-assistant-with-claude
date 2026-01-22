@@ -51,9 +51,10 @@ function ChevronDownIcon({ className }: { className?: string }) {
   return <Icon icon={faChevronDown} size="small" className={className} />
 }
 
-function CircleCheckIcon({ className }: { className?: string }) {
-  return <Icon icon={faCircleCheck} size="small" className={className} />
-}
+// CircleCheckIcon - reserved for future use
+// function CircleCheckIcon({ className }: { className?: string }) {
+//   return <Icon icon={faCircleCheck} size="small" className={className} />
+// }
 
 function FilterBarsIcon({ className }: { className?: string }) {
   return (
@@ -1102,7 +1103,7 @@ export function FilterMenu({
     })
   }
 
-  const [placement, setPlacement] = useState<"bottom" | "top">("bottom")
+  const [, setPlacement] = useState<"bottom" | "top">("bottom")
   const [menuStyle, setMenuStyle] = useState<React.CSSProperties | null>(null)
 
   // Viewport-aware positioning so the menu doesn't get cut off on short pages.

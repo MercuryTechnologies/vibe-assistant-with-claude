@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
 import { GroupedTable, type GroupedData } from '@/components/ui/grouped-table';
 import { sampleGroupItems, type DemoTransaction } from '../sample-data';
 

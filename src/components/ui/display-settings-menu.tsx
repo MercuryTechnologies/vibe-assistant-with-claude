@@ -174,13 +174,14 @@ const sortDirectionOptionsForMerchant: ComboboxOption[] = [
   { value: "z-to-a", label: "Z to A" },
 ]
 
-const timeZoneOptions: ComboboxOption[] = [
-  { value: "PST", label: "PST" },
-  { value: "EST", label: "EST" },
-  { value: "CST", label: "CST" },
-  { value: "MST", label: "MST" },
-  { value: "UTC", label: "UTC" },
-]
+// Time zone options reserved for future use
+// const timeZoneOptions: ComboboxOption[] = [
+//   { value: "PST", label: "PST" },
+//   { value: "EST", label: "EST" },
+//   { value: "CST", label: "CST" },
+//   { value: "MST", label: "MST" },
+//   { value: "UTC", label: "UTC" },
+// ]
 
 // ============================================================================
 // MenuDivider Component

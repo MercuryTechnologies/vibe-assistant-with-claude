@@ -62,7 +62,7 @@ export function GroupedTable<T>({
   loading = false,
   className,
   renderItems,
-  getItemKey,
+  getItemKey: _getItemKey,
 }: GroupedTableProps<T>) {
   if (loading) {
     return (
@@ -226,7 +226,7 @@ export interface GroupableItem {
 
 export function groupTransactions<T extends GroupableItem>(
   items: T[],
-  groupBy: GroupByField,
+  _groupBy: GroupByField,
   getGroupKey: (item: T) => string,
   getGroupLabel?: (item: T) => string
 ): GroupedData<T>[] {

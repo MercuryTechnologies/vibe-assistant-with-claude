@@ -1,17 +1,4 @@
 import { useParams } from 'react-router-dom';
-import { 
-  componentRegistry,
-  getComponentById,
-  dsTableVariantComponents,
-  inlineComboboxVariantComponents,
-  dsTableToolbarVariantComponents,
-  dsButtonVariantComponents,
-  monthlySummaryVariantComponents,
-  dsTextInputVariantComponents,
-  dsComboboxVariantComponents,
-  dsCheckboxVariantComponents,
-  dsRadioGroupVariantComponents,
-} from '@/lib/component-registry';
 
 // Import individual demo components for direct access
 import {

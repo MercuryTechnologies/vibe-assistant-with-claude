@@ -31,7 +31,7 @@ function ArrowDownArrowUpIcon({ className }: { className?: string }) {
 // Types
 // ============================================================================
 
-export type SortField = "date" | "amount" | "description" | "category" | "account"
+export type SortField = "date" | "amount" | "description" | "category" | "account" | "merchant" | "method"
 export type SortDirection = "asc" | "desc"
 
 export interface SortValue {

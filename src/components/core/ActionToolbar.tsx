@@ -98,6 +98,38 @@ export function ActionToolbar() {
     };
   }, [isFocused]);
 
+  // Handle Cmd+K keyboard shortcut to focus the toolbar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isK = e.key.toLowerCase() === 'k';
+      if (!isK) return;
+      if (!(e.metaKey || e.ctrlKey)) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Close any open panels first
+      setIsPanelOpen(false);
+      setIsRecurringPaymentOpen(false);
+      // Focus the toolbar
+      setIsFocused(true);
+      setInputValue('');
+      setSelectedIndex(0);
+      // Focus the input after a brief delay to ensure DOM is ready
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 50);
+    };
+
+    // Use capture phase to ensure we get the event before other handlers
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+    };
+  }, []);
+
 
   useEffect(() => {
     if (isRecurringPaymentOpen) {

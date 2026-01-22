@@ -199,10 +199,22 @@ export function Dashboard() {
     gradientBottomColor: 'var(--purple-magic-400)',
   });
   
-  // Generate chart paths based on settings
+  // Generate chart paths based on settings and selected tab
   const { linePath, areaPath, points: chartPoints } = useMemo(
-    () => generateChartPath(chartSettings),
-    [chartSettings]
+    () => {
+      if (selectedTab === 'Mercury Balance') {
+        // For Mercury Balance, generate a smoother upward trending chart
+        const balanceSettings: ChartSettings = {
+          ...chartSettings,
+          slopeDirection: 'up', // Balance should trend upward
+          smoothing: 85, // Smoother line for balance view
+          pointCount: Math.max(8, chartSettings.pointCount - 2), // Slightly fewer points
+        };
+        return generateChartPath(balanceSettings);
+      }
+      return generateChartPath(chartSettings);
+    },
+    [chartSettings, selectedTab]
   );
   
   // Select evenly distributed points for the primary dots (max 6 dots)

@@ -3,48 +3,161 @@
     {
       "id": "rec_001",
       "name": "Acme Corp",
+      "initials": "AC",
       "status": "active",
       "lastPaid": "2024-12-15"
     },
     {
       "id": "rec_002",
       "name": "Jason Green",
+      "initials": "JG",
       "status": "active",
       "lastPaid": "2024-12-10"
     },
     {
       "id": "rec_003",
       "name": "Figma Inc",
+      "initials": "FI",
       "status": "active",
       "lastPaid": "2024-12-14"
     },
     {
       "id": "rec_004",
       "name": "Amazon Web Services",
+      "initials": "AW",
       "status": "active",
       "lastPaid": "2024-12-17"
     },
     {
       "id": "rec_005",
       "name": "Gusto",
+      "initials": "G",
       "status": "active",
       "lastPaid": "2024-12-15"
     },
     {
       "id": "rec_006",
       "name": "Notion Labs",
+      "initials": "NL",
       "status": "inactive",
       "lastPaid": "2024-11-20"
     },
     {
       "id": "rec_007",
       "name": "Slack Technologies",
+      "initials": "ST",
       "status": "active",
       "lastPaid": "2024-12-11"
     },
     {
       "id": "rec_008",
       "name": "Stripe Payments",
+      "initials": "SP",
+      "status": "pending",
+      "lastPaid": null
+    },
+    {
+      "id": "rec_009",
+      "name": "Lighthouse Properties #3431",
+      "initials": "L",
+      "status": "active",
+      "lastPaid": "2024-12-18"
+    },
+    {
+      "id": "rec_010",
+      "name": "Nutritionist",
+      "initials": "N",
+      "status": "active",
+      "lastPaid": "2024-12-12"
+    },
+    {
+      "id": "rec_011",
+      "name": "Jordi O'Donnell",
+      "initials": "JO",
+      "status": "active",
+      "lastPaid": "2024-12-16"
+    },
+    {
+      "id": "rec_012",
+      "name": "Domestic Ads",
+      "initials": "DA",
+      "status": "active",
+      "lastPaid": "2024-12-14"
+    },
+    {
+      "id": "rec_013",
+      "name": "Jean Vallee",
+      "initials": "JV",
+      "status": "active",
+      "lastPaid": "2024-12-13"
+    },
+    {
+      "id": "rec_014",
+      "name": "Deshaun Moore",
+      "initials": "DM",
+      "status": "active",
+      "lastPaid": "2024-12-11"
+    },
+    {
+      "id": "rec_015",
+      "name": "Anil Kapoor",
+      "initials": "AK",
+      "status": "active",
+      "lastPaid": "2024-12-10"
+    },
+    {
+      "id": "rec_016",
+      "name": "Bolat Akhmetov",
+      "initials": "BA",
+      "status": "active",
+      "lastPaid": "2024-12-09"
+    },
+    {
+      "id": "rec_017",
+      "name": "Miles Davidson",
+      "initials": "MD",
+      "status": "active",
+      "lastPaid": "2024-12-08"
+    },
+    {
+      "id": "rec_018",
+      "name": "Jerick Cheung",
+      "initials": "JC",
+      "status": "active",
+      "lastPaid": "2024-12-07"
+    },
+    {
+      "id": "rec_019",
+      "name": "Stefanie Katz",
+      "initials": "SK",
+      "status": "active",
+      "lastPaid": "2024-12-06"
+    },
+    {
+      "id": "rec_020",
+      "name": "Tax Bureau Inc",
+      "initials": "TB",
+      "status": "active",
+      "lastPaid": "2024-12-05"
+    },
+    {
+      "id": "rec_021",
+      "name": "Nano Tech LLC",
+      "initials": "NT",
+      "status": "active",
+      "lastPaid": "2024-12-04"
+    },
+    {
+      "id": "rec_022",
+      "name": "Karim Halabi",
+      "initials": "KH",
+      "status": "active",
+      "lastPaid": "2024-12-03"
+    },
+    {
+      "id": "rec_023",
+      "name": "Contractor",
+      "initials": "C",
       "status": "pending",
       "lastPaid": null
     }

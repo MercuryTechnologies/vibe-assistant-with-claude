@@ -29,7 +29,7 @@ type TextVariant =
   | 'tiny-demi-underline'
   | 'micro-demi-underline';
 
-type TextElement = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'span' | 'div' | 'label';
+type TextElement = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'span' | 'div' | 'label' | 'a';
 
 interface TextProps extends React.HTMLAttributes<HTMLElement> {
   /**
@@ -52,6 +52,11 @@ interface TextProps extends React.HTMLAttributes<HTMLElement> {
    * Text content
    */
   children: React.ReactNode;
+  
+  /**
+   * Link href (only valid when as="a")
+   */
+  href?: string;
 }
 
 /**

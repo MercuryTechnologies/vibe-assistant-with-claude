@@ -118,7 +118,7 @@ export function Transactions() {
     {
       id: 'merchant',
       header: 'To/From',
-      accessor: (row) => row,
+      accessor: 'merchant',
       sortable: true,
       cell: (_, row) => (
         <div className="flex items-center gap-3">
