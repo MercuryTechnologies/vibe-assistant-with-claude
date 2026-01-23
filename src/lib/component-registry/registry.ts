@@ -45,13 +45,7 @@ import {
 } from './demos/icon-demos';
 
 import { DSLinkAllStatesDemo } from './demos/link-demos';
-import {
-  DSAvatarAllStatesDemo,
-  DSAvatarTrxSmallDemo,
-  DSAvatarTrxLargeDemo,
-  DSAvatarRoleDemo,
-  DSAvatarSpecialDemo,
-} from './demos/avatar-demos';
+import { DSAvatarAllStatesDemo } from './demos/avatar-demos';
 
 export const componentRegistry: ComponentInfo[] = [
   {

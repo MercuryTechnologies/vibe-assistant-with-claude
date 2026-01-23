@@ -3630,10 +3630,12 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
     0px 0px 8px 0px rgba(175, 178, 206, 0.24),
     0px 2px 15px 0px rgba(4, 4, 52, 0.07);
   pointer-events: auto;
+  overflow: clip;
   transform-origin: bottom center;
   transition:
-    border-radius 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-    padding 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
+    border-radius 300ms cubic-bezier(0.215, 0.61, 0.355, 1),
+    padding 300ms cubic-bezier(0.215, 0.61, 0.355, 1),
+    gap 300ms cubic-bezier(0.215, 0.61, 0.355, 1),
     transform 150ms ease,
     box-shadow 150ms ease;
 }
@@ -3660,7 +3662,6 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   gap: 10px;
   padding: 0px 8px 12px;
   border-radius: 24px;
-  overflow: clip;
 }
 
 /* Results area */
@@ -3671,7 +3672,7 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   padding-top: 16px;
   max-height: 360px;
   overflow-y: auto;
-  animation: slideUpFadeIn 300ms cubic-bezier(0.165, 0.84, 0.44, 1) backwards;
+  animation: slideUpFadeIn 300ms cubic-bezier(0.215, 0.61, 0.355, 1) backwards;
 }
 
 @keyframes slideUpFadeIn {
@@ -3729,11 +3730,11 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   border-radius: 55px;
   overflow: clip;
   transition:
-    border-color 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-    background-color 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-    box-shadow 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-    padding 300ms cubic-bezier(0.165, 0.84, 0.44, 1),
-    height 300ms cubic-bezier(0.165, 0.84, 0.44, 1);
+    border-color 300ms cubic-bezier(0.215, 0.61, 0.355, 1),
+    background-color 300ms cubic-bezier(0.215, 0.61, 0.355, 1),
+    box-shadow 300ms cubic-bezier(0.215, 0.61, 0.355, 1),
+    padding 300ms cubic-bezier(0.215, 0.61, 0.355, 1),
+    height 300ms cubic-bezier(0.215, 0.61, 0.355, 1);
 }
 
 .ds-action-composer:hover:not(.focused) {
