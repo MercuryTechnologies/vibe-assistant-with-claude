@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { DSButton } from '@/components/ui/ds-button';
 import { DSAvatar } from '@/components/ui/ds-avatar';
 import { useRecipients } from '@/hooks';
+import { useChatStore, useStreamingChat, type ChatMessage } from '@/chat';
 
 // Suggestion types
 type SuggestionType = 'action' | 'page' | 'recipient' | 'card';
@@ -84,17 +85,58 @@ export function ActionToolbar() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isSendHovered, setIsSendHovered] = useState(false);
   const [hoveredRecipientIndex, setHoveredRecipientIndex] = useState<number | null>(null);
-  const [panelType, setPanelType] = useState<'cashflow' | 'recurring' | null>(null);
+  const [panelType, setPanelType] = useState<'chat' | null>(null);
   const [isPanelFullScreen, setIsPanelFullScreen] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const toolbarRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const chatInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Panel resize state
   const [panelWidth, setPanelWidth] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartX = useRef(0);
   const resizeStartWidth = useRef(400);
+
+  // Chat store and streaming
+  const { 
+    messages, 
+    isLoading, 
+    thinkingStatus, 
+    startNewConversation, 
+    clearConversation 
+  } = useChatStore();
+  const { sendMessage } = useStreamingChat();
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current && panelType === 'chat') {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, panelType, isLoading]);
+
+  // Handle sending a chat message
+  const handleSendChatMessage = async () => {
+    const content = chatInput.trim();
+    if (!content || isLoading) return;
+    
+    // Start a new conversation if this is the first message
+    if (messages.length === 0) {
+      startNewConversation(content);
+    }
+    
+    setChatInput('');
+    await sendMessage(content);
+  };
+
+  // Handle chat input keydown
+  const handleChatKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendChatMessage();
+    }
+  };
 
   // Filter suggestions based on input (includes pages, actions, recipients, and cards)
   const filteredSuggestions = useMemo(() => {
@@ -207,6 +249,52 @@ export function ActionToolbar() {
     };
   }, []);
 
+  // Global keyboard listener - auto-focus toolbar when user starts typing
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Don't capture if already focused or panel is open
+      if (isFocused || panelType) return;
+      
+      // Don't capture if we're on the command page
+      if (isCommandPage) return;
+      
+      // Don't capture if already in an input, textarea, or contenteditable
+      const target = e.target as HTMLElement;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target.isContentEditable ||
+        target.closest('[contenteditable="true"]')
+      ) {
+        return;
+      }
+      
+      // Don't capture modifier keys
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      
+      // Only capture printable characters (single character keys)
+      if (e.key.length !== 1) return;
+      
+      // Focus the toolbar and inject the key
+      setIsFocused(true);
+      setInputValue(e.key);
+      setSelectedIndex(0);
+      
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          // Move cursor to end
+          inputRef.current.setSelectionRange(1, 1);
+        }
+      }, 50);
+    };
+
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleGlobalKeyDown);
+    };
+  }, [isFocused, panelType, isCommandPage]);
+
   // Handle Escape key to close panel
   useEffect(() => {
     if (!panelType) return;
@@ -303,25 +391,28 @@ export function ActionToolbar() {
     handleClose();
   };
 
-  // Handle cash flow action - open panel instead of navigating
-  const handleCashFlowAction = () => {
-    setPanelType('cashflow');
+  // Open chat panel with an initial message
+  const openChatWithMessage = async (initialMessage: string) => {
+    setPanelType('chat');
     setIsFocused(false);
     setInputValue('');
     setChatInput('');
     if (inputRef.current) {
       inputRef.current.blur();
     }
+    
+    // Start a new conversation with the initial message
+    startNewConversation(initialMessage);
+    await sendMessage(initialMessage);
+  };
+
+  // Handle cash flow action - open chat panel
+  const handleCashFlowAction = () => {
+    openChatWithMessage('How is my cashflow this quarter?');
   };
 
   const handleOpenRecurringPayment = () => {
-    setPanelType('recurring');
-    setIsFocused(false);
-    setInputValue('');
-    setChatInput('');
-    if (inputRef.current) {
-      inputRef.current.blur();
-    }
+    openChatWithMessage('Create a recurring payment');
   };
 
   // Close panel and reset toolbar to default state
@@ -332,31 +423,46 @@ export function ActionToolbar() {
     setIsPanelFullScreen(false);
     setPanelWidth(400);
     setChatInput('');
+    clearConversation();
     if (inputRef.current) {
       inputRef.current.blur();
     }
   };
 
+  // Start a new conversation in the panel
+  const handleNewConversation = () => {
+    clearConversation();
+    setChatInput('');
+    setTimeout(() => {
+      chatInputRef.current?.focus();
+    }, 50);
+  };
+
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!isFocused || filteredSuggestions.length === 0) return;
+    if (!isFocused) return;
 
     switch (e.key) {
       case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex(prev => 
-          prev < filteredSuggestions.length - 1 ? prev + 1 : 0
-        );
+        if (filteredSuggestions.length > 0) {
+          e.preventDefault();
+          setSelectedIndex(prev => 
+            prev < filteredSuggestions.length - 1 ? prev + 1 : 0
+          );
+        }
         break;
       case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex(prev => 
-          prev > 0 ? prev - 1 : filteredSuggestions.length - 1
-        );
+        if (filteredSuggestions.length > 0) {
+          e.preventDefault();
+          setSelectedIndex(prev => 
+            prev > 0 ? prev - 1 : filteredSuggestions.length - 1
+          );
+        }
         break;
       case 'Enter':
         e.preventDefault();
-        if (filteredSuggestions[selectedIndex]) {
+        // If there's a selected suggestion, use it
+        if (filteredSuggestions.length > 0 && filteredSuggestions[selectedIndex]) {
           const suggestion = filteredSuggestions[selectedIndex];
           if (suggestion.label === 'How is my cashflow this quarter') {
             handleCashFlowAction();
@@ -367,6 +473,9 @@ export function ActionToolbar() {
             break;
           }
           handleNavigate(suggestion.path);
+        } else if (inputValue.trim()) {
+          // If input has content but no matching suggestions, open chat with it
+          openChatWithMessage(inputValue.trim());
         }
         break;
       case 'Escape':
@@ -380,8 +489,8 @@ export function ActionToolbar() {
     }
   };
 
-  // Panel title based on type
-  const panelTitle = panelType === 'cashflow' ? 'Card Spend Insights' : 'Set up Recurring payment';
+  // Panel title
+  const panelTitle = 'Mercury Assistant';
 
   return (
     <>
@@ -407,7 +516,7 @@ export function ActionToolbar() {
                 <span className="text-body-demi" style={{ color: 'var(--ds-text-default)' }}>{panelTitle}</span>
               </button>
               <div className="flex items-center gap-2">
-                <DSButton variant="tertiary" size="small" iconOnly aria-label="New conversation">
+                <DSButton variant="tertiary" size="small" iconOnly aria-label="New conversation" onClick={handleNewConversation}>
                   <Icon icon={faPlus} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
                 </DSButton>
                 <DSButton variant="tertiary" size="small" iconOnly aria-label="History">
@@ -431,49 +540,50 @@ export function ActionToolbar() {
 
             <div className="ds-chat-panel-container">
               <div className="ds-chat-panel-body">
-                {panelType === 'cashflow' ? (
-                  <>
-                    <div className="ds-chat-panel-message-bubble">
-                      <span className="text-body" style={{ color: 'var(--ds-text-default)' }}>
-                        How is my cashflow this quarter?
-                      </span>
-                    </div>
-                    <div className="ds-chat-panel-ai-response">
-                      <div className="ds-chat-panel-typing-indicator">
-                        <div className="ds-chat-panel-typing-dot" />
-                        <div className="ds-chat-panel-typing-dot" />
-                        <div className="ds-chat-panel-typing-dot" />
-                      </div>
-                    </div>
-                  </>
+                {messages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <span className="text-body" style={{ color: 'var(--ds-text-tertiary)' }}>
+                      Ask me anything about your accounts
+                    </span>
+                  </div>
                 ) : (
                   <>
-                    <div className="ds-chat-panel-message-bubble">
-                      <span className="text-body" style={{ color: 'var(--ds-text-default)' }}>
-                        set up a recurring payment for my rent, end of month
-                      </span>
-                    </div>
-                    <div className="ds-chat-panel-ai-response">
-                      <div className="ds-chat-panel-copy">
-                        <p className="text-body" style={{ color: 'var(--ds-text-default)' }}>
-                          Scheduled payments are perfect for handling any regular payments you make! Setting them up is easy: just go to Move Money → Send, then toggle on "Repeat this payment" to pick your frequency and end date. Your payments will process at 9am EST each time.
-                        </p>
-                        <p className="text-body" style={{ color: 'var(--ds-text-default)' }}>
-                          For non-USD wires, keep in mind that exchange rates are applied when the payment processes (not when you schedule it), plus there's a 1% fee. You can view and manage all your scheduled payments anytime from the Scheduled tab.
-                        </p>
-                        <p className="text-body" style={{ color: 'var(--ds-text-default)' }}>
-                          I can help you initiate a schedule payment. "Confirm agent help" "Gather relevant details"
-                        </p>
+                    {messages.map((message: ChatMessage) => (
+                      <div key={message.id}>
+                        {message.role === 'user' ? (
+                          <div className="ds-chat-panel-message-bubble">
+                            <span className="text-body" style={{ color: 'var(--ds-text-default)' }}>
+                              {message.content}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="ds-chat-panel-ai-response">
+                            <div className="ds-chat-panel-copy">
+                              {message.content.split('\n\n').map((paragraph, idx) => (
+                                <p key={idx} className="text-body" style={{ color: 'var(--ds-text-default)' }}>
+                                  {paragraph}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="ds-chat-panel-note">
-                        <span className="text-tiny" style={{ color: 'var(--ds-text-secondary)' }}>
-                          * Agent initiated to "Set up recurring payment"
-                        </span>
+                    ))}
+                    {isLoading && (
+                      <div className="ds-chat-panel-ai-response">
+                        <div className="ds-chat-panel-typing-indicator">
+                          <div className="ds-chat-panel-typing-dot" />
+                          <div className="ds-chat-panel-typing-dot" />
+                          <div className="ds-chat-panel-typing-dot" />
+                        </div>
+                        {thinkingStatus && (
+                          <span className="text-tiny" style={{ color: 'var(--ds-text-tertiary)', marginLeft: 8 }}>
+                            {thinkingStatus}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-body" style={{ color: 'var(--ds-text-default)' }}>
-                        I can help you set up the payment, just let me know the amount, recipient, and how often you'd like it to repeat, and I can walk you through it.
-                      </p>
-                    </div>
+                    )}
+                    <div ref={messagesEndRef} />
                   </>
                 )}
               </div>
@@ -482,11 +592,14 @@ export function ActionToolbar() {
                 <div className="ds-chat-composer">
                   <div className="ds-chat-composer-input">
                     <input
+                      ref={chatInputRef}
                       type="text"
                       className="ds-chat-composer-field"
                       placeholder="Ask anything"
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={handleChatKeyDown}
+                      disabled={isLoading}
                     />
                   </div>
                   <div className="ds-chat-composer-actions">
@@ -503,7 +616,8 @@ export function ActionToolbar() {
                       size="small"
                       iconOnly
                       aria-label="Send"
-                      disabled={!chatInput.trim()}
+                      disabled={!chatInput.trim() || isLoading}
+                      onClick={handleSendChatMessage}
                     >
                       <Icon icon={faArrowUp} size="small" style={{ color: 'var(--ds-icon-on-primary)' }} />
                     </DSButton>

@@ -1,25 +1,84 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Icon } from '@/components/ui/icon';
 import { DSButton } from '@/components/ui/ds-button';
 import { faPlus, faMicrophone, faArrowUp } from '@/icons';
+import { useChatStore, useStreamingChat, type ChatMessage } from '@/chat';
 
-// Shortcut card labels
+// Shortcut card labels and their initial messages
 const SHORTCUT_CARDS = [
-  'Move Money',
-  'Balances',
-  'Accounts',
-  'Recent',
-  'Upcoming',
+  { label: 'Move Money', message: 'I want to move money' },
+  { label: 'Balances', message: 'Show me my account balances' },
+  { label: 'Accounts', message: 'Show me my accounts' },
+  { label: 'Recent', message: 'Show me my recent transactions' },
+  { label: 'Upcoming', message: 'What upcoming payments do I have?' },
 ] as const;
 
 export function Command() {
   const [inputValue, setInputValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Chat store and streaming
+  const { 
+    messages, 
+    isLoading, 
+    thinkingStatus,
+    startNewConversation,
+  } = useChatStore();
+  const { sendMessage } = useStreamingChat();
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isLoading]);
+
+  // Auto-focus on mount
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, []);
 
   const handleComposerClick = () => {
     textareaRef.current?.focus();
   };
+
+  // Handle sending a message
+  const handleSendMessage = async () => {
+    const content = inputValue.trim();
+    if (!content || isLoading) return;
+    
+    // Start a new conversation if this is the first message
+    if (messages.length === 0) {
+      startNewConversation(content);
+    }
+    
+    setInputValue('');
+    await sendMessage(content);
+  };
+
+  // Handle shortcut card click
+  const handleShortcutClick = async (message: string) => {
+    if (isLoading) return;
+    
+    if (messages.length === 0) {
+      startNewConversation(message);
+    }
+    
+    setInputValue('');
+    await sendMessage(message);
+  };
+
+  // Handle keyboard events
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const hasMessages = messages.length > 0;
 
   return (
     <div className="command-page">
@@ -60,8 +119,48 @@ export function Command() {
           />
         </div>
 
+        {/* Messages Area - shown when there are messages */}
+        {hasMessages && (
+          <div className="command-messages">
+            {messages.map((message: ChatMessage) => (
+              <div key={message.id} className="command-message">
+                {message.role === 'user' ? (
+                  <div className="command-message-user">
+                    <span className="text-body" style={{ color: 'var(--ds-text-default)' }}>
+                      {message.content}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="command-message-assistant">
+                    {message.content.split('\n\n').map((paragraph, idx) => (
+                      <p key={idx} className="text-body" style={{ color: 'var(--ds-text-default)' }}>
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+            {isLoading && (
+              <div className="command-message-assistant">
+                <div className="ds-chat-panel-typing-indicator">
+                  <div className="ds-chat-panel-typing-dot" />
+                  <div className="ds-chat-panel-typing-dot" />
+                  <div className="ds-chat-panel-typing-dot" />
+                </div>
+                {thinkingStatus && (
+                  <span className="text-tiny" style={{ color: 'var(--ds-text-tertiary)', marginLeft: 8 }}>
+                    {thinkingStatus}
+                  </span>
+                )}
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+
         {/* Centered Composer */}
-        <div className="command-composer-wrapper">
+        <div className={`command-composer-wrapper ${hasMessages ? 'has-messages' : ''}`}>
           <div 
             className={`command-composer ${isFocused ? 'focused' : ''}`}
             onClick={handleComposerClick}
@@ -71,11 +170,13 @@ export function Command() {
               <textarea
                 ref={textareaRef}
                 className="command-composer-textarea text-body"
-                placeholder="What would you like to do today?"
+                placeholder={hasMessages ? "Continue the conversation..." : "What would you like to do today?"}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
+                onKeyDown={handleKeyDown}
+                disabled={isLoading}
                 rows={1}
               />
             </div>
@@ -111,7 +212,8 @@ export function Command() {
                 variant="primary"
                 size="small"
                 iconOnly
-                disabled={!inputValue.trim()}
+                disabled={!inputValue.trim() || isLoading}
+                onClick={handleSendMessage}
               >
                 <Icon
                   icon={faArrowUp}
@@ -124,19 +226,26 @@ export function Command() {
         </div>
       </div>
 
-      {/* Bottom shortcut cards */}
-      <div className="command-shortcuts">
-        {SHORTCUT_CARDS.map((label) => (
-          <button key={label} className="command-shortcut-card">
-            <span
-              className="text-body"
-              style={{ color: 'var(--ds-text-default)' }}
+      {/* Bottom shortcut cards - hidden when there are messages */}
+      {!hasMessages && (
+        <div className="command-shortcuts">
+          {SHORTCUT_CARDS.map(({ label, message }) => (
+            <button 
+              key={label} 
+              className="command-shortcut-card"
+              onClick={() => handleShortcutClick(message)}
+              disabled={isLoading}
             >
-              {label}
-            </span>
-          </button>
-        ))}
-      </div>
+              <span
+                className="text-body"
+                style={{ color: 'var(--ds-text-default)' }}
+              >
+                {label}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
