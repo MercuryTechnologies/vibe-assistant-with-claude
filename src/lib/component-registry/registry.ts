@@ -45,8 +45,49 @@ import {
 } from './demos/icon-demos';
 
 import { DSLinkAllStatesDemo } from './demos/link-demos';
+import {
+  DSAvatarAllStatesDemo,
+  DSAvatarTrxSmallDemo,
+  DSAvatarTrxLargeDemo,
+  DSAvatarRoleDemo,
+  DSAvatarSpecialDemo,
+} from './demos/avatar-demos';
 
 export const componentRegistry: ComponentInfo[] = [
+  {
+    name: 'DSAvatar',
+    category: 'ui',
+    description: 'Avatar component with multiple types (transaction initials, roles, image, Mercury, merchant, financial institution) and two sizes (small 28px, large 40px). Transaction avatars use color-coded backgrounds based on the first letter of the name.',
+    usedIn: ['Transactions.tsx', 'AccountDetail.tsx', 'Recipients.tsx', 'Dashboard.tsx'],
+    variants: [
+      {
+        name: 'All States',
+        description: 'Overview of all avatar types and sizes',
+        props: {},
+      },
+      {
+        name: 'Transaction Small',
+        description: 'Small (28px) transaction avatars with letter-based colors',
+        props: { variant: 'trx-small' },
+      },
+      {
+        name: 'Transaction Large',
+        description: 'Large (40px) transaction avatars with letter-based colors',
+        props: { variant: 'trx-large' },
+      },
+      {
+        name: 'Role Avatars',
+        description: 'Role-based avatars (Admin, Custom, Bookkeeper, Card Only)',
+        props: { variant: 'role' },
+      },
+      {
+        name: 'Special Avatars',
+        description: 'Special avatar types (Mercury, Merchant, Financial Institution)',
+        props: { variant: 'special' },
+      },
+    ],
+    component: DSAvatarAllStatesDemo,
+  },
   {
     name: 'DSLink',
     category: 'ui',

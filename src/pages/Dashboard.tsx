@@ -1,10 +1,12 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useUser, useTransactions } from '@/hooks';
 import { Icon } from '@/components/ui/icon';
-import { faChevronDown, faArrowTrendUp, faArrowTrendDown, faPlus, faCircleQuestion, faSliders, faXmark, faArrowUpRight, faArrowDownRight, faArrowRightArrowLeft } from '@/icons';
+import { faChevronDown, faArrowTrendUp, faArrowTrendDown, faPlus, faCircleQuestion, faSliders, faXmark, faArrowUpRight, faArrowDownRight, faArrowRightArrowLeft, faClock, faArrowUpFromLine, faArrowTurnDownLeft } from '@/icons';
 import { cn } from '@/lib/utils';
 import { Chip } from '@/components/ui/chip';
 import { DSButton } from '@/components/ui/ds-button';
+import { DSAvatar } from '@/components/ui/ds-avatar';
 import { useDataSettings } from '@/context/DataContext';
 
 // Chart settings interface
@@ -228,21 +230,81 @@ export function Dashboard() {
     return result;
   }, [chartPoints]);
 
+  // Insight detail type
+  interface InsightDetail {
+    summary: string;
+    type: 'spend' | 'revenue';
+    source: string;
+    amount: number;
+    category: string;
+    date: string;
+    description: string;
+    trend: string;
+  }
+
   // Generate random insights for each dot point
-  const dotInsights = useMemo(() => {
-    const spendSources = ['OpenAI', 'AWS', 'Gusto', 'Google Ads', 'Slack', 'Figma', 'Notion', 'Vercel', 'GitHub'];
-    const revenueSources = ['Stripe', 'Invoice #4521', 'Shopify', 'Client deposit', 'Square', 'PayPal'];
+  const dotInsights = useMemo((): InsightDetail[] => {
+    const spendSources = [
+      { name: 'OpenAI', category: 'Software & SaaS', desc: 'API usage charges for GPT-4 and embeddings' },
+      { name: 'AWS', category: 'Infrastructure', desc: 'EC2 instances, S3 storage, and data transfer' },
+      { name: 'Gusto', category: 'Payroll', desc: 'Bi-weekly payroll processing and benefits' },
+      { name: 'Google Ads', category: 'Marketing', desc: 'Search and display advertising campaigns' },
+      { name: 'Slack', category: 'Software & SaaS', desc: 'Team communication platform subscription' },
+      { name: 'Figma', category: 'Software & SaaS', desc: 'Design tool licenses for product team' },
+      { name: 'Notion', category: 'Software & SaaS', desc: 'Team workspace and documentation' },
+      { name: 'Vercel', category: 'Infrastructure', desc: 'Frontend hosting and edge functions' },
+      { name: 'GitHub', category: 'Software & SaaS', desc: 'Code repository and CI/CD minutes' },
+    ];
+    const revenueSources = [
+      { name: 'Stripe', category: 'Product Revenue', desc: 'Customer subscription payments' },
+      { name: 'Invoice #4521', category: 'Services', desc: 'Consulting engagement with Acme Corp' },
+      { name: 'Shopify', category: 'Product Revenue', desc: 'E-commerce platform sales' },
+      { name: 'Client deposit', category: 'Services', desc: 'Project retainer from Beta LLC' },
+      { name: 'Square', category: 'Product Revenue', desc: 'Point of sale transactions' },
+      { name: 'PayPal', category: 'Product Revenue', desc: 'International customer payments' },
+    ];
+    const trends = [
+      'This is 12% higher than your monthly average',
+      'Consistent with last month\'s spending',
+      'This represents a 23% increase from last period',
+      'Trending 8% below your typical spend',
+      'New vendor added this quarter',
+      'Part of your recurring monthly expenses',
+    ];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
     return dotPoints.map(() => {
       const isSpend = Math.random() > 0.4; // 60% chance of spend
+      const amount = isSpend 
+        ? Math.round((Math.random() * 15 + 1) * 1000) 
+        : Math.round((Math.random() * 20 + 2) * 1000);
+      const day = Math.floor(Math.random() * 28) + 1;
+      const month = months[Math.floor(Math.random() * 12)];
+      
       if (isSpend) {
-        const source = spendSources[Math.floor(Math.random() * spendSources.length)];
-        const amount = (Math.random() * 15 + 1).toFixed(1);
-        return `–$${amount}K to ${source}`;
+        const sourceData = spendSources[Math.floor(Math.random() * spendSources.length)];
+        return {
+          summary: `–$${(amount / 1000).toFixed(1)}K to ${sourceData.name}`,
+          type: 'spend' as const,
+          source: sourceData.name,
+          amount,
+          category: sourceData.category,
+          date: `${month} ${day}`,
+          description: sourceData.desc,
+          trend: trends[Math.floor(Math.random() * trends.length)],
+        };
       } else {
-        const source = revenueSources[Math.floor(Math.random() * revenueSources.length)];
-        const amount = (Math.random() * 20 + 2).toFixed(1);
-        return `+$${amount}K from ${source}`;
+        const sourceData = revenueSources[Math.floor(Math.random() * revenueSources.length)];
+        return {
+          summary: `+$${(amount / 1000).toFixed(1)}K from ${sourceData.name}`,
+          type: 'revenue' as const,
+          source: sourceData.name,
+          amount,
+          category: sourceData.category,
+          date: `${month} ${day}`,
+          description: sourceData.desc,
+          trend: trends[Math.floor(Math.random() * trends.length)],
+        };
       }
     });
   }, [dotPoints]);
@@ -255,6 +317,9 @@ export function Dashboard() {
   const [hoverProgress, setHoverProgress] = useState(0); // 0 to 1
   const [hoverPointOnLine, setHoverPointOnLine] = useState({ x: 0, y: 100 });
   const [hoveredDotIndex, setHoveredDotIndex] = useState<number | null>(null);
+  const [insightPanelOpen, setInsightPanelOpen] = useState(false);
+  const [selectedInsightIndex, setSelectedInsightIndex] = useState<number | null>(null);
+  const [insightChatInput, setInsightChatInput] = useState('');
 
   // Drag selection state
   const [isDragging, setIsDragging] = useState(false);
@@ -1053,20 +1118,40 @@ export function Dashboard() {
             {dotPoints.map((point, index) => (
               <div
                 key={index}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedInsightIndex(index);
+                  setInsightPanelOpen(true);
+                }}
                 style={{
                   position: 'absolute',
                   left: `${(point.x / 1026) * 100}%`,
                   top: `${(point.y / 230) * 100}%`,
                   transform: 'translate(-50%, -50%)',
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--ds-bg-primary)',
-                  border: '2px solid white',
-                  pointerEvents: 'none',
+                  width: 20,
+                  height: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  pointerEvents: 'auto',
                   zIndex: 3,
+                  cursor: 'pointer',
                 }}
-              />
+              >
+                {/* Visual dot */}
+                <div
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    backgroundColor: hoveredDotIndex === index ? 'var(--purple-magic-700)' : 'var(--ds-bg-primary)',
+                    border: '2px solid white',
+                    transition: 'transform 150ms ease, background-color 150ms ease',
+                    boxShadow: hoveredDotIndex === index ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
+                    transform: hoveredDotIndex === index ? 'scale(1.25)' : 'scale(1)',
+                  }}
+                />
+              </div>
             ))}
 
             {/* Tooltip for hovered dot */}
@@ -1091,7 +1176,7 @@ export function Dashboard() {
                 }}
                 className="text-label"
               >
-                {dotInsights[hoveredDotIndex]}
+                {dotInsights[hoveredDotIndex].summary}
               </div>
             )}
           </div>
@@ -1100,6 +1185,19 @@ export function Dashboard() {
 
       {/* Demo Settings FAB */}
       <DemoSettingsFAB settings={chartSettings} onSettingsChange={setChartSettings} />
+
+      {/* Insight Detail Panel */}
+      {insightPanelOpen && selectedInsightIndex !== null && (
+        <InsightPanel
+          insight={dotInsights[selectedInsightIndex]}
+          onClose={() => {
+            setInsightPanelOpen(false);
+            setSelectedInsightIndex(null);
+          }}
+          chatInput={insightChatInput}
+          onChatInputChange={setInsightChatInput}
+        />
+      )}
 
       {/* Dashboard Cards Section */}
       <DashboardCards />
@@ -1497,6 +1595,210 @@ function DemoSettingsFAB({ settings, onSettingsChange }: DemoSettingsFABProps) {
   );
 }
 
+// Insight Panel Component
+interface InsightPanelProps {
+  insight: {
+    summary: string;
+    type: 'spend' | 'revenue';
+    source: string;
+    amount: number;
+    category: string;
+    date: string;
+    description: string;
+    trend: string;
+  };
+  onClose: () => void;
+  chatInput: string;
+  onChatInputChange: (value: string) => void;
+}
+
+function InsightPanel({ insight, onClose, chatInput, onChatInputChange }: InsightPanelProps) {
+  const formatAmount = (amount: number) => {
+    if (amount >= 1000) {
+      return `$${(amount / 1000).toFixed(1)}K`;
+    }
+    return `$${amount.toLocaleString()}`;
+  };
+
+  return (
+    <div className="ds-insights-panel" style={{ animation: 'panelSlideIn 200ms ease-out' }}>
+      {/* Header */}
+      <div className="ds-insights-panel-header">
+        <div className="flex flex-col gap-1">
+          <span className="text-title-secondary" style={{ color: 'var(--ds-text-title)' }}>
+            {insight.type === 'spend' ? 'Spend Insight' : 'Revenue Insight'}
+          </span>
+          <span className="text-label" style={{ color: 'var(--ds-text-secondary)' }}>
+            Mercury AI
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <DSButton
+            className="ds-insights-panel-icon-btn"
+            variant="tertiary"
+            size="small"
+            iconOnly
+            aria-label="History"
+          >
+            <Icon icon={faClock} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
+          </DSButton>
+          <DSButton
+            className="ds-insights-panel-icon-btn"
+            variant="tertiary"
+            size="small"
+            iconOnly
+            aria-label="Close"
+            onClick={onClose}
+          >
+            <Icon icon={faXmark} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
+          </DSButton>
+        </div>
+      </div>
+
+      {/* Chat Content Area */}
+      <div className="ds-insights-panel-content">
+        {/* User's implied question */}
+        <div className="ds-insights-user-message">
+          <span className="text-body" style={{ color: 'var(--ds-text-default)' }}>
+            Tell me more about this {insight.type === 'spend' ? 'expense' : 'income'}
+          </span>
+        </div>
+
+        {/* AI Response */}
+        <div className="flex flex-col gap-4">
+          {/* Summary Card */}
+          <div
+            className="rounded-lg p-4"
+            style={{
+              backgroundColor: insight.type === 'spend' ? 'var(--red-base-50)' : 'var(--green-base-50)',
+              border: `1px solid ${insight.type === 'spend' ? 'var(--red-base-200)' : 'var(--green-base-200)'}`,
+            }}
+          >
+            <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+              <span className="text-label-demi" style={{ color: 'var(--ds-text-default)' }}>
+                {insight.source}
+              </span>
+              <span
+                className="text-body-demi"
+                style={{
+                  color: insight.type === 'spend' ? 'var(--color-error)' : 'var(--color-success)',
+                }}
+              >
+                {insight.type === 'spend' ? '−' : '+'}{formatAmount(insight.amount)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span
+                className="text-tiny rounded-full"
+                style={{
+                  padding: '2px 8px',
+                  backgroundColor: 'var(--ds-bg-secondary)',
+                  color: 'var(--ds-text-secondary)',
+                }}
+              >
+                {insight.category}
+              </span>
+              <span className="text-tiny" style={{ color: 'var(--ds-text-tertiary)' }}>
+                {insight.date}
+              </span>
+            </div>
+          </div>
+
+          {/* Description */}
+          <p className="text-body" style={{ color: 'var(--ds-text-default)' }}>
+            <strong>{insight.source}</strong> — {insight.description}
+          </p>
+
+          {/* Trend insight */}
+          <div
+            className="flex items-start gap-3 rounded-md p-3"
+            style={{ backgroundColor: 'var(--ds-bg-secondary)' }}
+          >
+            <Icon
+              icon={insight.type === 'spend' ? faArrowUpRight : faArrowDownRight}
+              size="small"
+              style={{
+                color: insight.type === 'spend' ? 'var(--color-error)' : 'var(--color-success)',
+                marginTop: 2,
+              }}
+            />
+            <span className="text-body" style={{ color: 'var(--ds-text-default)' }}>
+              {insight.trend}
+            </span>
+          </div>
+
+          {/* Suggested actions */}
+          <div>
+            <span className="text-label-demi" style={{ color: 'var(--ds-text-secondary)', display: 'block', marginBottom: 8 }}>
+              Suggested actions
+            </span>
+            <div className="flex flex-col gap-2">
+              {insight.type === 'spend' ? (
+                <>
+                  <button className="ds-insight-action-btn">
+                    <span>View all {insight.source} transactions</span>
+                    <Icon icon={faArrowUpRight} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
+                  </button>
+                  <button className="ds-insight-action-btn">
+                    <span>Compare to budget</span>
+                    <Icon icon={faArrowUpRight} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
+                  </button>
+                  <button className="ds-insight-action-btn">
+                    <span>Set up spend alert</span>
+                    <Icon icon={faArrowUpRight} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button className="ds-insight-action-btn">
+                    <span>View {insight.source} details</span>
+                    <Icon icon={faArrowUpRight} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
+                  </button>
+                  <button className="ds-insight-action-btn">
+                    <span>See revenue trends</span>
+                    <Icon icon={faArrowUpRight} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
+                  </button>
+                  <button className="ds-insight-action-btn">
+                    <span>Create invoice</span>
+                    <Icon icon={faArrowUpRight} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Message Input Area */}
+      <div className="ds-insights-panel-input-area">
+        <div className="ds-insights-panel-input-container">
+          <div className="ds-insights-panel-content-row">
+            <input
+              type="text"
+              className="ds-insights-panel-input"
+              placeholder="Ask a follow-up question..."
+              value={chatInput}
+              onChange={(e) => onChatInputChange(e.target.value)}
+            />
+          </div>
+          <div className="ds-insights-panel-actions-row">
+            <div className="ds-insights-panel-icon-btn" role="button" aria-label="Upload">
+              <Icon icon={faArrowUpFromLine} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
+            </div>
+            <button
+              className="ds-insights-panel-send-btn"
+              aria-label="Send"
+              disabled={!chatInput.trim()}
+            >
+              <Icon icon={faArrowTurnDownLeft} size="small" style={{ color: 'var(--ds-icon-on-inverted)' }} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Note: Depository accounts data now comes from DataContext
 
 // Bar heights for treasury chart (simulated data)
@@ -1513,8 +1815,8 @@ function DashboardCards() {
   const { transactions } = useTransactions();
   const { getAccountBalances } = useDataSettings();
   
-  // Get dynamic account balances
-  const depositoryAccounts = getAccountBalances().filter(acc => acc.type !== 'credit');
+  // Get dynamic account balances (exclude credit and treasury - treasury has its own section)
+  const depositoryAccounts = getAccountBalances().filter(acc => acc.type !== 'credit' && acc.type !== 'treasury');
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -1605,28 +1907,40 @@ function DashboardCards() {
 
             {/* Account List */}
             <div className="flex flex-col" style={{ width: 458 }}>
-              {depositoryAccounts.map((account, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-3 rounded-md ds-account-row"
-                  style={{ padding: 8 }}
-                >
-                  <div className="flex flex-1 items-center gap-4">
-                    <span
-                      className="text-body flex-1"
-                      style={{ color: 'var(--ds-text-default)' }}
-                    >
-                      {account.name}
-                    </span>
-                    <span
-                      className="text-body flex-1 text-right"
-                      style={{ color: 'var(--ds-text-default)' }}
-                    >
-                      {formatCurrency(account.balance)}
-                    </span>
+              {depositoryAccounts.map((account, index) => {
+                const hasDetailPage = account.type !== 'treasury';
+                const rowContent = (
+                  <div
+                    className={`flex items-center gap-3 rounded-md ${hasDetailPage ? 'ds-account-row' : ''}`}
+                    style={{ padding: 8 }}
+                  >
+                    <div className="flex flex-1 items-center gap-4">
+                      <span
+                        className="text-body flex-1"
+                        style={{ color: 'var(--ds-text-default)' }}
+                      >
+                        {account.name}
+                      </span>
+                      <span
+                        className="text-body flex-1 text-right"
+                        style={{ color: 'var(--ds-text-default)' }}
+                      >
+                        {formatCurrency(account.balance)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+
+                if (hasDetailPage) {
+                  return (
+                    <Link key={account.id || index} to={`/accounts/${account.id}`}>
+                      {rowContent}
+                    </Link>
+                  );
+                }
+
+                return <div key={account.id || index}>{rowContent}</div>;
+              })}
             </div>
           </div>
 
@@ -1740,14 +2054,6 @@ function DashboardCards() {
               // Format date as "Mon DD"
               const date = new Date(txn.date);
               const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-              
-              // Get initials from merchant name
-              const initials = txn.merchant
-                .split(' ')
-                .map(word => word[0])
-                .join('')
-                .toUpperCase()
-                .slice(0, 2);
 
               // Format amount
               const absAmount = Math.abs(txn.amount);
@@ -1779,27 +2085,7 @@ function DashboardCards() {
 
                   {/* Avatar + Name Column */}
                   <div className="flex items-center gap-3 flex-1" style={{ minWidth: 0, overflow: 'hidden' }}>
-                    {/* Avatar */}
-                    <div
-                      className="flex items-center justify-center rounded-full"
-                      style={{
-                        width: 32,
-                        height: 32,
-                        flexShrink: 0,
-                        backgroundColor: 'var(--neutral-base-700)',
-                      }}
-                    >
-                      <span
-                        className="text-tiny"
-                        style={{
-                          color: 'var(--neutral-base-0)',
-                          fontWeight: 500,
-                          fontSize: 11,
-                        }}
-                      >
-                        {initials}
-                      </span>
-                    </div>
+                    <DSAvatar type="trx" name={txn.merchant} size="small" />
                     <span
                       className="text-body"
                       style={{ 

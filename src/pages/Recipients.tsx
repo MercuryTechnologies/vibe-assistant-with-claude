@@ -3,15 +3,8 @@ import { useRecipients } from '@/hooks';
 import { DSTable, type DSTableColumn, type SortDirection, type DSTableDetailPanelRenderContext } from '@/components/ui/ds-table';
 import { DSTableDetailPanel, type DetailPanelField } from '@/components/ui/ds-table-detail-panel';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { DSAvatar } from '@/components/ui/ds-avatar';
 import type { Recipient } from '@/types';
-
-function getInitials(name: string, customInitials?: string): string {
-  if (customInitials) return customInitials;
-  const words = name.split(' ').filter(w => w.length > 0);
-  if (words.length === 1) return words[0].charAt(0).toUpperCase();
-  return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
-}
 
 function formatDate(dateString?: string | null): string {
   if (!dateString) return '—';
@@ -50,11 +43,7 @@ export function Recipients() {
       sortable: true,
       cell: (value, row) => (
         <div className="flex items-center gap-3">
-          <Avatar>
-            <AvatarFallback>
-              {getInitials(row.name, row.initials)}
-            </AvatarFallback>
-          </Avatar>
+          <DSAvatar type="trx" name={row.name} size="small" />
           <span className="text-body">
             {value as string}
           </span>
@@ -179,11 +168,7 @@ export function Recipients() {
         title={row.name}
         hero={(r) => (
           <div className="flex flex-col items-center gap-3 w-full">
-            <Avatar style={{ width: 48, height: 48 }}>
-              <AvatarFallback style={{ fontSize: 18 }}>
-                {getInitials(r.name, r.initials)}
-              </AvatarFallback>
-            </Avatar>
+            <DSAvatar type="trx" name={r.name} size="large" />
             <Badge type={badgeType} className="text-body">
               {statusLabel}
             </Badge>

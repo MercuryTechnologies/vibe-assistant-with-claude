@@ -1208,6 +1208,22 @@ svg[data-icon] {
   flex-shrink: 0;
   overflow: hidden;
   border-radius: var(--radius-full);
+  transition: filter 150ms ease, box-shadow 150ms ease;
+}
+
+/* DS Avatar hover state - slight brightness increase */
+.ds-avatar:hover {
+  filter: brightness(1.1);
+}
+
+/* DS Avatar Trx (transaction) specific styles */
+.ds-avatar-trx {
+  cursor: default;
+}
+
+/* DS Avatar initials text */
+.ds-avatar-initials {
+  user-select: none;
 }
 
 .ds-avatar-image {
@@ -3598,7 +3614,7 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
 
 /* Hidden state when on Command page */
 .ds-action-container.hidden-on-command {
-  transform: translateY(100%) scale(0.8);
+  transform: translateY(24px) scale(0.97);
   opacity: 0;
   pointer-events: none;
 }
@@ -3837,6 +3853,18 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
 
 .ds-insights-panel-icon-btn {
   flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background-color 150ms ease;
+}
+
+.ds-insights-panel-icon-btn:hover {
+  background-color: var(--ds-bg-default-hovered);
 }
 
 .ds-insights-panel-content {
@@ -3896,12 +3924,161 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   border-top: 1px solid var(--color-border-default);
 }
 
+.ds-insights-panel-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: var(--ds-bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-default);
+}
+
+.ds-insights-panel-content-row {
+  flex: 1;
+}
+
+.ds-insights-panel-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 24px;
+  color: var(--ds-text-default);
+}
+
+.ds-insights-panel-input::placeholder {
+  color: var(--ds-text-placeholder);
+}
+
+.ds-insights-panel-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ds-insights-panel-send-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--ds-bg-inverted);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 150ms ease, opacity 150ms ease;
+}
+
+.ds-insights-panel-send-btn:hover {
+  background-color: var(--neutral-base-800);
+}
+
+.ds-insights-panel-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Panel Resize Handle */
+.ds-insights-panel-resize-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  z-index: 10;
+  transition: background-color 150ms ease;
+}
+
+/* Prevent text selection during resize */
+body.ds-panel-resizing {
+  cursor: ew-resize !important;
+  user-select: none;
+}
+
+body.ds-panel-resizing * {
+  cursor: ew-resize !important;
+}
+
+.ds-insights-panel-resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 40px;
+  background-color: transparent;
+  border-radius: var(--radius-full);
+  transition: background-color 150ms ease;
+}
+
+.ds-insights-panel-resize-handle:hover::before,
+.ds-insights-panel-resize-handle.active::before {
+  background-color: var(--ds-icon-tertiary);
+}
+
+.ds-insights-panel-resize-handle:hover,
+.ds-insights-panel-resize-handle.active {
+  background-color: var(--ds-bg-secondary);
+}
+
+/* Full Screen Mode */
+.ds-insights-panel-fullscreen {
+  left: 247px; /* Sidebar width (231px) + 16px padding */
+  right: 16px;
+  width: auto !important;
+  border-radius: var(--radius-lg);
+}
+
+.ds-insights-panel-fullscreen .ds-insights-panel-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.ds-insights-panel-fullscreen .ds-insights-panel-input-area {
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Insight Action Buttons */
+.ds-insight-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  background-color: var(--ds-bg-default);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--ds-text-default);
+  text-align: left;
+}
+
+.ds-insight-action-btn:hover {
+  background-color: var(--ds-bg-default-hovered);
+  border-color: var(--color-border-emphasized);
+}
+
+.ds-insight-action-btn:active {
+  background-color: var(--ds-bg-secondary);
+}
+
 /* ========================================
-   RECURRING PAYMENT OVERLAY
-   Full-screen setup flow from ActionToolbar
+   UNIFIED CHAT PANEL
+   Side panel and full-screen chat from ActionToolbar
    ======================================== */
 
-.ds-recurring-overlay {
+.ds-chat-panel-overlay {
   position: fixed;
   top: 0;
   right: 0;
@@ -3914,7 +4091,7 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   border-left: 1px solid var(--color-border-default);
 }
 
-.ds-recurring-chat {
+.ds-chat-panel {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -3924,30 +4101,30 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   position: relative;
 }
 
-.ds-recurring-chat-header {
+.ds-chat-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 16px 0 12px;
 }
 
-.ds-recurring-back-btn {
+.ds-chat-panel-back-btn {
   display: flex;
   align-items: center;
   gap: 8px;
   background: none;
   border: none;
-  padding: 4px;
+  padding: 4px 8px 4px 4px;
   margin: -4px;
   border-radius: var(--radius-md);
   cursor: pointer;
 }
 
-.ds-recurring-back-btn:hover {
+.ds-chat-panel-back-btn:hover {
   background-color: var(--ds-bg-secondary-hovered);
 }
 
-.ds-recurring-chat-container {
+.ds-chat-panel-container {
   max-width: 800px;
   width: 100%;
   margin: 0 auto;
@@ -3957,7 +4134,7 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   min-height: 0;
 }
 
-.ds-recurring-chat-body {
+.ds-chat-panel-body {
   flex: 1;
   padding: 24px 0;
   display: flex;
@@ -3966,7 +4143,7 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   overflow-y: auto;
 }
 
-.ds-recurring-message-bubble {
+.ds-chat-panel-message-bubble {
   align-self: flex-end;
   max-width: 360px;
   padding: 8px 12px;
@@ -3974,25 +4151,64 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   border-radius: var(--radius-md);
 }
 
-.ds-recurring-chat-copy {
+.ds-chat-panel-copy {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.ds-recurring-ai-response {
+.ds-chat-panel-ai-response {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.ds-recurring-chat-note {
+.ds-chat-panel-note {
   padding-left: 4px;
 }
 
-.ds-recurring-chat-footer {
+.ds-chat-panel-footer {
   padding: 16px 0 24px;
+}
+
+/* Typing indicator for chat panel */
+.ds-chat-panel-typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+.ds-chat-panel-typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--ds-icon-tertiary);
+  animation: ds-chat-panel-typing-bounce 1.4s ease-in-out infinite;
+}
+
+.ds-chat-panel-typing-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.ds-chat-panel-typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.ds-chat-panel-typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes ds-chat-panel-typing-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
 }
 
 /* Unified Chat Composer - used in both side panel and full page chat */
@@ -4091,6 +4307,79 @@ body.ds-recurring-open .ds-demo-settings-fab {
   display: none;
 }
 
+/* Panel Mode - Side panel instead of full screen */
+.ds-chat-panel-overlay-panel {
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  left: auto;
+  border-radius: var(--radius-lg);
+  border-left: none;
+  box-shadow:
+    -4px 0px 12px 0px rgba(175, 178, 206, 0.16),
+    -1px 0px 4px 0px rgba(4, 4, 52, 0.08);
+}
+
+.ds-chat-panel-side {
+  padding-left: 24px;
+  padding-right: 24px;
+  border-radius: var(--radius-lg);
+}
+
+.ds-chat-panel-side .ds-chat-panel-container {
+  max-width: 100%;
+}
+
+.ds-chat-panel-side .ds-chat-panel-message-bubble {
+  max-width: 280px;
+}
+
+/* Panel Resize Handle */
+.ds-chat-panel-resize-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  z-index: 10;
+  transition: background-color 150ms ease;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+
+.ds-chat-panel-resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 40px;
+  background-color: transparent;
+  border-radius: var(--radius-full);
+  transition: background-color 150ms ease;
+}
+
+.ds-chat-panel-resize-handle:hover::before,
+.ds-chat-panel-resize-handle.active::before {
+  background-color: var(--ds-icon-tertiary);
+}
+
+.ds-chat-panel-resize-handle:hover,
+.ds-chat-panel-resize-handle.active {
+  background-color: var(--ds-bg-secondary);
+}
+
+/* Prevent text selection during resize */
+body.ds-panel-resizing {
+  cursor: ew-resize !important;
+  user-select: none;
+}
+
+body.ds-panel-open .ds-demo-settings-fab {
+  display: none;
+}
+
 /* ========================================
    SEND BUTTON HOVER MENU
    Dropdown menu that appears on hover over the Send button
@@ -4161,6 +4450,38 @@ body.ds-recurring-open .ds-demo-settings-fab {
 
 .send-hover-menu-item.hovered {
   background-color: var(--ds-bg-default-hovered);
+}
+
+.send-hover-menu-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border-radius: var(--radius-sm);
+  background-color: var(--ds-bg-secondary);
+}
+
+.send-hover-menu-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--ds-text-default);
+}
+
+.send-hover-menu-search-input::placeholder {
+  color: var(--ds-text-placeholder);
+}
+
+.send-hover-menu-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
 }
 
 /* ========================================

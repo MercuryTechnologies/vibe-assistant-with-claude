@@ -715,10 +715,11 @@ a {
   cursor: pointer;
 }
 
-/* Remove default button borders and outlines */
+/* Remove default button borders, outlines, and background */
 button {
   border: none;
   outline: none;
+  background: transparent;
 }
 
 /* Remove underlines from all links */

@@ -1,28 +1,16 @@
-import { getMerchantInitials, getAvatarColors } from '../utils';
+import { DSAvatar, type DSAvatarSize } from '@/components/ui/ds-avatar';
 
 interface TransactionAvatarProps {
   merchant: string;
+  size?: DSAvatarSize;
 }
 
 /**
  * Transaction Avatar component matching Figma design (Trx › [Letter] type)
  * Displays merchant initials in a colored circle based on first character
+ * 
+ * Now uses DSAvatar under the hood for consistent styling across the app.
  */
-export function TransactionAvatar({ merchant }: TransactionAvatarProps) {
-  const initials = getMerchantInitials(merchant);
-  const colors = getAvatarColors(merchant);
-  
-  return (
-    <div 
-      className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 overflow-hidden"
-      style={{ backgroundColor: colors.bg }}
-    >
-      <span 
-        className="text-tiny"
-        style={{ color: colors.text }}
-      >
-        {initials}
-      </span>
-    </div>
-  );
+export function TransactionAvatar({ merchant, size = 'small' }: TransactionAvatarProps) {
+  return <DSAvatar type="trx" name={merchant} size={size} />;
 }

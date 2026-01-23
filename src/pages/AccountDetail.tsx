@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import { DSButton } from '@/components/ui/ds-button';
 import { DSTable, type DSTableColumn } from '@/components/ui/ds-table';
+import { DSAvatar } from '@/components/ui/ds-avatar';
 import { Icon } from '@/components/ui/icon';
 import { faCircleInfo, faChevronDown, faPlus, faCopy, faEye, faEyeSlash, faChevronRight, faArrowLeft, faArrowRight, faCreditCard } from '@/icons';
 import { useDataSettings, formatBalanceParts } from '@/context/DataContext';
@@ -55,69 +56,6 @@ const TRANSACTION_METHODS: Record<string, { label: string; icon: 'arrow-left' | 
   'card': { label: '', icon: 'card' },
 };
 
-// Avatar component for transaction rows
-function TransactionAvatar({ merchant }: { merchant: string }) {
-  const initials = merchant
-    .split(' ')
-    .map(word => word[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-
-  // Generate a consistent color based on merchant name
-  const colors = [
-    'var(--purple-magic-100)',
-    'var(--blue-magic-100)',
-    'var(--green-magic-100)',
-    'var(--orange-magic-100)',
-    'var(--neutral-base-200)',
-  ];
-  const colorIndex = merchant.charCodeAt(0) % colors.length;
-
-  return (
-    <div
-      className="flex items-center justify-center rounded-full"
-      style={{
-        width: 32,
-        height: 32,
-        flexShrink: 0,
-        backgroundColor: colors[colorIndex],
-      }}
-    >
-      <span
-        className="text-tiny"
-        style={{
-          color: 'var(--ds-text-default)',
-          fontWeight: 480,
-          fontSize: 11,
-        }}
-      >
-        {initials}
-      </span>
-    </div>
-  );
-}
-
-// Mercury logo avatar for transfers
-function MercuryAvatar() {
-  return (
-    <div
-      className="flex items-center justify-center rounded-full"
-      style={{
-        width: 32,
-        height: 32,
-        flexShrink: 0,
-        backgroundColor: 'var(--neutral-base-100)',
-        border: '1px solid var(--color-border-default)',
-      }}
-    >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="10" stroke="var(--ds-text-secondary)" strokeWidth="1.5" fill="none" />
-        <circle cx="12" cy="12" r="4" fill="var(--ds-text-secondary)" />
-      </svg>
-    </div>
-  );
-}
 
 // Copy button component
 function CopyButton({ value }: { value: string }) {
@@ -140,10 +78,17 @@ function CopyButton({ value }: { value: string }) {
       style={{
         width: 20,
         height: 20,
-        color: copied ? 'var(--color-success)' : 'var(--ds-icon-secondary)',
+        background: 'transparent',
+        border: 'none',
+        padding: 0,
+        cursor: 'pointer',
       }}
     >
-      <Icon icon={faCopy} size="small" />
+      <Icon 
+        icon={faCopy} 
+        size="small" 
+        style={{ color: copied ? 'var(--color-success)' : 'var(--ds-icon-secondary)' }}
+      />
     </button>
   );
 }
@@ -232,11 +177,7 @@ export function AccountDetail() {
       accessor: (row) => row.merchant,
       cell: (_, row) => (
         <div className="flex items-center gap-3">
-          {row.isMercuryTransfer ? (
-            <MercuryAvatar />
-          ) : (
-            <TransactionAvatar merchant={row.merchant} />
-          )}
+          <DSAvatar type="trx" name={row.merchant} size="small" />
           <span className="text-body" style={{ color: 'var(--ds-text-default)' }}>
             {row.merchant}
           </span>
@@ -318,7 +259,7 @@ export function AccountDetail() {
   }
 
   return (
-    <div className="flex flex-col w-full" style={{ maxWidth: 1120, margin: '0 auto' }}>
+    <div className="flex flex-col w-full" style={{ maxWidth: 968, margin: '0 auto' }}>
       {/* Page Title */}
       <h1 className="text-title-main" style={{ marginBottom: 24 }}>
         {account.name}
@@ -447,7 +388,13 @@ export function AccountDetail() {
               <button
                 onClick={() => setShowAccountNumber(!showAccountNumber)}
                 className="flex items-center justify-center"
-                style={{ color: 'var(--ds-icon-secondary)' }}
+                style={{ 
+                  color: 'var(--ds-icon-secondary)',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                }}
               >
                 <Icon icon={showAccountNumber ? faEyeSlash : faEye} size="small" />
               </button>
@@ -492,7 +439,13 @@ export function AccountDetail() {
           <div style={{ marginTop: 'auto', paddingTop: 16 }}>
             <button
               className="flex items-center justify-between w-full text-body"
-              style={{ color: 'var(--ds-text-default)' }}
+              style={{ 
+                color: 'var(--ds-text-default)',
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+              }}
             >
               <span>Documents</span>
               <Icon icon={faChevronDown} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />

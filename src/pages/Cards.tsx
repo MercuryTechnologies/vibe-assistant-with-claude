@@ -1,5 +1,6 @@
-import { useRef } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { DSTable, type DSTableColumn, type DSTableDetailPanelRenderContext } from '@/components/ui/ds-table';
+import { DSTableToolbar } from '@/components/ui/ds-table-toolbar';
 import { DSButton } from '@/components/ui/ds-button';
 import { DSLink } from '@/components/ui/ds-link';
 import { Icon } from '@/components/ui/icon';
@@ -12,6 +13,7 @@ interface Card {
   cardholder: string;
   card: string;
   cardName: string;
+  nickname?: string;
   spentThisMonth: number;
   monthlyLimit: number;
   type: string;
@@ -38,6 +40,14 @@ const columns: DSTableColumn<Card>[] = [
     header: 'Card',
     accessor: 'card',
     sortable: true,
+    cell: (value, row) => (
+      <span className="text-body">
+        <span style={{ color: 'var(--ds-text-default)' }}>{value as string}</span>
+        {row.nickname && (
+          <span style={{ color: 'var(--ds-text-secondary)' }}> · {row.nickname}</span>
+        )}
+      </span>
+    ),
   },
   {
     id: 'spentThisMonth',
@@ -64,13 +74,14 @@ const columns: DSTableColumn<Card>[] = [
   },
 ];
 
-// Sample card data
+// Sample card data - accounts match sidebar (Ops / Payroll, AP, Checking ••0297)
 const cardsData: Card[] = [
   {
     id: '1',
     cardholder: 'Sarah Chen',
     cardName: 'Office Card',
     card: '•••• 4521',
+    nickname: 'Office Supplies',
     spentThisMonth: 10789.00,
     monthlyLimit: 300000,
     type: 'Virtual Debit',
@@ -88,11 +99,12 @@ const cardsData: Card[] = [
     cardholder: 'Marcus Johnson',
     cardName: 'Marketing Card',
     card: '•••• 8934',
+    nickname: 'Ad Spend',
     spentThisMonth: 1875.50,
     monthlyLimit: 50000,
     type: 'Virtual Debit',
-    account: 'Marketing Budget',
-    accountNumber: '••1234',
+    account: 'AP',
+    accountNumber: '',
     billingAddress: {
       street: '660 Mission St Floor 4',
       city: 'San Francisco',
@@ -105,11 +117,12 @@ const cardsData: Card[] = [
     cardholder: 'Emily Rodriguez',
     cardName: 'Engineering Card',
     card: '•••• 2156',
+    nickname: 'Cloud Services',
     spentThisMonth: 5420.25,
     monthlyLimit: 100000,
     type: 'Physical Debit',
-    account: 'Engineering',
-    accountNumber: '••5678',
+    account: 'Ops / Payroll',
+    accountNumber: '',
     billingAddress: {
       street: '660 Mission St Floor 4',
       city: 'San Francisco',
@@ -125,8 +138,8 @@ const cardsData: Card[] = [
     spentThisMonth: 890.00,
     monthlyLimit: 25000,
     type: 'Virtual Debit',
-    account: 'Sales Team',
-    accountNumber: '••9012',
+    account: 'AP',
+    accountNumber: '',
     billingAddress: {
       street: '660 Mission St Floor 4',
       city: 'San Francisco',
@@ -139,11 +152,12 @@ const cardsData: Card[] = [
     cardholder: 'Amanda Foster',
     cardName: 'Operations Card',
     card: '•••• 3367',
+    nickname: 'Team Expenses',
     spentThisMonth: 2100.75,
     monthlyLimit: 75000,
     type: 'Physical Debit',
-    account: 'Operating Account',
-    accountNumber: '••3456',
+    account: 'Ops / Payroll',
+    accountNumber: '',
     billingAddress: {
       street: '660 Mission St Floor 4',
       city: 'San Francisco',
@@ -156,11 +170,12 @@ const cardsData: Card[] = [
     cardholder: 'James Wilson',
     cardName: 'Executive Card',
     card: '•••• 9012',
+    nickname: 'Travel & Entertainment',
     spentThisMonth: 4500.00,
     monthlyLimit: 500000,
     type: 'Virtual Debit',
-    account: 'Executive',
-    accountNumber: '••7890',
+    account: 'Checking',
+    accountNumber: '••0297',
     billingAddress: {
       street: '660 Mission St Floor 4',
       city: 'San Francisco',
@@ -176,8 +191,8 @@ const cardsData: Card[] = [
     spentThisMonth: 675.30,
     monthlyLimit: 15000,
     type: 'Physical Debit',
-    account: 'Customer Success',
-    accountNumber: '••2345',
+    account: 'AP',
+    accountNumber: '',
     billingAddress: {
       street: '660 Mission St Floor 4',
       city: 'San Francisco',
@@ -190,11 +205,12 @@ const cardsData: Card[] = [
     cardholder: 'Michael Torres',
     cardName: 'Dev Card',
     card: '•••• 1234',
+    nickname: 'Software Licenses',
     spentThisMonth: 3890.00,
     monthlyLimit: 100000,
     type: 'Virtual Debit',
-    account: 'Engineering',
-    accountNumber: '••6789',
+    account: 'Ops / Payroll',
+    accountNumber: '',
     billingAddress: {
       street: '660 Mission St Floor 4',
       city: 'San Francisco',
@@ -206,6 +222,54 @@ const cardsData: Card[] = [
 
 export function Cards() {
   const lastRowRef = useRef<Card | null>(null)
+  
+  // Keyword search state
+  const [keywordSearch, setKeywordSearch] = useState('');
+  const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
+
+  // Filter cards based on search
+  const filteredCards = useMemo(() => {
+    // If no search criteria, return all cards
+    if (!keywordSearch && selectedKeywords.length === 0) {
+      return cardsData;
+    }
+
+    return cardsData.filter((card) => {
+      const cardNumberLower = card.card.toLowerCase();
+      const cardholderLower = card.cardholder.toLowerCase();
+      const nicknameLower = (card.nickname || '').toLowerCase();
+
+      // Check if keyword search matches card number, nickname, or cardholder
+      if (keywordSearch) {
+        const searchLower = keywordSearch.toLowerCase();
+        if (
+          cardNumberLower.includes(searchLower) ||
+          cardholderLower.includes(searchLower) ||
+          nicknameLower.includes(searchLower)
+        ) {
+          return true;
+        }
+      }
+
+      // Check if any selected keyword matches
+      if (selectedKeywords.length > 0) {
+        const matchesSelectedKeyword = selectedKeywords.some((keyword) => {
+          const k = keyword.toLowerCase();
+          return (
+            cardNumberLower.includes(k) ||
+            cardholderLower.includes(k) ||
+            nicknameLower.includes(k)
+          );
+        });
+        if (matchesSelectedKeyword) {
+          return true;
+        }
+      }
+
+      // If we have search criteria but no matches, exclude
+      return false;
+    });
+  }, [keywordSearch, selectedKeywords]);
 
   // Format currency for display
   const formatCurrency = (amount: number, showCents = true) => {
@@ -441,7 +505,7 @@ export function Cards() {
                       textUnderlineOffset: '2px',
                     }}
                   >
-                    {displayRow.account} {displayRow.accountNumber}
+                    {displayRow.account}{displayRow.accountNumber ? ` ${displayRow.accountNumber}` : ''}
                   </span>
                 </div>
 
@@ -486,13 +550,32 @@ export function Cards() {
     )
   }
 
+  // Quick filters for the toolbar - keyword filter for searching
+  const quickFilters = [
+    { id: 'keyword', label: 'Search' },
+  ];
+
   return (
     <div className="space-y-6">
       <h1 className="text-title-main">Cards</h1>
       
+      <DSTableToolbar
+        viewMenuLabel="All Cards"
+        showFilters={false}
+        quickFilters={quickFilters}
+        keywordSearchQuery={keywordSearch}
+        keywordSelectedKeywords={selectedKeywords}
+        onKeywordSearchChange={setKeywordSearch}
+        onKeywordSelectionChange={setSelectedKeywords}
+        showGroupButton={false}
+        showSortButton={false}
+        showDisplayButton={false}
+        showExportButton={false}
+      />
+      
       <DSTable
         columns={columns}
-        data={cardsData}
+        data={filteredCards}
         getRowKey={(row) => row.id}
         variant="centered"
         emptyMessage="No cards found"

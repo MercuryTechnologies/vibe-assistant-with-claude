@@ -1,2 +1,2 @@
 export * from './formatters';
-export * from './avatar-colors';
+// Note: avatar-colors.ts is deprecated. DSAvatar component now handles colors internally.
