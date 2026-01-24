@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import { Layout, PageContainer } from '@/components/core';
-import { Dashboard, ComponentGallery, ComponentDetail, DesignSystemOverview, TypographyGallery, ColorsGallery, BorderRadiusGallery, Tasks, Transactions, Cards, Recipients, VisualTestPage, BillPay, Command, AccountDetail } from '@/pages';
+import { Dashboard, ComponentGallery, ComponentDetail, DesignSystemOverview, TypographyGallery, ColorsGallery, BorderRadiusGallery, Tasks, Transactions, Cards, Recipients, VisualTestPage, BillPay, Command, AccountDetail, Insights } from '@/pages';
 import { ToastProvider } from '@/components/ui/toast';
 import { DataProvider } from '@/context/DataContext';
 
@@ -115,6 +115,14 @@ function App() {
             element={
               <PageContainer fullWidth={false} className="py-8">
                 <Cards />
+              </PageContainer>
+            }
+          />
+          <Route
+            path="/insights"
+            element={
+              <PageContainer fullWidth={false} className="py-8">
+                <Insights />
               </PageContainer>
             }
           />

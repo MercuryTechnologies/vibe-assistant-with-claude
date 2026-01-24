@@ -23,7 +23,27 @@ export interface Transaction {
   status: 'completed' | 'pending' | 'failed';
   accountId: string;
   hasAttachment?: boolean;
+  cardId?: string; // Links transaction to a card if made with a card
   [key: string]: unknown;
+}
+
+// Card types
+export interface Card {
+  id: string;
+  cardholder: string;
+  cardName: string;
+  cardNumber: string;
+  nickname?: string;
+  monthlyLimit: number;
+  type: 'Virtual Debit' | 'Physical Debit';
+  accountId: string;
+  status: 'active' | 'frozen' | 'cancelled';
+  billingAddress: {
+    street: string;
+    city: string;
+    state: string;
+    zip: string;
+  };
 }
 
 // User types

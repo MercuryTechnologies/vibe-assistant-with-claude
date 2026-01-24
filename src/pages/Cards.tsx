@@ -6,26 +6,10 @@ import { DSLink } from '@/components/ui/ds-link';
 import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { faXmark, faSnowflake, faList, faChevronDown, faChevronRight, faPencil, faCopy } from '@/icons';
+import { useCards, type CardWithSpending } from '@/hooks/useCards';
 
-// Card data type with additional fields for the detail panel
-interface Card {
-  id: string;
-  cardholder: string;
-  card: string;
-  cardName: string;
-  nickname?: string;
-  spentThisMonth: number;
-  monthlyLimit: number;
-  type: string;
-  account: string;
-  accountNumber: string;
-  billingAddress: {
-    street: string;
-    city: string;
-    state: string;
-    zip: string;
-  };
-}
+// Use CardWithSpending from the hook
+type Card = CardWithSpending;
 
 // Column definitions
 const columns: DSTableColumn<Card>[] = [
@@ -74,154 +58,11 @@ const columns: DSTableColumn<Card>[] = [
   },
 ];
 
-// Sample card data - accounts match sidebar (Ops / Payroll, AP, Checking ••0297)
-const cardsData: Card[] = [
-  {
-    id: '1',
-    cardholder: 'Sarah Chen',
-    cardName: 'Office Card',
-    card: '•••• 4521',
-    nickname: 'Office Supplies',
-    spentThisMonth: 10789.00,
-    monthlyLimit: 300000,
-    type: 'Virtual Debit',
-    account: 'Checking',
-    accountNumber: '••0297',
-    billingAddress: {
-      street: '660 Mission St Floor 4',
-      city: 'San Francisco',
-      state: 'CA',
-      zip: '94105',
-    },
-  },
-  {
-    id: '2',
-    cardholder: 'Marcus Johnson',
-    cardName: 'Marketing Card',
-    card: '•••• 8934',
-    nickname: 'Ad Spend',
-    spentThisMonth: 1875.50,
-    monthlyLimit: 50000,
-    type: 'Virtual Debit',
-    account: 'AP',
-    accountNumber: '',
-    billingAddress: {
-      street: '660 Mission St Floor 4',
-      city: 'San Francisco',
-      state: 'CA',
-      zip: '94105',
-    },
-  },
-  {
-    id: '3',
-    cardholder: 'Emily Rodriguez',
-    cardName: 'Engineering Card',
-    card: '•••• 2156',
-    nickname: 'Cloud Services',
-    spentThisMonth: 5420.25,
-    monthlyLimit: 100000,
-    type: 'Physical Debit',
-    account: 'Ops / Payroll',
-    accountNumber: '',
-    billingAddress: {
-      street: '660 Mission St Floor 4',
-      city: 'San Francisco',
-      state: 'CA',
-      zip: '94105',
-    },
-  },
-  {
-    id: '4',
-    cardholder: 'David Kim',
-    cardName: 'Sales Card',
-    card: '•••• 7743',
-    spentThisMonth: 890.00,
-    monthlyLimit: 25000,
-    type: 'Virtual Debit',
-    account: 'AP',
-    accountNumber: '',
-    billingAddress: {
-      street: '660 Mission St Floor 4',
-      city: 'San Francisco',
-      state: 'CA',
-      zip: '94105',
-    },
-  },
-  {
-    id: '5',
-    cardholder: 'Amanda Foster',
-    cardName: 'Operations Card',
-    card: '•••• 3367',
-    nickname: 'Team Expenses',
-    spentThisMonth: 2100.75,
-    monthlyLimit: 75000,
-    type: 'Physical Debit',
-    account: 'Ops / Payroll',
-    accountNumber: '',
-    billingAddress: {
-      street: '660 Mission St Floor 4',
-      city: 'San Francisco',
-      state: 'CA',
-      zip: '94105',
-    },
-  },
-  {
-    id: '6',
-    cardholder: 'James Wilson',
-    cardName: 'Executive Card',
-    card: '•••• 9012',
-    nickname: 'Travel & Entertainment',
-    spentThisMonth: 4500.00,
-    monthlyLimit: 500000,
-    type: 'Virtual Debit',
-    account: 'Checking',
-    accountNumber: '••0297',
-    billingAddress: {
-      street: '660 Mission St Floor 4',
-      city: 'San Francisco',
-      state: 'CA',
-      zip: '94105',
-    },
-  },
-  {
-    id: '7',
-    cardholder: 'Lisa Park',
-    cardName: 'CS Card',
-    card: '•••• 5589',
-    spentThisMonth: 675.30,
-    monthlyLimit: 15000,
-    type: 'Physical Debit',
-    account: 'AP',
-    accountNumber: '',
-    billingAddress: {
-      street: '660 Mission St Floor 4',
-      city: 'San Francisco',
-      state: 'CA',
-      zip: '94105',
-    },
-  },
-  {
-    id: '8',
-    cardholder: 'Michael Torres',
-    cardName: 'Dev Card',
-    card: '•••• 1234',
-    nickname: 'Software Licenses',
-    spentThisMonth: 3890.00,
-    monthlyLimit: 100000,
-    type: 'Virtual Debit',
-    account: 'Ops / Payroll',
-    accountNumber: '',
-    billingAddress: {
-      street: '660 Mission St Floor 4',
-      city: 'San Francisco',
-      state: 'CA',
-      zip: '94105',
-    },
-  },
-];
+// Card data is now loaded from src/data/cards.json via useCards hook
 
 export function Cards() {
   const lastRowRef = useRef<Card | null>(null)
+  const { cards: cardsData } = useCards();
   
   // Keyword search state
   const [keywordSearch, setKeywordSearch] = useState('');
@@ -269,7 +110,7 @@ export function Cards() {
       // If we have search criteria but no matches, exclude
       return false;
     });
-  }, [keywordSearch, selectedKeywords]);
+  }, [keywordSearch, selectedKeywords, cardsData]);
 
   // Format currency for display
   const formatCurrency = (amount: number, showCents = true) => {
@@ -505,7 +346,7 @@ export function Cards() {
                       textUnderlineOffset: '2px',
                     }}
                   >
-                    {displayRow.account}{displayRow.accountNumber ? ` ${displayRow.accountNumber}` : ''}
+                    {displayRow.account}
                   </span>
                 </div>
 

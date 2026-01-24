@@ -25,11 +25,16 @@ interface Account {
 }
 
 interface Card {
-  cardId: string
-  nameOnCard: string
-  lastFourDigits: string
-  status: 'active' | 'frozen' | 'cancelled' | 'expired'
-  network: 'mastercard' | 'visa'
+  id: string
+  cardholder: string
+  cardName: string
+  cardNumber: string
+  nickname?: string
+  monthlyLimit: number
+  type: string
+  accountId: string
+  status: 'active' | 'frozen' | 'cancelled'
+  spentThisMonth: number // Pre-calculated for demo
 }
 
 interface SharedTransaction {
@@ -60,12 +65,17 @@ const MOCK_ACCOUNTS: Account[] = [
   { id: 'acct-4', name: 'Treasury ••9900', nickname: 'Treasury', kind: 'savings', currentBalance: 1200000.00, availableBalance: 1200000.00, status: 'active', accountNumber: '202233209900', routingNumber: '091311229', dashboardLink: '/accounts' },
 ]
 
-// Static Cards
+// Static Cards - matches src/data/cards.json
+// Spending amounts are pre-calculated to match linked transactions
 const MOCK_CARDS: Card[] = [
-  { cardId: 'card-1', nameOnCard: 'Sarah Chen', lastFourDigits: '4532', status: 'active', network: 'mastercard' },
-  { cardId: 'card-2', nameOnCard: 'John Smith', lastFourDigits: '7891', status: 'active', network: 'mastercard' },
-  { cardId: 'card-3', nameOnCard: 'Jane Baker', lastFourDigits: '1234', status: 'active', network: 'mastercard' },
-  { cardId: 'card-4', nameOnCard: 'Mike Johnson', lastFourDigits: '5555', status: 'frozen', network: 'mastercard' },
+  { id: 'card-1', cardholder: 'Sarah Chen', cardName: 'Office Card', cardNumber: '4521', nickname: 'Office Supplies', monthlyLimit: 300000, type: 'Virtual Debit', accountId: 'checking-0297', status: 'active', spentThisMonth: 10789 },
+  { id: 'card-2', cardholder: 'Marcus Johnson', cardName: 'Marketing Card', cardNumber: '8934', nickname: 'Ad Spend', monthlyLimit: 50000, type: 'Virtual Debit', accountId: 'ap', status: 'active', spentThisMonth: 1875.50 },
+  { id: 'card-3', cardholder: 'Emily Rodriguez', cardName: 'Engineering Card', cardNumber: '2156', nickname: 'Cloud Services', monthlyLimit: 100000, type: 'Physical Debit', accountId: 'ops-payroll', status: 'active', spentThisMonth: 5420.25 },
+  { id: 'card-4', cardholder: 'David Kim', cardName: 'Sales Card', cardNumber: '7743', monthlyLimit: 25000, type: 'Virtual Debit', accountId: 'ap', status: 'active', spentThisMonth: 890 },
+  { id: 'card-5', cardholder: 'Amanda Foster', cardName: 'Operations Card', cardNumber: '3367', nickname: 'Team Expenses', monthlyLimit: 75000, type: 'Physical Debit', accountId: 'ops-payroll', status: 'active', spentThisMonth: 2100.75 },
+  { id: 'card-6', cardholder: 'James Wilson', cardName: 'Executive Card', cardNumber: '9012', nickname: 'Travel & Entertainment', monthlyLimit: 500000, type: 'Virtual Debit', accountId: 'checking-0297', status: 'active', spentThisMonth: 4500 },
+  { id: 'card-7', cardholder: 'Lisa Park', cardName: 'CS Card', cardNumber: '5589', monthlyLimit: 15000, type: 'Physical Debit', accountId: 'ap', status: 'active', spentThisMonth: 675.30 },
+  { id: 'card-8', cardholder: 'Michael Torres', cardName: 'Dev Card', cardNumber: '1234', nickname: 'Software Licenses', monthlyLimit: 100000, type: 'Virtual Debit', accountId: 'ops-payroll', status: 'active', spentThisMonth: 3890 },
 ]
 
 // Generate transactions on the fly
@@ -484,11 +494,39 @@ async function handleWithRouter(
     }
 
     case 'CARD_ACTION': {
-      const cardList = MOCK_CARDS.map(c => {
-        const status = c.status === 'active' ? 'Active' : 'Frozen'
-        return `- **${c.nameOnCard}** (${c.lastFourDigits}) - ${status}`
-      }).join('\n')
-      responseText = `Here are your cards:\n\n${cardList}`
+      // Enhanced card handler with spending data
+      responseText = `Here are your cards:\n\n`
+      MOCK_CARDS.forEach((c, i) => {
+        const status = c.status === 'active' ? 'Active' : c.status.charAt(0).toUpperCase() + c.status.slice(1)
+        const spent = `$${c.spentThisMonth.toLocaleString()}`
+        const limit = `$${(c.monthlyLimit / 1000).toFixed(0)}k`
+        responseText += `${i + 1}. **${c.cardholder}** (••${c.cardNumber})\n`
+        responseText += `   ${c.nickname || c.cardName} · ${status}\n`
+        responseText += `   Spent: ${spent} of ${limit} limit\n\n`
+      })
+      break
+    }
+
+    case 'TRANSACTION_SEARCH': {
+      // Search transactions based on the user's query
+      const query = message.toLowerCase()
+      const results = searchSharedTransactions(query, 10)
+      
+      if (results.length > 0) {
+        responseText = `I found ${results.length} transaction${results.length > 1 ? 's' : ''} matching your search:\n\n`
+        results.slice(0, 5).forEach((t, i) => {
+          const amount = t.amount < 0 
+            ? `-$${Math.abs(t.amount).toLocaleString()}` 
+            : `+$${t.amount.toLocaleString()}`
+          responseText += `${i + 1}. **${t.counterparty}** - ${amount}\n`
+          responseText += `   ${t.date} · ${t.category || 'Uncategorized'}\n\n`
+        })
+        if (results.length > 5) {
+          responseText += `...and ${results.length - 5} more. Would you like me to show all of them?`
+        }
+      } else {
+        responseText = `I couldn't find any transactions matching your search. Try searching for a merchant name, category, or amount.`
+      }
       break
     }
 
@@ -517,14 +555,22 @@ async function handleWithSmartModel(
   const summary = getSharedTransactionsSummary()
   const recentTxns = searchSharedTransactions('', 5)
 
+  const totalCardSpending = MOCK_CARDS.reduce((sum, c) => sum + c.spentThisMonth, 0)
+  
   const systemPrompt = `You are Mercury Assistant. Be warm and helpful.
 
-Accounts: ${MOCK_ACCOUNTS.map(a => `${a.nickname}: $${a.currentBalance.toLocaleString()}`).join(', ')}
-Cards: ${MOCK_CARDS.map(c => `${c.nameOnCard} (${c.lastFourDigits}): ${c.status}`).join(', ')}
-Recent: ${recentTxns.map(t => `${t.counterparty}: $${t.amount}`).join(', ')}
-30-day: In $${summary.last30Days.moneyIn.toLocaleString()}, Out $${summary.last30Days.moneyOut.toLocaleString()}
+ACCOUNTS:
+${MOCK_ACCOUNTS.map(a => `- ${a.nickname}: $${a.currentBalance.toLocaleString()}`).join('\n')}
 
-Keep responses brief (2-3 sentences). Use **bold** for amounts.`
+CARDS (8 total, spending this month: $${totalCardSpending.toLocaleString()}):
+${MOCK_CARDS.map(c => `- ${c.cardholder} (••${c.cardNumber}): ${c.nickname || c.cardName}, spent $${c.spentThisMonth.toLocaleString()} of $${(c.monthlyLimit/1000).toFixed(0)}k limit, ${c.status}`).join('\n')}
+
+RECENT TRANSACTIONS:
+${recentTxns.map(t => `- ${t.counterparty}: ${t.amount < 0 ? '-' : '+'}$${Math.abs(t.amount).toLocaleString()} (${t.category || 'Uncategorized'})`).join('\n')}
+
+30-DAY SUMMARY: Money In $${summary.last30Days.moneyIn.toLocaleString()}, Money Out $${summary.last30Days.moneyOut.toLocaleString()}
+
+When answering questions about cards or transactions, use the specific data above. Keep responses brief (2-3 sentences). Use **bold** for amounts and names.`
 
   const messages: Anthropic.MessageParam[] = []
   if (history) {

@@ -1,0 +1,138 @@
+{
+  "cards": [
+    {
+      "id": "card-1",
+      "cardholder": "Sarah Chen",
+      "cardName": "Office Card",
+      "cardNumber": "4521",
+      "nickname": "Office Supplies",
+      "monthlyLimit": 300000,
+      "type": "Virtual Debit",
+      "accountId": "checking-0297",
+      "status": "active",
+      "billingAddress": {
+        "street": "660 Mission St Floor 4",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94105"
+      }
+    },
+    {
+      "id": "card-2",
+      "cardholder": "Marcus Johnson",
+      "cardName": "Marketing Card",
+      "cardNumber": "8934",
+      "nickname": "Ad Spend",
+      "monthlyLimit": 50000,
+      "type": "Virtual Debit",
+      "accountId": "ap",
+      "status": "active",
+      "billingAddress": {
+        "street": "660 Mission St Floor 4",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94105"
+      }
+    },
+    {
+      "id": "card-3",
+      "cardholder": "Emily Rodriguez",
+      "cardName": "Engineering Card",
+      "cardNumber": "2156",
+      "nickname": "Cloud Services",
+      "monthlyLimit": 100000,
+      "type": "Physical Debit",
+      "accountId": "ops-payroll",
+      "status": "active",
+      "billingAddress": {
+        "street": "660 Mission St Floor 4",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94105"
+      }
+    },
+    {
+      "id": "card-4",
+      "cardholder": "David Kim",
+      "cardName": "Sales Card",
+      "cardNumber": "7743",
+      "monthlyLimit": 25000,
+      "type": "Virtual Debit",
+      "accountId": "ap",
+      "status": "active",
+      "billingAddress": {
+        "street": "660 Mission St Floor 4",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94105"
+      }
+    },
+    {
+      "id": "card-5",
+      "cardholder": "Amanda Foster",
+      "cardName": "Operations Card",
+      "cardNumber": "3367",
+      "nickname": "Team Expenses",
+      "monthlyLimit": 75000,
+      "type": "Physical Debit",
+      "accountId": "ops-payroll",
+      "status": "active",
+      "billingAddress": {
+        "street": "660 Mission St Floor 4",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94105"
+      }
+    },
+    {
+      "id": "card-6",
+      "cardholder": "James Wilson",
+      "cardName": "Executive Card",
+      "cardNumber": "9012",
+      "nickname": "Travel & Entertainment",
+      "monthlyLimit": 500000,
+      "type": "Virtual Debit",
+      "accountId": "checking-0297",
+      "status": "active",
+      "billingAddress": {
+        "street": "660 Mission St Floor 4",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94105"
+      }
+    },
+    {
+      "id": "card-7",
+      "cardholder": "Lisa Park",
+      "cardName": "CS Card",
+      "cardNumber": "5589",
+      "monthlyLimit": 15000,
+      "type": "Physical Debit",
+      "accountId": "ap",
+      "status": "active",
+      "billingAddress": {
+        "street": "660 Mission St Floor 4",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94105"
+      }
+    },
+    {
+      "id": "card-8",
+      "cardholder": "Michael Torres",
+      "cardName": "Dev Card",
+      "cardNumber": "1234",
+      "nickname": "Software Licenses",
+      "monthlyLimit": 100000,
+      "type": "Virtual Debit",
+      "accountId": "ops-payroll",
+      "status": "active",
+      "billingAddress": {
+        "street": "660 Mission St Floor 4",
+        "city": "San Francisco",
+        "state": "CA",
+        "zip": "94105"
+      }
+    }
+  ]
+}

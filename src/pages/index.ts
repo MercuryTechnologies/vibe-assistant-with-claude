@@ -13,4 +13,5 @@ export { VisualTestPage } from './VisualTestPage';
 export { BillPay } from './BillPay';
 export { Command } from './Command';
 export { AccountDetail } from './AccountDetail';
+export { Insights } from './Insights';
 

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Icon } from '@/components/ui/icon';
 import { DSButton } from '@/components/ui/ds-button';
 import { faPlus, faMicrophone, faArrowUp } from '@/icons';
@@ -19,12 +20,16 @@ export function Command() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const navigate = useNavigate();
+
   // Chat store and streaming
   const { 
     messages, 
     isLoading, 
     thinkingStatus,
     startNewConversation,
+    isNavigationComplete,
+    markNavigationComplete,
   } = useChatStore();
   const { sendMessage } = useStreamingChat();
 
@@ -40,6 +45,26 @@ export function Command() {
     textareaRef.current?.focus();
   }, []);
 
+  // Handle navigation metadata from assistant messages
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (
+      lastMessage?.role === 'assistant' &&
+      lastMessage.metadata?.navigation &&
+      !isNavigationComplete(lastMessage.id)
+    ) {
+      const nav = lastMessage.metadata.navigation;
+      markNavigationComplete(lastMessage.id, nav);
+      
+      if (nav.countdown) {
+        // Navigate after 2 second delay for countdown
+        setTimeout(() => navigate(nav.url), 2000);
+      } else {
+        navigate(nav.url);
+      }
+    }
+  }, [messages, navigate, isNavigationComplete, markNavigationComplete]);
+
   const handleComposerClick = () => {
     textareaRef.current?.focus();
   };
@@ -50,8 +75,9 @@ export function Command() {
     if (!content || isLoading) return;
     
     // Start a new conversation if this is the first message
+    // Don't pass content here - sendMessage will add the user message
     if (messages.length === 0) {
-      startNewConversation(content);
+      startNewConversation();
     }
     
     setInputValue('');
@@ -62,8 +88,10 @@ export function Command() {
   const handleShortcutClick = async (message: string) => {
     if (isLoading) return;
     
+    // Start a new conversation if this is the first message
+    // Don't pass message here - sendMessage will add the user message
     if (messages.length === 0) {
-      startNewConversation(message);
+      startNewConversation();
     }
     
     setInputValue('');

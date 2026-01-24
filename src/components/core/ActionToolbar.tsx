@@ -105,7 +105,9 @@ export function ActionToolbar() {
     isLoading, 
     thinkingStatus, 
     startNewConversation, 
-    clearConversation 
+    clearConversation,
+    isNavigationComplete,
+    markNavigationComplete,
   } = useChatStore();
   const { sendMessage } = useStreamingChat();
 
@@ -116,14 +118,35 @@ export function ActionToolbar() {
     }
   }, [messages, panelType, isLoading]);
 
+  // Handle navigation metadata from assistant messages
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (
+      lastMessage?.role === 'assistant' &&
+      lastMessage.metadata?.navigation &&
+      !isNavigationComplete(lastMessage.id)
+    ) {
+      const nav = lastMessage.metadata.navigation;
+      markNavigationComplete(lastMessage.id, nav);
+      
+      if (nav.countdown) {
+        // Navigate after 2 second delay for countdown
+        setTimeout(() => navigate(nav.url), 2000);
+      } else {
+        navigate(nav.url);
+      }
+    }
+  }, [messages, navigate, isNavigationComplete, markNavigationComplete]);
+
   // Handle sending a chat message
   const handleSendChatMessage = async () => {
     const content = chatInput.trim();
     if (!content || isLoading) return;
     
     // Start a new conversation if this is the first message
+    // Don't pass content here - sendMessage will add the user message
     if (messages.length === 0) {
-      startNewConversation(content);
+      startNewConversation();
     }
     
     setChatInput('');
@@ -401,8 +424,8 @@ export function ActionToolbar() {
       inputRef.current.blur();
     }
     
-    // Start a new conversation with the initial message
-    startNewConversation(initialMessage);
+    // Start a new conversation - don't pass message here, sendMessage will add it
+    startNewConversation();
     await sendMessage(initialMessage);
   };
 
