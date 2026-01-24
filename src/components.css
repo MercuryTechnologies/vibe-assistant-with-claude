@@ -5286,6 +5286,24 @@ body.ds-panel-open .ds-demo-settings-fab {
    INSIGHTS BREAKDOWN
    ======================================== */
 
+.insights-breakdown-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@media (min-width: 1024px) {
+  .insights-breakdown-grid {
+    flex-direction: row;
+    gap: 24px;
+  }
+  
+  .insights-breakdown-grid > * {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 .insights-more-button {
   width: 32px;
   height: 32px;
@@ -5449,9 +5467,17 @@ body.ds-panel-open .ds-demo-settings-fab {
 /* Controls Row */
 .insights-controls {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 12px;
   padding: 16px 24px;
+}
+
+@media (min-width: 768px) {
+  .insights-controls {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
 }
 
 .insights-controls-left {
@@ -5464,6 +5490,7 @@ body.ds-panel-open .ds-demo-settings-fab {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* Timeline Wrapper */
@@ -5551,25 +5578,46 @@ body.ds-panel-open .ds-demo-settings-fab {
 }
 
 .insights-main-grid {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
+  display: flex;
+  flex-direction: column;
   gap: 32px;
   margin-bottom: 32px;
 }
 
-@media (max-width: 1024px) {
+/* Large screens: side-by-side layout */
+@media (min-width: 1280px) {
   .insights-main-grid {
-    grid-template-columns: 1fr;
+    display: grid;
+    grid-template-columns: minmax(320px, 400px) 1fr;
+  }
+}
+
+/* Extra large screens */
+@media (min-width: 1536px) {
+  .insights-main-grid {
+    grid-template-columns: 420px 1fr;
   }
 }
 
 .insights-scorecard {
-  max-height: 480px;
-  overflow: auto;
+  width: 100%;
+}
+
+@media (min-width: 1280px) {
+  .insights-scorecard {
+    max-height: 520px;
+    overflow: auto;
+  }
 }
 
 .insights-chart {
-  min-height: 480px;
+  min-height: 400px;
+}
+
+@media (min-width: 768px) {
+  .insights-chart {
+    min-height: 480px;
+  }
 }
 
 .insights-chart-empty {

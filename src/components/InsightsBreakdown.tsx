@@ -89,7 +89,7 @@ const BreakdownModule: React.FC<BreakdownModuleProps> = ({
         {/* Breakdown Table */}
         <div className="flex gap-2">
           {/* Label Column */}
-          <div className="flex flex-col gap-1" style={{ width: 180, flexShrink: 0 }}>
+          <div className="flex flex-col gap-1" style={{ minWidth: 120, maxWidth: 200, flexShrink: 1 }}>
             <div className="pb-1 pt-0">
               <span 
                 className="text-label"
@@ -221,7 +221,7 @@ export const InsightsBreakdown: React.FC<InsightsBreakdownProps> = ({
   ];
 
   return (
-    <div className="flex gap-6 items-stretch">
+    <div className="insights-breakdown-grid">
       <BreakdownModule
         title="Money In"
         totalAmount={moneyInTotal}
