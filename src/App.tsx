@@ -121,9 +121,9 @@ function App() {
           <Route
             path="/insights"
             element={
-              <PageContainer fullWidth={false} className="py-8">
+              <div className="py-6">
                 <Insights />
-              </PageContainer>
+              </div>
             }
           />
           <Route

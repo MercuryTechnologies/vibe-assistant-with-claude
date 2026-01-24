@@ -391,8 +391,8 @@ export function Insights() {
   
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-title-main">Insights</h1>
+      <div className="px-4">
+        <h1 className="text-title-main mb-3">Insights</h1>
         <div className="flex items-center justify-center py-12">
           <span className="text-body" style={{ color: 'var(--ds-text-tertiary)' }}>Loading...</span>
         </div>
@@ -402,7 +402,12 @@ export function Insights() {
   
   return (
     <div className="insights-page">
-      {/* Sticky Header */}
+      {/* Page Title */}
+      <div className="px-4 mb-3">
+        <h1 className="text-title-main m-0">Insights</h1>
+      </div>
+      
+      {/* Header */}
       <div 
         ref={headerRef}
         className={`insights-header ${isScrolled ? 'scrolled' : ''}`}

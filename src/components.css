@@ -5289,13 +5289,13 @@ body.ds-panel-open .ds-demo-settings-fab {
 .insights-breakdown-grid {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1200px) {
   .insights-breakdown-grid {
     flex-direction: row;
-    gap: 24px;
+    gap: 16px;
   }
   
   .insights-breakdown-grid > * {
@@ -5435,33 +5435,22 @@ body.ds-panel-open .ds-demo-settings-fab {
   min-height: 100%;
 }
 
-/* Sticky Header */
+/* Header - not sticky to avoid scroll artifacts */
 .insights-header {
-  position: sticky;
-  top: 0;
   background-color: var(--ds-bg-default);
-  z-index: 20;
   border-bottom: 1px solid var(--color-border-default);
 }
 
 .insights-header.scrolled {
-  box-shadow: 0 4px 12px rgba(4, 4, 52, 0.08);
+  /* No shadow since we're not using sticky */
 }
 
 .insights-header-shadow {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -12px;
-  height: 12px;
-  background: linear-gradient(to bottom, rgba(4, 4, 52, 0.08) 0%, rgba(4, 4, 52, 0.02) 40%, transparent 100%);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 300ms ease;
+  display: none; /* Remove the shadow artifact */
 }
 
 .insights-header-shadow.visible {
-  opacity: 1;
+  display: none;
 }
 
 /* Controls Row */
@@ -5469,7 +5458,7 @@ body.ds-panel-open .ds-demo-settings-fab {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 16px 24px;
+  padding: 12px 16px;
 }
 
 @media (min-width: 768px) {
@@ -5483,7 +5472,7 @@ body.ds-panel-open .ds-demo-settings-fab {
 .insights-controls-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .insights-controls-right {
@@ -5502,17 +5491,17 @@ body.ds-panel-open .ds-demo-settings-fab {
 }
 
 .insights-timeline-arrow {
-  padding: 0 24px;
+  padding: 0 16px;
   position: relative;
   z-index: 10;
 }
 
 .insights-timeline-arrow.left {
-  padding-right: 8px;
+  padding-right: 4px;
 }
 
 .insights-timeline-arrow.right {
-  padding-left: 8px;
+  padding-left: 4px;
 }
 
 .timeline-nav-button {
@@ -5574,28 +5563,22 @@ body.ds-panel-open .ds-demo-settings-fab {
 
 /* Content Area */
 .insights-content {
-  padding: 32px 24px;
+  padding: 24px 16px;
 }
 
 .insights-main-grid {
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  margin-bottom: 32px;
+  gap: 24px;
+  margin-bottom: 24px;
 }
 
 /* Large screens: side-by-side layout */
-@media (min-width: 1280px) {
+@media (min-width: 1400px) {
   .insights-main-grid {
     display: grid;
-    grid-template-columns: minmax(320px, 400px) 1fr;
-  }
-}
-
-/* Extra large screens */
-@media (min-width: 1536px) {
-  .insights-main-grid {
-    grid-template-columns: 420px 1fr;
+    grid-template-columns: minmax(280px, 360px) 1fr;
+    gap: 24px;
   }
 }
 
@@ -5603,7 +5586,7 @@ body.ds-panel-open .ds-demo-settings-fab {
   width: 100%;
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 1400px) {
   .insights-scorecard {
     max-height: 520px;
     overflow: auto;
@@ -5611,12 +5594,12 @@ body.ds-panel-open .ds-demo-settings-fab {
 }
 
 .insights-chart {
-  min-height: 400px;
+  min-height: 360px;
 }
 
 @media (min-width: 768px) {
   .insights-chart {
-    min-height: 480px;
+    min-height: 420px;
   }
 }
 
