@@ -2,12 +2,14 @@ import { useState } from 'react';
 import type { CardsTableMetadata, CardTableRow } from '@/chat/types';
 import { Icon } from '@/components/ui/icon';
 import { DSButton } from '@/components/ui/ds-button';
+import { DSTextInput } from '@/components/ui/ds-text-input';
 import { Badge } from '@/components/ui/badge';
-import { faSnowflake, faEye, faEyeSlash } from '@/icons';
+import { faSnowflake, faEye, faEyeSlash, faPencil, faCheck, faXmark } from '@/icons';
 
 interface CardsTableBlockProps {
   data: CardsTableMetadata;
   context?: 'rhc' | 'command';
+  onLimitChange?: (cardId: string, newLimit: number) => void;
   className?: string;
 }
 
@@ -45,13 +47,41 @@ function getStatusBadgeVariant(status: CardTableRow['status']): 'success' | 'war
 export function CardsTableBlock({ 
   data, 
   context = 'rhc',
+  onLimitChange,
   className = '' 
 }: CardsTableBlockProps) {
   const [expandedCardId, setExpandedCardId] = useState<string | null>(data.showDetailFor || null);
   const [frozenCards, setFrozenCards] = useState<Set<string>>(new Set());
   const [revealedCards, setRevealedCards] = useState<Set<string>>(new Set());
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [editLimitValue, setEditLimitValue] = useState<string>('');
+  const [updatedLimits, setUpdatedLimits] = useState<Record<string, number>>({});
   
   const isCompact = context === 'rhc';
+  
+  const handleStartEdit = (card: CardTableRow) => {
+    setEditingCardId(card.id);
+    setEditLimitValue((updatedLimits[card.id] || card.limit).toString());
+  };
+  
+  const handleCancelEdit = () => {
+    setEditingCardId(null);
+    setEditLimitValue('');
+  };
+  
+  const handleSaveLimit = (cardId: string) => {
+    const newLimit = parseFloat(editLimitValue.replace(/,/g, ''));
+    if (!isNaN(newLimit) && newLimit > 0) {
+      setUpdatedLimits(prev => ({ ...prev, [cardId]: newLimit }));
+      onLimitChange?.(cardId, newLimit);
+    }
+    setEditingCardId(null);
+    setEditLimitValue('');
+  };
+  
+  const getEffectiveLimit = (card: CardTableRow): number => {
+    return updatedLimits[card.id] || card.limit;
+  };
   
   const handleToggleFreeze = (cardId: string, currentStatus: string) => {
     setFrozenCards(prev => {
@@ -167,7 +197,7 @@ export function CardsTableBlock({
                       color: 'var(--ds-text-secondary)',
                     }}
                   >
-                    {formatCurrency(card.limit)}
+                    {formatCurrency(getEffectiveLimit(card))}
                   </td>
                   <td>
                     <Badge type={getStatusBadgeVariant(effectiveStatus as CardTableRow['status'])} label={effectiveStatus} />
@@ -199,6 +229,69 @@ export function CardsTableBlock({
                             </DSButton>
                           </div>
                         </div>
+                        
+                        {/* Monthly Limit - Editable */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-label" style={{ color: 'var(--ds-text-secondary)' }}>
+                            Monthly Limit
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {editingCardId === card.id ? (
+                              <>
+                                <DSTextInput
+                                  prefix="$"
+                                  value={editLimitValue}
+                                  onChange={(e) => setEditLimitValue(e.target.value.replace(/[^0-9]/g, ''))}
+                                  containerClassName="inline-limit-input"
+                                  style={{ width: 100 }}
+                                />
+                                <DSButton
+                                  variant="primary"
+                                  size="small"
+                                  iconOnly
+                                  aria-label="Save limit"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSaveLimit(card.id);
+                                  }}
+                                >
+                                  <Icon icon={faCheck} size="small" style={{ color: 'var(--ds-icon-on-primary)' }} />
+                                </DSButton>
+                                <DSButton
+                                  variant="tertiary"
+                                  size="small"
+                                  iconOnly
+                                  aria-label="Cancel"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCancelEdit();
+                                  }}
+                                >
+                                  <Icon icon={faXmark} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
+                                </DSButton>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-body-sm" style={{ color: 'var(--ds-text-default)', fontVariantNumeric: 'tabular-nums' }}>
+                                  {formatCurrency(getEffectiveLimit(card))}
+                                </span>
+                                <DSButton
+                                  variant="tertiary"
+                                  size="small"
+                                  iconOnly
+                                  aria-label="Edit limit"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartEdit(card);
+                                  }}
+                                >
+                                  <Icon icon={faPencil} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
+                                </DSButton>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        
                         <div className="flex gap-2">
                           <DSButton
                             variant={effectiveStatus === 'frozen' ? 'primary' : 'secondary'}

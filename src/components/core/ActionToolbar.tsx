@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Icon } from '@/components/ui/icon';
-import { faArrowRightArrowLeft, faEllipsis, faXmark, faMagnifyingGlass, faClock, faWindowMaximize, faCreditCard, faArrowUpFromLine, faArrowUp, faChevronLeft, faPlus, faUpRightAndDownLeftFromCenter, faDownLeftAndUpRightToCenter, faUser, faPaperPlane, faFileText, faCalendar, faSparkles, faHeadset } from '@/icons';
+import { faArrowRightArrowLeft, faEllipsis, faXmark, faMagnifyingGlass, faClock, faWindowMaximize, faCreditCard, faArrowUpFromLine, faArrowUp, faChevronLeft, faPlus, faUpRightAndDownLeftFromCenter, faDownLeftAndUpRightToCenter, faUser, faPaperPlane, faFileText, faCalendar, faSparkles, faHeadset, faSnowflake, faChartLine, faPencil, faUsers, faArrowTrendUp, faFileInvoiceDollar, faCircleQuestion } from '@/icons';
 import { cn } from '@/lib/utils';
 import { DSButton } from '@/components/ui/ds-button';
 import { DSAvatar } from '@/components/ui/ds-avatar';
@@ -48,18 +48,111 @@ const NAV_SUGGESTIONS: Suggestion[] = [
   { icon: faWindowMaximize, label: 'Cards', type: 'page', path: '/cards' },
 ];
 
-// AI command examples (shown after navigation)
-const AI_SUGGESTIONS: Suggestion[] = [
-  { icon: faCreditCard, label: 'What cards do I have and who is over their limit?', type: 'action', path: '', description: 'AI' },
+// Contextual AI suggestions based on current page
+const CONTEXTUAL_SUGGESTIONS: Record<string, Suggestion[]> = {
+  // Transactions page
+  '/transactions': [
+    { icon: faMagnifyingGlass, label: 'Find payments over $5,000 last month', type: 'action', path: '', description: 'AI' },
+    { icon: faFileText, label: 'Export transactions for Q4 2025', type: 'action', path: '', description: 'AI' },
+    { icon: faCircleQuestion, label: 'Show me transactions missing receipts', type: 'action', path: '', description: 'AI' },
+    { icon: faArrowTrendUp, label: 'Which vendor did we spend the most with?', type: 'action', path: '', description: 'AI' },
+  ],
+  
+  // Cards page
+  '/cards': [
+    { icon: faCreditCard, label: 'Issue a new virtual card for Sarah', type: 'action', path: '', description: 'AI' },
+    { icon: faSnowflake, label: 'Freeze the Ad Spend card', type: 'action', path: '', description: 'AI' },
+    { icon: faChartLine, label: 'Which cards are over 80% of their limit?', type: 'action', path: '', description: 'AI' },
+    { icon: faPencil, label: 'Increase the Cloud Services card limit to $10,000', type: 'action', path: '', description: 'AI' },
+  ],
+  
+  // Recipients page
+  '/payments/recipients': [
+    { icon: faPaperPlane, label: 'Send $5,000 to AWS', type: 'action', path: '', description: 'AI' },
+    { icon: faUser, label: 'Add a new recipient for Acme Corp', type: 'action', path: '', description: 'AI' },
+    { icon: faClock, label: 'Who did we pay last week?', type: 'action', path: '', description: 'AI' },
+    { icon: faCircleQuestion, label: 'Show recipients we haven\'t paid in 90 days', type: 'action', path: '', description: 'AI' },
+  ],
+  
+  // Accounts page
+  '/accounts': [
+    { icon: faChartLine, label: 'What\'s my total balance across all accounts?', type: 'action', path: '', description: 'AI' },
+    { icon: faArrowTrendUp, label: 'How much interest has Treasury earned this year?', type: 'action', path: '', description: 'AI' },
+    { icon: faArrowRightArrowLeft, label: 'Transfer $10,000 from Operating to Treasury', type: 'action', path: '', description: 'AI' },
+    { icon: faFileText, label: 'Show me January bank statements', type: 'action', path: '', description: 'AI' },
+  ],
+  
+  // Treasury account
+  '/accounts/treasury': [
+    { icon: faArrowTrendUp, label: 'What\'s my current APY on Treasury?', type: 'action', path: '', description: 'AI' },
+    { icon: faChartLine, label: 'How much interest did I earn this month?', type: 'action', path: '', description: 'AI' },
+    { icon: faArrowRightArrowLeft, label: 'Transfer $50,000 to Operating for payroll', type: 'action', path: '', description: 'AI' },
+    { icon: faCalendar, label: 'Show Treasury transaction history for last 30 days', type: 'action', path: '', description: 'AI' },
+  ],
+  
+  // Team/Employees page
+  '/team': [
+    { icon: faUser, label: 'Invite a new team member', type: 'action', path: '', description: 'AI' },
+    { icon: faCreditCard, label: 'Issue a card to Marcus with $2,000 limit', type: 'action', path: '', description: 'AI' },
+    { icon: faUsers, label: 'Who has admin access?', type: 'action', path: '', description: 'AI' },
+    { icon: faCircleQuestion, label: 'Which employees have missing receipts?', type: 'action', path: '', description: 'AI' },
+  ],
+  
+  // Bill Pay page
+  '/workflows/bill-pay': [
+    { icon: faArrowUpFromLine, label: 'Upload and pay this invoice', type: 'action', path: '', description: 'AI' },
+    { icon: faCalendar, label: 'Schedule a payment for next Friday', type: 'action', path: '', description: 'AI' },
+    { icon: faClock, label: 'What bills are due this week?', type: 'action', path: '', description: 'AI' },
+    { icon: faFileInvoiceDollar, label: 'Show me pending bills over $1,000', type: 'action', path: '', description: 'AI' },
+  ],
+  
+  // Invoicing page
+  '/invoicing': [
+    { icon: faFileInvoiceDollar, label: 'Create an invoice for Acme Corp for $12,500', type: 'action', path: '', description: 'AI' },
+    { icon: faClock, label: 'Which invoices are overdue?', type: 'action', path: '', description: 'AI' },
+    { icon: faPaperPlane, label: 'Send a reminder for invoice #1042', type: 'action', path: '', description: 'AI' },
+    { icon: faChartLine, label: 'How much revenue did we invoice this quarter?', type: 'action', path: '', description: 'AI' },
+  ],
+  
+  // Tasks page
+  '/tasks': [
+    { icon: faCircleQuestion, label: 'What tasks need my attention?', type: 'action', path: '', description: 'AI' },
+    { icon: faUsers, label: 'Show tasks assigned to my team', type: 'action', path: '', description: 'AI' },
+    { icon: faClock, label: 'What receipts are overdue?', type: 'action', path: '', description: 'AI' },
+    { icon: faChartLine, label: 'Summary of completed tasks this week', type: 'action', path: '', description: 'AI' },
+  ],
+};
+
+// Default suggestions when page not in map
+const DEFAULT_SUGGESTIONS: Suggestion[] = [
+  { icon: faChartLine, label: 'What\'s my current balance?', type: 'action', path: '', description: 'AI' },
   { icon: faPaperPlane, label: 'Send $5,000 to AWS for this month\'s invoice', type: 'action', path: '', description: 'AI' },
-  { icon: faFileText, label: 'Create an invoice for Acme Corp for $12,500', type: 'action', path: '', description: 'AI' },
+  { icon: faCreditCard, label: 'What cards do I have and who is over their limit?', type: 'action', path: '', description: 'AI' },
   { icon: faCalendar, label: 'Show me my January bank statements', type: 'action', path: '', description: 'AI' },
 ];
+
+// Get contextual suggestions based on current path
+function getContextualSuggestions(pathname: string): Suggestion[] {
+  // Check for exact match first
+  if (CONTEXTUAL_SUGGESTIONS[pathname]) {
+    return CONTEXTUAL_SUGGESTIONS[pathname];
+  }
+  
+  // Check for partial path matches (e.g., /accounts/treasury matches /accounts)
+  for (const [path, suggestions] of Object.entries(CONTEXTUAL_SUGGESTIONS)) {
+    if (pathname.startsWith(path) && path !== '/') {
+      return suggestions;
+    }
+  }
+  
+  // Fallback to default
+  return DEFAULT_SUGGESTIONS;
+}
 
 // All searchable suggestions (includes more pages for search)
 const ALL_SUGGESTIONS: Suggestion[] = [
   ...NAV_SUGGESTIONS,
-  ...AI_SUGGESTIONS,
+  ...DEFAULT_SUGGESTIONS,
   // Additional navigation for search
   { icon: faWindowMaximize, label: 'Tasks', type: 'page', path: '/tasks' },
   { icon: faWindowMaximize, label: 'Recipients', type: 'page', path: '/payments/recipients' },
@@ -237,10 +330,15 @@ export function ActionToolbar() {
 
   // Filter suggestions based on input (includes pages, actions, recipients, and cards)
   // For no search: show structured sections; for search: filter all suggestions
+  // Get contextual AI suggestions based on current page
+  const contextualSuggestions = useMemo(() => {
+    return getContextualSuggestions(location.pathname);
+  }, [location.pathname]);
+
   const filteredSuggestions = useMemo(() => {
     if (!inputValue) {
-      // When not searching, return nav + AI suggestions in order
-      return [...NAV_SUGGESTIONS, ...AI_SUGGESTIONS];
+      // When not searching, return nav + contextual AI suggestions in order
+      return [...NAV_SUGGESTIONS, ...contextualSuggestions];
     }
     const searchTerm = inputValue.toLowerCase();
     
@@ -280,7 +378,7 @@ export function ActionToolbar() {
       }));
     
     return [...filteredPages, ...filteredRecipientSuggestions, ...filteredCardSuggestions];
-  }, [inputValue, recipients]);
+  }, [inputValue, recipients, contextualSuggestions]);
 
   // Get recent recipients for send menu (sorted by lastPaid date)
   const recentRecipients = useMemo(() => {
@@ -918,7 +1016,7 @@ export function ActionToolbar() {
                         >
                           Try asking
                         </div>
-                        {AI_SUGGESTIONS.map((suggestion, idx) => {
+                        {contextualSuggestions.map((suggestion, idx) => {
                           const index = NAV_SUGGESTIONS.length + idx;
                           return (
                             <div 

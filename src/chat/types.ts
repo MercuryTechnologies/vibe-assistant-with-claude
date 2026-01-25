@@ -243,8 +243,46 @@ export interface DocumentsMetadata {
 export interface InvoiceFormMetadata {
   clientId?: string
   clientName?: string
+  suggestedClient?: string
+  suggestedAmount?: number
   draftItems?: Array<{ description: string; amount: number }>
   dueDate?: string
+}
+
+/**
+ * Metadata for recipient creation form
+ */
+export interface RecipientCreateMetadata {
+  suggestedName?: string
+  afterAction?: {
+    type: 'send_payment'
+    amount?: number
+  }
+}
+
+/**
+ * Metadata for card issuance form
+ */
+export interface CardIssueMetadata {
+  employeeId?: string
+  employeeName?: string
+  cardType: 'virtual' | 'physical'
+  suggestedLimit: number
+  employees: Array<{
+    id: string
+    name: string
+    email: string
+    role: string
+  }>
+}
+
+/**
+ * Metadata for employee creation form
+ */
+export interface EmployeeCreateMetadata {
+  suggestedName?: string
+  suggestedEmail?: string
+  roles: string[]
 }
 
 /**
@@ -331,10 +369,55 @@ export interface MessageMetadata {
   billUpload?: BillUploadMetadata
   accountBalances?: AccountBalancesMetadata
   featureCards?: FeatureCardsMetadata
+  // Action form metadata
+  recipientCreate?: RecipientCreateMetadata
+  cardIssue?: CardIssueMetadata
+  employeeCreate?: EmployeeCreateMetadata
+  // Confirmation for sensitive changes
+  confirmationRequest?: ConfirmationRequestMetadata
+  // Multi-step plan mode
+  plan?: PlanMetadata
   // Empty state for zero-result queries
   emptyState?: EmptyStateMetadata
   // Support mode indicator
   supportMode?: boolean
+}
+
+/**
+ * Metadata for confirmation requests
+ */
+export interface ConfirmationRequestMetadata {
+  id: string
+  action: string
+  currentValue: string
+  newValue: string
+  targetId: string
+  targetName?: string
+  undoAvailable?: boolean
+}
+
+/**
+ * A step in a multi-step plan
+ */
+export interface PlanStepMetadata {
+  id: string
+  action: string
+  label: string
+  status: 'pending' | 'in_progress' | 'completed' | 'error' | 'skipped'
+  data?: Record<string, unknown>
+  dependsOn?: string
+  result?: string
+  error?: string
+}
+
+/**
+ * Metadata for multi-step plan mode
+ */
+export interface PlanMetadata {
+  id: string
+  title: string
+  status: 'pending_confirmation' | 'executing' | 'completed' | 'cancelled'
+  steps: PlanStepMetadata[]
 }
 
 /**

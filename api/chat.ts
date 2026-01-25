@@ -636,15 +636,21 @@ INTENTS:
 - ACCOUNT_QUERY: User asks about specific accounts, account types, account details
 - TRANSACTION_SEARCH: User asks about specific transactions, recent transactions, transaction history
 - CARD_QUERY: User asks about cards, card spending, card limits, who has cards
-- CARD_ACTION: User wants to freeze/manage cards, issue new cards
+- CARD_ACTION: User wants to freeze/manage cards
 - TASK_QUERY: User asks about tasks, pending items, what needs attention
 - DOCUMENT_QUERY: User asks about documents, statements, bank statements, tax documents
 - FEATURE_DISCOVERY: User asks what Mercury can do, what features are available, what products we offer, or wants personalized feature recommendations
-- AGENT_MODE: Multi-step workflow like issuing cards to employees
+- AGENT_MODE: Multi-step workflow that requires multiple actions
 - SUPPORT: User explicitly asks for human support
 - COMPLEX_QUESTION: Requires deep analysis, comparisons, forecasting
 - SIMPLE_QUESTION: General product questions
 - CHITCHAT: Casual conversation
+- SEND_PAYMENT: User wants to send money, pay someone, make a payment, send ACH or wire
+- CREATE_RECIPIENT: User wants to add a new recipient, add a vendor, add a payee
+- CREATE_INVOICE: User wants to create an invoice, bill a client, send an invoice
+- UPLOAD_BILL: User wants to upload a bill, pay a bill, schedule a bill payment
+- ISSUE_CARD: User wants to issue a new card, create a card, get a card for someone
+- CREATE_EMPLOYEE: User wants to invite a team member, add an employee, add a user
 
 Respond with JSON:
 {"intent":"...", "needsSmartModel":true/false, "handoffMessage":"...", "quickResponse":"...", "navigationTarget":"..."}`
@@ -1511,6 +1517,160 @@ async function handleWithRouter(
             message: 'No transactions found',
             suggestion: 'Try adjusting your filters or search for a merchant name.'
           }
+        }
+      }
+      break
+    }
+
+    case 'SEND_PAYMENT': {
+      // Extract payment intent from message
+      const paymentQuery = message.toLowerCase()
+      const amountMatch = paymentQuery.match(/\$?([\d,]+(?:\.\d{2})?)/i)
+      const amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : undefined
+      
+      // Check for wire vs ACH
+      const wireKeywords = ['wire', 'same day', 'urgent', 'immediately']
+      const paymentType = wireKeywords.some(k => paymentQuery.includes(k)) ? 'wire' : 'ach'
+      
+      // Try to find recipient
+      const recipients = getRecipients()
+      const matchedRecipient = recipients.find(r => 
+        paymentQuery.includes(r.name.toLowerCase())
+      )
+      
+      if (matchedRecipient) {
+        responseText = `Ready to send${amount ? ` **${formatCurrency(amount)}**` : ''} to **${matchedRecipient.name}**. Complete the details below:`
+        metadata = {
+          paymentForm: {
+            recipientId: matchedRecipient.id,
+            recipientName: matchedRecipient.name,
+            suggestedAmount: amount,
+            paymentType,
+          }
+        }
+      } else {
+        responseText = `Who would you like to send money to? Here are your recent recipients:`
+        const topRecipients = recipients.slice(0, 8)
+        metadata = {
+          recipients: {
+            title: 'Select a recipient',
+            rows: topRecipients.map(r => ({
+              id: r.id,
+              name: r.name,
+              bankName: r.bankName || undefined,
+              accountLast4: r.accountNumber?.slice(-4) || undefined,
+              lastPaidDate: r.lastPaid,
+              lastPaidAmount: r.totalPaid ? r.totalPaid / 10 : undefined,
+            })),
+            allowPayment: true,
+          }
+        }
+      }
+      break
+    }
+    
+    case 'CREATE_RECIPIENT': {
+      // Extract recipient name from message
+      const forMatch = message.match(/(?:for|add|create|new recipient)\s+([A-Z][a-zA-Z\s]+?)(?:\s*$|\s+with|\s+bank)/i)
+      const suggestedName = forMatch ? forMatch[1].trim() : undefined
+      
+      responseText = suggestedName 
+        ? `Let's add **${suggestedName}** as a new recipient. Enter their bank details below:`
+        : `Let's add a new recipient. Enter their details below:`
+      
+      metadata = {
+        recipientCreate: {
+          suggestedName,
+        }
+      }
+      break
+    }
+    
+    case 'CREATE_INVOICE': {
+      // Extract invoice details from message
+      const invoiceQuery = message.toLowerCase()
+      const amountMatch = invoiceQuery.match(/\$?([\d,]+(?:\.\d{2})?)/i)
+      const amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : undefined
+      
+      // Try to find client name
+      const forMatch = message.match(/(?:for|to|invoice)\s+([A-Z][a-zA-Z\s]+?)(?:\s+for|\s+\$|\s*$)/i)
+      const clientName = forMatch ? forMatch[1].trim() : undefined
+      
+      responseText = `Let's create an invoice${clientName ? ` for **${clientName}**` : ''}${amount ? ` for **${formatCurrency(amount)}**` : ''}. Fill in the details below:`
+      
+      metadata = {
+        invoiceForm: {
+          suggestedClient: clientName,
+          suggestedAmount: amount,
+        }
+      }
+      break
+    }
+    
+    case 'UPLOAD_BILL': {
+      responseText = `Upload a bill or invoice to schedule a payment. You can drag and drop a PDF or image, or click to select a file.`
+      metadata = {
+        billUpload: {
+          acceptedFormats: ['pdf', 'png', 'jpg', 'jpeg'],
+        }
+      }
+      break
+    }
+    
+    case 'ISSUE_CARD': {
+      // Extract card details from message
+      const cardQuery = message.toLowerCase()
+      const limitMatch = cardQuery.match(/\$?([\d,]+)/i)
+      const limit = limitMatch ? parseFloat(limitMatch[1].replace(/,/g, '')) : undefined
+      
+      // Card type
+      const isPhysical = cardQuery.includes('physical')
+      const cardType = isPhysical ? 'physical' : 'virtual'
+      
+      // Try to find employee name
+      const employees = getEmployees()
+      const matchedEmployee = employees.find(e => 
+        cardQuery.includes(e.name.toLowerCase())
+      )
+      
+      responseText = matchedEmployee
+        ? `Let's issue a ${cardType} card to **${matchedEmployee.name}**${limit ? ` with a **${formatCurrency(limit)}** monthly limit` : ''}. Confirm the details below:`
+        : `Who should receive the new card? Select an employee below:`
+      
+      metadata = {
+        cardIssue: {
+          employeeId: matchedEmployee?.id,
+          employeeName: matchedEmployee?.name,
+          cardType,
+          suggestedLimit: limit || 2000,
+          employees: employees.map(e => ({
+            id: e.id,
+            name: e.name,
+            email: e.email,
+            role: e.role,
+          })),
+        }
+      }
+      break
+    }
+    
+    case 'CREATE_EMPLOYEE': {
+      // Extract employee details from message
+      const empMatch = message.match(/(?:invite|add|create)\s+([A-Z][a-zA-Z\s]+?)(?:\s+as|\s+with|\s+to|\s*$)/i)
+      const suggestedName = empMatch ? empMatch[1].trim() : undefined
+      
+      const emailMatch = message.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i)
+      const suggestedEmail = emailMatch ? emailMatch[1] : undefined
+      
+      responseText = suggestedName
+        ? `Let's invite **${suggestedName}** to your Mercury account. Complete their details below:`
+        : `Let's add a new team member. Enter their details below:`
+      
+      metadata = {
+        employeeCreate: {
+          suggestedName,
+          suggestedEmail,
+          roles: ['Admin', 'Bookkeeper', 'Card Only', 'Custom'],
         }
       }
       break

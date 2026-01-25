@@ -16,4 +16,14 @@ export { AccountBalancesBlock } from './AccountBalancesBlock';
 export { RecipientsBlock } from './RecipientsBlock';
 export { DocumentsBlock } from './DocumentsBlock';
 export { FeatureCardsBlock } from './FeatureCardsBlock';
-export { ChatBlockRenderer } from './ChatBlockRenderer';
+export { ChatBlockRenderer, type ActionPayload } from './ChatBlockRenderer';
+
+// Inline Action Form Blocks
+export { PaymentFormBlock, type PaymentData } from './PaymentFormBlock';
+export { RecipientCreateBlock, type RecipientData } from './RecipientCreateBlock';
+export { CardIssueBlock, type CardIssueData } from './CardIssueBlock';
+export { InvoiceFormBlock, type InvoiceData, type InvoiceLineItem } from './InvoiceFormBlock';
+
+// Confirmation and Plan Blocks
+export { ConfirmationBlock } from './ConfirmationBlock';
+export { PlanBlock, type Plan, type PlanStep } from './PlanBlock';
