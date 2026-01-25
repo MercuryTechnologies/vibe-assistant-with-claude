@@ -1,0 +1,50 @@
+{
+  "company": {
+    "id": "company_001",
+    "name": "Acme Startup Inc",
+    "legalName": "Acme Startup, Inc.",
+    "type": "C-Corp",
+    "ein": "82-4506327",
+    "industry": "B2B SaaS",
+    "website": "https://acmestartup.com",
+    "founded": "2025-07-01",
+    "address": {
+      "street": "660 Mission St, Floor 4",
+      "city": "San Francisco",
+      "state": "CA",
+      "zip": "94105",
+      "country": "USA"
+    },
+    "funding": {
+      "stage": "Series A",
+      "totalRaised": 20000000,
+      "lastRoundAmount": 20000000,
+      "lastRoundDate": "2025-07-15",
+      "investors": [
+        {
+          "name": "Sequoia Capital",
+          "amount": 12000000,
+          "type": "Lead"
+        },
+        {
+          "name": "Andreessen Horowitz",
+          "amount": 5000000,
+          "type": "Participant"
+        },
+        {
+          "name": "Angel Syndicate",
+          "amount": 3000000,
+          "type": "Participant"
+        }
+      ]
+    },
+    "metrics": {
+      "employeeCount": 28,
+      "monthlyBurnRate": 350000,
+      "currentMRR": 175000,
+      "mrrGrowthRate": 0.15,
+      "customersCount": 47
+    },
+    "bankingStartDate": "2025-07-10"
+  }
+}

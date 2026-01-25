@@ -1,32 +1,88 @@
 // =============================================================================
-// Chat API Endpoint with SSE Streaming - Self-contained for Vercel
+// Chat API Endpoint with SSE Streaming - Using Unified Data Layer
 // =============================================================================
 // Vercel Serverless Function with two-tier model routing and real-time streaming
-// All mock data is embedded directly to avoid import issues
+// Data is imported from the unified data layer JSON files
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import Anthropic from '@anthropic-ai/sdk'
 
+// Import unified data from JSON files
+import companyData from '../src/data/company.json'
+import accountsData from '../src/data/accounts.json'
+import transactionsData from '../src/data/transactions.json'
+import cardsData from '../src/data/cards.json'
+import employeesData from '../src/data/employees.json'
+import recipientsData from '../src/data/recipients.json'
+
 // =============================================================================
-// EMBEDDED MOCK DATA (for Vercel serverless - no external imports)
+// Type Definitions
 // =============================================================================
+
+interface Company {
+  id: string
+  name: string
+  legalName: string
+  type: string
+  ein: string
+  industry: string
+  website: string
+  founded: string
+  address: {
+    street: string
+    city: string
+    state: string
+    zip: string
+    country: string
+  }
+  funding: {
+    stage: string
+    totalRaised: number
+    lastRoundAmount: number
+    lastRoundDate: string
+    investors: Array<{ name: string; amount: number; type: string }>
+  }
+  metrics: {
+    employeeCount: number
+    monthlyBurnRate: number
+    currentMRR: number
+    mrrGrowthRate: number
+    customersCount: number
+  }
+  bankingStartDate: string
+}
 
 interface Account {
   id: string
   name: string
-  nickname: string
-  kind: 'checking' | 'savings'
-  currentBalance: number
-  availableBalance: number
-  status: 'active' | 'closed'
+  type: 'checking' | 'savings' | 'treasury'
+  balance: number
+  currency: string
   accountNumber: string
   routingNumber: string
-  dashboardLink: string
+  status: 'active' | 'inactive' | 'pending'
+  apy?: number
+  purpose?: string
+}
+
+interface Transaction {
+  id: string
+  description: string
+  merchant: string
+  amount: number
+  type: 'credit' | 'debit' | 'transfer'
+  date: string
+  category: string
+  status: 'completed' | 'pending' | 'failed'
+  accountId: string
+  cardId?: string
+  hasAttachment?: boolean
 }
 
 interface Card {
   id: string
   cardholder: string
+  employeeId: string
   cardName: string
   cardNumber: string
   nickname?: string
@@ -34,212 +90,314 @@ interface Card {
   type: string
   accountId: string
   status: 'active' | 'frozen' | 'cancelled'
-  spentThisMonth: number // Pre-calculated for demo
+  billingAddress: {
+    street: string
+    city: string
+    state: string
+    zip: string
+  }
 }
 
-interface SharedTransaction {
+interface Employee {
   id: string
-  date: string
-  counterparty: string
-  counterpartyInitials: string
-  counterpartyIcon?: string
-  amount: number
-  account: string
-  method: 'ach' | 'wire' | 'card' | 'stripe' | 'check' | 'transfer' | 'loan' | 'invoice'
-  methodDirection?: 'in' | 'out'
-  cardHolder?: string
-  cardLast4?: string
-  category?: string
-  categoryAutoApplied?: boolean
-  description?: string | null
-  hasAttachment?: boolean
-  status: 'completed' | 'pending' | 'failed'
-  dashboardLink?: string
+  firstName: string
+  lastName: string
+  email: string
+  role: string
+  department: string
+  startDate: string
+  salary: number
+  cardId: string | null
+  isAdmin: boolean
 }
 
-// Static Accounts
-const MOCK_ACCOUNTS: Account[] = [
-  { id: 'acct-1', name: 'Mercury Checking ••4521', nickname: 'Mercury Checking', kind: 'checking', currentBalance: 2459832.17, availableBalance: 2459832.17, status: 'active', accountNumber: '202233204521', routingNumber: '091311229', dashboardLink: '/accounts' },
-  { id: 'acct-2', name: 'Mercury Savings ••8834', nickname: 'Mercury Savings', kind: 'savings', currentBalance: 500000.00, availableBalance: 500000.00, status: 'active', accountNumber: '202233208834', routingNumber: '091311229', dashboardLink: '/accounts' },
-  { id: 'acct-3', name: 'Ops / Payroll ••2211', nickname: 'Ops / Payroll', kind: 'checking', currentBalance: 145000.00, availableBalance: 145000.00, status: 'active', accountNumber: '202233202211', routingNumber: '091311229', dashboardLink: '/accounts' },
-  { id: 'acct-4', name: 'Treasury ••9900', nickname: 'Treasury', kind: 'savings', currentBalance: 1200000.00, availableBalance: 1200000.00, status: 'active', accountNumber: '202233209900', routingNumber: '091311229', dashboardLink: '/accounts' },
-]
-
-// Static Cards - matches src/data/cards.json
-// Spending amounts are pre-calculated to match linked transactions
-const MOCK_CARDS: Card[] = [
-  { id: 'card-1', cardholder: 'Sarah Chen', cardName: 'Office Card', cardNumber: '4521', nickname: 'Office Supplies', monthlyLimit: 300000, type: 'Virtual Debit', accountId: 'checking-0297', status: 'active', spentThisMonth: 10789 },
-  { id: 'card-2', cardholder: 'Marcus Johnson', cardName: 'Marketing Card', cardNumber: '8934', nickname: 'Ad Spend', monthlyLimit: 50000, type: 'Virtual Debit', accountId: 'ap', status: 'active', spentThisMonth: 1875.50 },
-  { id: 'card-3', cardholder: 'Emily Rodriguez', cardName: 'Engineering Card', cardNumber: '2156', nickname: 'Cloud Services', monthlyLimit: 100000, type: 'Physical Debit', accountId: 'ops-payroll', status: 'active', spentThisMonth: 5420.25 },
-  { id: 'card-4', cardholder: 'David Kim', cardName: 'Sales Card', cardNumber: '7743', monthlyLimit: 25000, type: 'Virtual Debit', accountId: 'ap', status: 'active', spentThisMonth: 890 },
-  { id: 'card-5', cardholder: 'Amanda Foster', cardName: 'Operations Card', cardNumber: '3367', nickname: 'Team Expenses', monthlyLimit: 75000, type: 'Physical Debit', accountId: 'ops-payroll', status: 'active', spentThisMonth: 2100.75 },
-  { id: 'card-6', cardholder: 'James Wilson', cardName: 'Executive Card', cardNumber: '9012', nickname: 'Travel & Entertainment', monthlyLimit: 500000, type: 'Virtual Debit', accountId: 'checking-0297', status: 'active', spentThisMonth: 4500 },
-  { id: 'card-7', cardholder: 'Lisa Park', cardName: 'CS Card', cardNumber: '5589', monthlyLimit: 15000, type: 'Physical Debit', accountId: 'ap', status: 'active', spentThisMonth: 675.30 },
-  { id: 'card-8', cardholder: 'Michael Torres', cardName: 'Dev Card', cardNumber: '1234', nickname: 'Software Licenses', monthlyLimit: 100000, type: 'Virtual Debit', accountId: 'ops-payroll', status: 'active', spentThisMonth: 3890 },
-]
-
-// Generate transactions on the fly
-function generateTransactions(): SharedTransaction[] {
-  const transactions: SharedTransaction[] = []
-  const today = new Date()
-  let txnId = 1
-
-  // Recent transactions for demo
-  transactions.push({
-    id: `txn-${txnId++}`,
-    date: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    counterparty: 'AWS',
-    counterpartyInitials: 'AW',
-    amount: -3421.89,
-    account: 'Mercury Checking',
-    method: 'ach',
-    methodDirection: 'out',
-    category: 'Software & Subscriptions',
-    description: 'AWS usage charges',
-    status: 'completed',
-    dashboardLink: '/transactions',
-  })
-
-  transactions.push({
-    id: `txn-${txnId++}`,
-    date: today.toISOString().split('T')[0],
-    counterparty: 'Stripe',
-    counterpartyInitials: 'S',
-    amount: 28450.00,
-    account: 'Mercury Checking',
-    method: 'stripe',
-    methodDirection: 'in',
-    category: 'Revenue',
-    description: 'Stripe payout - Weekly',
-    status: 'completed',
-    dashboardLink: '/transactions',
-  })
-
-  transactions.push({
-    id: `txn-${txnId++}`,
-    date: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    counterparty: 'Gusto',
-    counterpartyInitials: 'G',
-    amount: -89500.00,
-    account: 'Ops / Payroll',
-    method: 'ach',
-    methodDirection: 'out',
-    category: 'Payroll',
-    description: 'Payroll',
-    status: 'completed',
-    dashboardLink: '/transactions',
-  })
-
-  // Wire transactions
-  for (let i = 0; i < 5; i++) {
-    const date = new Date(today.getTime() - (i * 5 + 3) * 24 * 60 * 60 * 1000)
-    const clients = ['Acme Corp', 'TechStart Inc', 'GlobalTech Solutions']
-    const client = clients[i % clients.length]
-    const amount = 15000 + (i * 8000)
-    
-    transactions.push({
-      id: `txn-${txnId++}`,
-      date: date.toISOString().split('T')[0],
-      counterparty: client,
-      counterpartyInitials: client[0],
-      amount: amount,
-      account: 'Mercury Checking',
-      method: 'wire',
-      methodDirection: 'in',
-      category: 'Revenue',
-      description: `Payment from ${client}`,
-      status: 'completed',
-      dashboardLink: '/transactions',
-    })
-  }
-
-  // More expenses
-  const expenses = [
-    { name: 'WeWork', amount: -15000, category: 'Rent & Utilities' },
-    { name: 'Slack', amount: -1250, category: 'Software & Subscriptions' },
-    { name: 'Figma', amount: -450, category: 'Software & Subscriptions' },
-    { name: 'Google Cloud', amount: -1243.50, category: 'Software & Subscriptions' },
-    { name: 'OpenAI', amount: -2100, category: 'Software & Subscriptions' },
-  ]
-
-  for (let i = 0; i < expenses.length; i++) {
-    const date = new Date(today.getTime() - (i * 3 + 5) * 24 * 60 * 60 * 1000)
-    transactions.push({
-      id: `txn-${txnId++}`,
-      date: date.toISOString().split('T')[0],
-      counterparty: expenses[i].name,
-      counterpartyInitials: expenses[i].name.substring(0, 2).toUpperCase(),
-      amount: expenses[i].amount,
-      account: 'Mercury Checking',
-      method: 'ach',
-      methodDirection: 'out',
-      category: expenses[i].category,
-      status: 'completed',
-      dashboardLink: '/transactions',
-    })
-  }
-
-  return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+interface Recipient {
+  id: string
+  name: string
+  initials: string
+  type: 'vendor' | 'client' | 'contractor' | 'investor' | 'internal'
+  category: string
+  status: 'active' | 'inactive' | 'pending'
+  lastPaid?: string
+  totalPaid?: number
+  totalReceived?: number
 }
 
-const MOCK_TRANSACTIONS = generateTransactions()
+// =============================================================================
+// DATA ACCESS FUNCTIONS
+// =============================================================================
 
-// Query functions
-function searchSharedTransactions(query?: string, limit: number = 10): SharedTransaction[] {
-  const q = (query || '').toLowerCase()
-  let results = MOCK_TRANSACTIONS
-  if (q) {
-    results = MOCK_TRANSACTIONS.filter(txn =>
-      txn.counterparty.toLowerCase().includes(q) ||
-      (txn.description && txn.description.toLowerCase().includes(q)) ||
-      (txn.category && txn.category.toLowerCase().includes(q))
+function getCompany(): Company {
+  return companyData.company as Company
+}
+
+function getAccounts(): Account[] {
+  return accountsData.accounts as Account[]
+}
+
+function getTotalBalance(): number {
+  return getAccounts().reduce((sum, a) => sum + a.balance, 0)
+}
+
+function getTransactions(filters?: { 
+  startDate?: string
+  endDate?: string
+  categories?: string[]
+  merchants?: string[]
+  type?: string
+  cardId?: string
+  limit?: number
+}): Transaction[] {
+  let txns = transactionsData.transactions as Transaction[]
+
+  if (filters?.startDate) {
+    txns = txns.filter(t => t.date >= filters.startDate!)
+  }
+  if (filters?.endDate) {
+    txns = txns.filter(t => t.date <= filters.endDate!)
+  }
+  if (filters?.categories && filters.categories.length > 0) {
+    const cats = filters.categories.map(c => c.toLowerCase())
+    txns = txns.filter(t => cats.includes(t.category.toLowerCase()))
+  }
+  if (filters?.merchants && filters.merchants.length > 0) {
+    const merchants = filters.merchants.map(m => m.toLowerCase())
+    txns = txns.filter(t => merchants.some(m => t.merchant.toLowerCase().includes(m)))
+  }
+  if (filters?.type) {
+    txns = txns.filter(t => t.type === filters.type)
+  }
+  if (filters?.cardId) {
+    txns = txns.filter(t => t.cardId === filters.cardId)
+  }
+  if (filters?.limit) {
+    txns = txns.slice(0, filters.limit)
+  }
+
+  return txns
+}
+
+function getRecentTransactions(limit: number = 10): Transaction[] {
+  return [...getTransactions()]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, limit)
+}
+
+function searchTransactions(query: string, limit: number = 20): Transaction[] {
+  const q = query.toLowerCase()
+  return getTransactions()
+    .filter(t =>
+      t.merchant.toLowerCase().includes(q) ||
+      t.description.toLowerCase().includes(q) ||
+      t.category.toLowerCase().includes(q)
     )
-  }
-  return results.slice(0, limit)
+    .slice(0, limit)
 }
 
-function getSharedWireTransactions(limit: number = 20): SharedTransaction[] {
-  return MOCK_TRANSACTIONS.filter(txn => txn.method === 'wire').slice(0, limit)
+function getCards(): Card[] {
+  return cardsData.cards as Card[]
 }
 
-function getSharedTransactionsSummary() {
-  const moneyIn = MOCK_TRANSACTIONS.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
-  const moneyOut = MOCK_TRANSACTIONS.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0)
+function getCardsWithSpending(): Array<Card & { spentThisMonth: number; spentLastMonth: number }> {
+  const cards = getCards()
+  const now = new Date()
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const lastMonth = now.getMonth() === 0
+    ? `${now.getFullYear() - 1}-12`
+    : `${now.getFullYear()}-${String(now.getMonth()).padStart(2, '0')}`
+
+  return cards.map(card => {
+    const cardTxns = getTransactions({ cardId: card.id })
+    const thisMonthTxns = cardTxns.filter(t => t.date.startsWith(thisMonth))
+    const lastMonthTxns = cardTxns.filter(t => t.date.startsWith(lastMonth))
+
+    const spentThisMonth = thisMonthTxns
+      .filter(t => t.amount < 0)
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+
+    const spentLastMonth = lastMonthTxns
+      .filter(t => t.amount < 0)
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+
+    return { ...card, spentThisMonth, spentLastMonth }
+  })
+}
+
+function getEmployees(): Employee[] {
+  return employeesData.employees as Employee[]
+}
+
+function getRecipients(): Recipient[] {
+  return recipientsData.recipients as Recipient[]
+}
+
+// =============================================================================
+// SUMMARY FUNCTIONS
+// =============================================================================
+
+function getDateNDaysAgo(days: number): string {
+  const date = new Date()
+  date.setDate(date.getDate() - days)
+  return date.toISOString().split('T')[0]
+}
+
+function getCashflowSummary(period: '7d' | '30d' | '90d'): {
+  moneyIn: number
+  moneyOut: number
+  net: number
+  transactionCount: number
+} {
+  const days = period === '7d' ? 7 : period === '30d' ? 30 : 90
+  const startDate = getDateNDaysAgo(days)
+  const txns = getTransactions({ startDate })
+    .filter(t => t.type !== 'transfer')
+
+  const moneyIn = txns
+    .filter(t => t.amount > 0)
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const moneyOut = txns
+    .filter(t => t.amount < 0)
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+
   return {
-    last30Days: {
-      moneyIn,
-      moneyOut,
-      netChange: moneyIn - moneyOut,
-      transactionCount: MOCK_TRANSACTIONS.length,
-    }
+    moneyIn,
+    moneyOut,
+    net: moneyIn - moneyOut,
+    transactionCount: txns.length,
   }
 }
 
-function getSharedInsightsData() {
-  const summary = getSharedTransactionsSummary()
-  const totalBalance = MOCK_ACCOUNTS.reduce((sum, a) => sum + a.currentBalance, 0)
-  const netCashflow = summary.last30Days.moneyIn - summary.last30Days.moneyOut
-  
+function getTopSpendingCategories(limit: number = 5, period: '30d' | '90d' = '30d'): Array<{
+  category: string
+  amount: number
+  count: number
+}> {
+  const days = period === '30d' ? 30 : 90
+  const startDate = getDateNDaysAgo(days)
+  const txns = getTransactions({ startDate })
+    .filter(t => t.amount < 0 && t.type !== 'transfer')
+
+  const categoryMap = new Map<string, { amount: number; count: number }>()
+
+  for (const t of txns) {
+    const current = categoryMap.get(t.category) || { amount: 0, count: 0 }
+    categoryMap.set(t.category, {
+      amount: current.amount + Math.abs(t.amount),
+      count: current.count + 1,
+    })
+  }
+
+  return Array.from(categoryMap.entries())
+    .map(([category, data]) => ({ category, amount: data.amount, count: data.count }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, limit)
+}
+
+function getRunwayEstimate(): { monthsRemaining: number; monthlyBurn: number } {
+  const totalBalance = getTotalBalance()
+  const cashflow = getCashflowSummary('90d')
+  const monthlyBurn = cashflow.moneyOut / 3
+
   return {
-    totalBalance,
-    cashflow: {
-      moneyIn: summary.last30Days.moneyIn,
-      moneyOut: summary.last30Days.moneyOut,
-      netChange: netCashflow,
-      trend: netCashflow > 0 ? 'positive' as const : netCashflow < -10000 ? 'negative' as const : 'neutral' as const,
-      period: 'last 30 days',
-    },
-    accounts: MOCK_ACCOUNTS.map(a => ({ name: a.nickname, balance: a.currentBalance, type: a.kind })),
-    topSpendingCategories: [
-      { category: 'Payroll', amount: 89500 },
-      { category: 'Rent & Utilities', amount: 15000 },
-      { category: 'Software & Subscriptions', amount: 8464.39 },
-    ],
-    transactionCount: summary.last30Days.transactionCount,
+    monthsRemaining: monthlyBurn > 0 ? Math.floor(totalBalance / monthlyBurn) : 999,
+    monthlyBurn,
   }
 }
 
-// Flagged transactions data for demo
+function getWireTransactions(limit: number = 10): Transaction[] {
+  // Wire transactions are typically large enterprise payments
+  return getTransactions()
+    .filter(t => t.type === 'credit' && t.amount >= 50000 && t.category === 'Revenue')
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, limit)
+}
+
+function getMerchantSpending(merchantName: string): { total: number; transactions: Transaction[]; count: number } {
+  const txns = searchTransactions(merchantName, 50)
+  const total = txns.reduce((sum, t) => sum + Math.abs(t.amount), 0)
+  return { total, transactions: txns, count: txns.length }
+}
+
+// =============================================================================
+// AI CONTEXT BUILDER
+// =============================================================================
+
+function formatCurrency(amount: number): string {
+  const prefix = amount < 0 ? '-' : ''
+  const absAmount = Math.abs(amount)
+  if (absAmount >= 1000000) {
+    return `${prefix}$${(absAmount / 1000000).toFixed(2)}M`
+  }
+  if (absAmount >= 1000) {
+    return `${prefix}$${(absAmount / 1000).toFixed(1)}K`
+  }
+  return `${prefix}$${absAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function buildAIContext(): string {
+  const company = getCompany()
+  const accounts = getAccounts()
+  const totalBalance = getTotalBalance()
+  const recentTxns = getRecentTransactions(15)
+  const cashflow30d = getCashflowSummary('30d')
+  const runway = getRunwayEstimate()
+  const topCategories = getTopSpendingCategories(8)
+  const cards = getCardsWithSpending()
+  const employees = getEmployees()
+
+  return `
+=== COMPANY PROFILE ===
+Company: ${company.name} (${company.legalName})
+Industry: ${company.industry}
+EIN: ${company.ein}
+Founded: ${company.founded}
+Employees: ${company.metrics.employeeCount}
+
+=== FUNDING ===
+Stage: ${company.funding.stage}
+Total Raised: ${formatCurrency(company.funding.totalRaised)}
+Lead Investor: ${company.funding.investors.find(i => i.type === 'Lead')?.name || 'N/A'}
+
+=== KEY METRICS ===
+Current MRR: ${formatCurrency(company.metrics.currentMRR)}
+MRR Growth Rate: ${(company.metrics.mrrGrowthRate * 100).toFixed(0)}%
+Monthly Burn Rate: ${formatCurrency(company.metrics.monthlyBurnRate)}
+Customers: ${company.metrics.customersCount}
+
+=== ACCOUNTS (Total: ${formatCurrency(totalBalance)}) ===
+${accounts.map(a => `• ${a.name} (${a.type}): ${formatCurrency(a.balance)}${a.apy ? ` @ ${a.apy}% APY` : ''}`).join('\n')}
+
+=== RUNWAY ===
+Months Remaining: ${runway.monthsRemaining} months
+Monthly Burn: ${formatCurrency(runway.monthlyBurn)}
+
+=== CASHFLOW (Last 30 Days) ===
+Money In: ${formatCurrency(cashflow30d.moneyIn)}
+Money Out: ${formatCurrency(cashflow30d.moneyOut)}
+Net: ${formatCurrency(cashflow30d.net)}
+Transactions: ${cashflow30d.transactionCount}
+
+=== TOP SPENDING CATEGORIES (30 Days) ===
+${topCategories.map(c => `• ${c.category}: ${formatCurrency(c.amount)} (${c.count} transactions)`).join('\n')}
+
+=== CARDS (${cards.length} total) ===
+${cards.map(c => `• ${c.cardholder} (${c.cardName}): Spent ${formatCurrency(c.spentThisMonth)} of ${formatCurrency(c.monthlyLimit)} limit${c.spentThisMonth > c.monthlyLimit ? ' ⚠️ OVER BUDGET' : ''}`).join('\n')}
+
+=== RECENT TRANSACTIONS ===
+${recentTxns.map(t => `• ${t.date}: ${t.merchant} ${t.amount >= 0 ? '+' : ''}${formatCurrency(t.amount)} (${t.category})`).join('\n')}
+
+=== EMPLOYEES (${employees.length} total) ===
+Departments: ${[...new Set(employees.map(e => e.department))].join(', ')}
+With Cards: ${employees.filter(e => e.cardId).length}
+Admins: ${employees.filter(e => e.isAdmin).length}
+`.trim()
+}
+
+// =============================================================================
+// FLAGGED TRANSACTIONS (Demo Data)
+// =============================================================================
+
 interface FlaggedTransaction {
   counterparty: string
   amount: number
@@ -247,29 +405,43 @@ interface FlaggedTransaction {
   reason: string
 }
 
-const FLAGGED_TRANSACTIONS_DATA: FlaggedTransaction[] = [
-  {
-    counterparty: 'Lyft',
-    amount: -1250,
-    alertType: 'subscription-increase',
-    reason: 'This charge is 25% higher than last month.',
-  },
-  {
-    counterparty: 'AWS',
-    amount: -3421.89,
-    alertType: 'possible-duplicate',
-    reason: 'A similar charge was posted 3 days ago.',
-  },
-  {
-    counterparty: 'Delta Airlines',
-    amount: -1847.50,
-    alertType: 'new-vendor',
-    reason: "First transaction with this vendor.",
-  },
-]
-
 function getFlaggedTransactions(): FlaggedTransaction[] {
-  return FLAGGED_TRANSACTIONS_DATA
+  // Find unusual transactions from real data
+  const recentTxns = getRecentTransactions(50)
+  const flagged: FlaggedTransaction[] = []
+
+  // Check for large new vendors
+  const vendorSpend = new Map<string, number>()
+  for (const t of getTransactions()) {
+    if (t.amount < 0) {
+      const current = vendorSpend.get(t.merchant) || 0
+      vendorSpend.set(t.merchant, current + 1)
+    }
+  }
+
+  for (const t of recentTxns.slice(0, 10)) {
+    if (t.amount < 0 && vendorSpend.get(t.merchant) === 1 && Math.abs(t.amount) > 1000) {
+      flagged.push({
+        counterparty: t.merchant,
+        amount: t.amount,
+        alertType: 'new-vendor',
+        reason: 'First transaction with this vendor.'
+      })
+      if (flagged.length >= 3) break
+    }
+  }
+
+  // If we don't have enough, add some demo data
+  if (flagged.length < 2) {
+    flagged.push({
+      counterparty: 'LinkedIn',
+      amount: -2500,
+      alertType: 'subscription-increase',
+      reason: 'This charge is 25% higher than last month.'
+    })
+  }
+
+  return flagged.slice(0, 3)
 }
 
 // =============================================================================
@@ -306,11 +478,14 @@ async function classifyQuery(
   client: Anthropic,
   message: string,
 ): Promise<ClassificationResult> {
+  const company = getCompany()
+
   const classificationPrompt = `You are Mercury Assistant, a friendly and helpful assistant for Mercury.
 
 CRITICAL COMPLIANCE:
 - Mercury is a FINTECH COMPANY, not a bank.
 - Say "Mercury account" NOT "bank account"
+- The company you are assisting is: ${company.name}
 
 MESSAGE: "${message}"
 
@@ -318,15 +493,15 @@ INTENTS:
 - FLAGGED_TRANSACTIONS: User asks about suspicious, flagged, or unusual transactions
 - PAYMENT_LIMITS: User asks about payment limits
 - EIN_QUERY: User asks about their EIN
-- CASHFLOW_QUESTION: User asks about cashflow, money in/out, spending trends
+- CASHFLOW_QUESTION: User asks about cashflow, money in/out, spending trends, burn rate, runway
 - WIRE_TRANSACTIONS: User asks about wire transfers
 - NAVIGATE: User wants to go to a page
 - BALANCE: User asks about account balances
-- TRANSACTION_SEARCH: User asks about specific transactions
-- CARD_ACTION: User wants to freeze/manage cards
+- TRANSACTION_SEARCH: User asks about specific transactions, spending on a vendor/category
+- CARD_ACTION: User wants to freeze/manage cards or asks about card spending
 - AGENT_MODE: Multi-step workflow like issuing cards to employees
 - SUPPORT: User explicitly asks for human support
-- COMPLEX_QUESTION: Requires deep analysis
+- COMPLEX_QUESTION: Requires deep analysis, comparisons, forecasting
 - SIMPLE_QUESTION: General product questions
 - CHITCHAT: Casual conversation
 
@@ -375,13 +550,15 @@ async function handleWithRouter(
   let responseText = ''
   let metadata: Record<string, unknown> | undefined
 
+  const company = getCompany()
+
   switch (classification.intent) {
     case 'FLAGGED_TRANSACTIONS': {
       const flagged = getFlaggedTransactions()
-      
+
       if (flagged.length > 0) {
         responseText = `I found **${flagged.length} transactions** that need your attention:\n\n`
-        
+
         flagged.forEach((t, i) => {
           const amount = t.amount < 0 ? `-$${Math.abs(t.amount).toLocaleString()}` : `+$${t.amount.toLocaleString()}`
           const alertLabels: Record<string, string> = {
@@ -391,7 +568,7 @@ async function handleWithRouter(
           }
           const label = alertLabels[t.alertType] || 'Flagged'
           responseText += `${i + 1}. **${t.counterparty}** - ${amount}\n`
-          responseText += `   ${label}\n\n`
+          responseText += `   ${label}: ${t.reason}\n\n`
         })
       } else {
         responseText = `Good news! I don't see any transactions that need your attention.`
@@ -409,16 +586,24 @@ async function handleWithRouter(
     }
 
     case 'EIN_QUERY': {
-      responseText = `Your company's **EIN** is:\n\n**82-4506327**\n\nFor **Maker Inc.**`
+      responseText = `Your company's **EIN** is:\n\n**${company.ein}**\n\nFor **${company.name}**`
       break
     }
 
     case 'CASHFLOW_QUESTION': {
-      const insights = getSharedInsightsData()
-      const netChange = insights.cashflow.netChange
-      const trendWord = netChange > 0 ? 'positive' : netChange < -10000 ? 'negative' : 'neutral'
-      
-      responseText = `Let me take you to your Insights page where you can see your full cashflow picture.`
+      const cashflow = getCashflowSummary('30d')
+      const runway = getRunwayEstimate()
+      const topCategories = getTopSpendingCategories(5)
+
+      responseText = `Here's your financial overview:\n\n`
+      responseText += `**Last 30 Days:**\n`
+      responseText += `- Money In: ${formatCurrency(cashflow.moneyIn)}\n`
+      responseText += `- Money Out: ${formatCurrency(cashflow.moneyOut)}\n`
+      responseText += `- Net: ${formatCurrency(cashflow.net)}\n\n`
+      responseText += `**Runway:** ${runway.monthsRemaining} months at ${formatCurrency(runway.monthlyBurn)}/month burn\n\n`
+      responseText += `**Top Spending:**\n`
+      responseText += topCategories.map(c => `- ${c.category}: ${formatCurrency(c.amount)}`).join('\n')
+
       metadata = {
         navigation: {
           target: 'Insights',
@@ -426,13 +611,12 @@ async function handleWithRouter(
           countdown: true,
           followUpAction: 'answer_with_page_data',
           pageData: {
-            totalBalance: insights.totalBalance,
-            moneyIn: insights.cashflow.moneyIn,
-            moneyOut: insights.cashflow.moneyOut,
-            netChange: netChange,
-            trend: trendWord,
-            topCategories: insights.topSpendingCategories,
-            transactionCount: insights.transactionCount,
+            totalBalance: getTotalBalance(),
+            moneyIn: cashflow.moneyIn,
+            moneyOut: cashflow.moneyOut,
+            netChange: cashflow.net,
+            runway: runway.monthsRemaining,
+            topCategories: topCategories,
           }
         }
       }
@@ -440,30 +624,21 @@ async function handleWithRouter(
     }
 
     case 'WIRE_TRANSACTIONS': {
-      const wires = getSharedWireTransactions(10)
+      const wires = getWireTransactions(10)
       const wireCount = wires.length
       const totalAmount = wires.reduce((sum, t) => sum + t.amount, 0)
-      
-      responseText = `I'll take you to your Transactions page filtered to show your wire transfers. You have ${wireCount} recent wire transactions.`
+
+      responseText = `You have **${wireCount} wire transfers** totaling ${formatCurrency(totalAmount)}:\n\n`
+      wires.slice(0, 5).forEach((t, i) => {
+        responseText += `${i + 1}. **${t.merchant}** - ${formatCurrency(t.amount)} (${t.date})\n`
+      })
+
       metadata = {
         navigation: {
           target: 'Transactions',
           url: '/transactions?filter=wire',
           countdown: true,
-          followUpAction: 'apply_filters',
-          filters: {
-            types: ['wire'],
-          },
-          pageData: {
-            wireCount,
-            totalAmount,
-            recentWires: wires.slice(0, 5).map(t => ({
-              id: t.id,
-              date: t.date,
-              counterparty: t.counterparty,
-              amount: t.amount,
-            }))
-          }
+          filters: { types: ['wire'] }
         }
       }
       break
@@ -473,7 +648,8 @@ async function handleWithRouter(
       const page = classification.navigationTarget || 'home'
       const pageUrls: Record<string, string> = {
         home: '/dashboard', transactions: '/transactions', accounts: '/accounts',
-        cards: '/cards', payments: '/payments/recipients', insights: '/dashboard'
+        cards: '/cards', payments: '/payments/recipients', insights: '/dashboard',
+        recipients: '/payments/recipients'
       }
       responseText = `Taking you to ${page}.`
       metadata = {
@@ -487,42 +663,42 @@ async function handleWithRouter(
     }
 
     case 'BALANCE': {
-      const list = MOCK_ACCOUNTS.map(a => `- **${a.nickname}**: $${a.currentBalance.toLocaleString()}`).join('\n')
-      const total = MOCK_ACCOUNTS.reduce((sum, a) => sum + a.currentBalance, 0)
-      responseText = `Here are your account balances:\n\n${list}\n\n**Total**: $${total.toLocaleString()}`
+      const accounts = getAccounts()
+      const total = getTotalBalance()
+      const list = accounts.map(a => `- **${a.name}** (${a.type}): ${formatCurrency(a.balance)}`).join('\n')
+      responseText = `Here are your account balances:\n\n${list}\n\n**Total**: ${formatCurrency(total)}`
       break
     }
 
     case 'CARD_ACTION': {
-      // Enhanced card handler with spending data
-      responseText = `Here are your cards:\n\n`
-      MOCK_CARDS.forEach((c, i) => {
+      const cards = getCardsWithSpending()
+      responseText = `Here are your **${cards.length} cards**:\n\n`
+      cards.forEach((c, i) => {
         const status = c.status === 'active' ? 'Active' : c.status.charAt(0).toUpperCase() + c.status.slice(1)
-        const spent = `$${c.spentThisMonth.toLocaleString()}`
-        const limit = `$${(c.monthlyLimit / 1000).toFixed(0)}k`
+        const overBudget = c.spentThisMonth > c.monthlyLimit ? ' ⚠️ Over limit' : ''
         responseText += `${i + 1}. **${c.cardholder}** (••${c.cardNumber})\n`
         responseText += `   ${c.nickname || c.cardName} · ${status}\n`
-        responseText += `   Spent: ${spent} of ${limit} limit\n\n`
+        responseText += `   Spent: ${formatCurrency(c.spentThisMonth)} of ${formatCurrency(c.monthlyLimit)} limit${overBudget}\n\n`
       })
       break
     }
 
     case 'TRANSACTION_SEARCH': {
-      // Search transactions based on the user's query
       const query = message.toLowerCase()
-      const results = searchSharedTransactions(query, 10)
-      
+      const results = searchTransactions(query, 10)
+
       if (results.length > 0) {
-        responseText = `I found ${results.length} transaction${results.length > 1 ? 's' : ''} matching your search:\n\n`
+        const total = results.reduce((sum, t) => sum + Math.abs(t.amount), 0)
+        responseText = `I found **${results.length} transactions** (${formatCurrency(total)} total):\n\n`
         results.slice(0, 5).forEach((t, i) => {
-          const amount = t.amount < 0 
-            ? `-$${Math.abs(t.amount).toLocaleString()}` 
+          const amount = t.amount < 0
+            ? `-$${Math.abs(t.amount).toLocaleString()}`
             : `+$${t.amount.toLocaleString()}`
-          responseText += `${i + 1}. **${t.counterparty}** - ${amount}\n`
-          responseText += `   ${t.date} · ${t.category || 'Uncategorized'}\n\n`
+          responseText += `${i + 1}. **${t.merchant}** - ${amount}\n`
+          responseText += `   ${t.date} · ${t.category}\n\n`
         })
         if (results.length > 5) {
-          responseText += `...and ${results.length - 5} more. Would you like me to show all of them?`
+          responseText += `...and ${results.length - 5} more.`
         }
       } else {
         responseText = `I couldn't find any transactions matching your search. Try searching for a merchant name, category, or amount.`
@@ -531,11 +707,11 @@ async function handleWithRouter(
     }
 
     case 'CHITCHAT':
-      responseText = classification.quickResponse || "I'm here to help with your Mercury account. What can I assist you with?"
+      responseText = classification.quickResponse || `I'm here to help with your ${company.name} Mercury account. What can I assist you with?`
       break
 
     default:
-      responseText = classification.quickResponse || "I can help with accounts, transactions, payments, and cards. What would you like to do?"
+      responseText = classification.quickResponse || "I can help with accounts, transactions, payments, cards, and financial insights. What would you like to know?"
   }
 
   for (let i = 0; i < responseText.length; i += 3) {
@@ -552,25 +728,22 @@ async function handleWithSmartModel(
   history: Array<{ role: string; content: string }> | undefined,
   conversationId: string
 ): Promise<void> {
-  const summary = getSharedTransactionsSummary()
-  const recentTxns = searchSharedTransactions('', 5)
+  const aiContext = buildAIContext()
 
-  const totalCardSpending = MOCK_CARDS.reduce((sum, c) => sum + c.spentThisMonth, 0)
-  
-  const systemPrompt = `You are Mercury Assistant. Be warm and helpful.
+  const systemPrompt = `You are Mercury Assistant, a warm and helpful AI assistant for Mercury banking.
 
-ACCOUNTS:
-${MOCK_ACCOUNTS.map(a => `- ${a.nickname}: $${a.currentBalance.toLocaleString()}`).join('\n')}
+You have access to the following financial data for this company. Use it to answer questions accurately.
 
-CARDS (8 total, spending this month: $${totalCardSpending.toLocaleString()}):
-${MOCK_CARDS.map(c => `- ${c.cardholder} (••${c.cardNumber}): ${c.nickname || c.cardName}, spent $${c.spentThisMonth.toLocaleString()} of $${(c.monthlyLimit/1000).toFixed(0)}k limit, ${c.status}`).join('\n')}
+${aiContext}
 
-RECENT TRANSACTIONS:
-${recentTxns.map(t => `- ${t.counterparty}: ${t.amount < 0 ? '-' : '+'}$${Math.abs(t.amount).toLocaleString()} (${t.category || 'Uncategorized'})`).join('\n')}
-
-30-DAY SUMMARY: Money In $${summary.last30Days.moneyIn.toLocaleString()}, Money Out $${summary.last30Days.moneyOut.toLocaleString()}
-
-When answering questions about cards or transactions, use the specific data above. Keep responses brief (2-3 sentences). Use **bold** for amounts and names.`
+GUIDELINES:
+- Be concise (2-4 sentences for simple questions, more for complex analysis)
+- Use **bold** for important numbers and names
+- When asked about spending, look at the transaction data
+- When asked about runway, use the runway calculation provided
+- For trends, compare recent periods
+- If you're unsure, say so rather than making up data
+- Mercury is a fintech company, not a bank. Say "Mercury account" not "bank account"`
 
   const messages: Anthropic.MessageParam[] = []
   if (history) {
@@ -583,7 +756,7 @@ When answering questions about cards or transactions, use the specific data abov
   try {
     const response = await client.messages.create({
       model: SMART_MODEL,
-      max_tokens: 256,
+      max_tokens: 512,
       temperature: 0.7,
       system: systemPrompt,
       messages,
@@ -608,16 +781,6 @@ When answering questions about cards or transactions, use the specific data abov
   sendEvent('done', { conversationId })
 }
 
-// Mock employee data for agent mode
-const MOCK_EMPLOYEES = [
-  { id: 'emp-1', name: 'Sarah Chen', email: 'sarah@mercury.com', department: 'Engineering', salary: 150000, hasCard: true },
-  { id: 'emp-2', name: 'Marcus Johnson', email: 'marcus@mercury.com', department: 'Sales', salary: 120000, hasCard: false },
-  { id: 'emp-3', name: 'Emily Rodriguez', email: 'emily@mercury.com', department: 'Marketing', salary: 95000, hasCard: true },
-  { id: 'emp-4', name: 'David Kim', email: 'david@mercury.com', department: 'Engineering', salary: 140000, hasCard: false },
-  { id: 'emp-5', name: 'Jordan Taylor', email: 'jordan@mercury.com', department: 'Operations', salary: 85000, hasCard: false },
-  { id: 'emp-6', name: 'Marco Deluca', email: 'marco@mercury.com', department: 'Finance', salary: 110000, hasCard: false },
-]
-
 async function handleAgentMode(
   sendEvent: (event: string, data: object) => void,
   message: string,
@@ -633,7 +796,7 @@ async function handleAgentMode(
 
   try {
     const client = new Anthropic({ apiKey })
-    
+
     sendEvent('block', {
       type: 'thinking_chain',
       data: {
@@ -642,33 +805,34 @@ async function handleAgentMode(
       }
     })
     await sleep(500)
-    
-    const employeesNeedingCards = MOCK_EMPLOYEES.filter(e => !e.hasCard)
-    
+
+    const employees = getEmployees()
+    const employeesNeedingCards = employees.filter(e => !e.cardId)
+
     sendEvent('block', {
-      type: 'thinking_chain', 
+      type: 'thinking_chain',
       data: {
         steps: [{ id: 'step-1', label: 'Found employees', status: 'complete', tool: 'get_employees' }],
         status: 'complete'
       }
     })
-    
+
     sendEvent('block', {
       type: 'employee_table',
       data: {
         title: 'Employees Needing Cards',
         rows: employeesNeedingCards.map(e => ({
           id: e.id,
-          name: e.name,
+          name: `${e.firstName} ${e.lastName}`,
           email: e.email,
           department: e.department,
           salary: e.salary,
-          hasCard: e.hasCard
+          hasCard: !!e.cardId
         })),
         selectable: true
       }
     })
-    
+
     const response = await client.messages.create({
       model: ROUTER_MODEL,
       max_tokens: 512,
@@ -676,26 +840,26 @@ async function handleAgentMode(
       system: `You are Mercury Assistant helping with card issuance. Be helpful and concise.`,
       messages: [
         { role: 'user', content: message },
-        { role: 'assistant', content: `I found ${employeesNeedingCards.length} employees who don't have cards yet:\n\n${employeesNeedingCards.map(e => `- **${e.name}** (${e.department}) - ${e.email}`).join('\n')}\n\nWould you like me to issue cards to all of them, or would you prefer to select specific employees?` }
+        { role: 'assistant', content: `I found ${employeesNeedingCards.length} employees who don't have cards yet:\n\n${employeesNeedingCards.map(e => `- **${e.firstName} ${e.lastName}** (${e.department}) - ${e.email}`).join('\n')}\n\nWould you like me to issue cards to all of them, or would you prefer to select specific employees?` }
       ]
     })
-    
+
     let responseText = ''
     for (const block of response.content) {
       if (block.type === 'text') {
         responseText = block.text
       }
     }
-    
+
     if (!responseText) {
       responseText = `I found ${employeesNeedingCards.length} employees who don't have cards yet. Would you like me to issue cards to all of them?`
     }
-    
+
     for (let i = 0; i < responseText.length; i += 3) {
       sendEvent('chunk', { text: responseText.slice(i, i + 3) })
       await sleep(15)
     }
-    
+
   } catch (error) {
     console.error('Agent mode error:', error)
     sendEvent('chunk', { text: "I'd be happy to help you issue cards! Let me take you to the Cards page." })
@@ -714,14 +878,18 @@ async function streamMockResponse(
   conversationId: string
 ): Promise<void> {
   const lowerMessage = message.toLowerCase()
-  let responseText = "I can help with accounts, transactions, payments, and cards."
+  let responseText = "I can help with accounts, transactions, payments, cards, and financial insights."
 
   if (lowerMessage.includes('balance')) {
-    const list = MOCK_ACCOUNTS.map(a => `**${a.nickname}**: $${a.currentBalance.toLocaleString()}`).join('\n')
-    responseText = list
+    const accounts = getAccounts()
+    const list = accounts.map(a => `**${a.name}**: ${formatCurrency(a.balance)}`).join('\n')
+    responseText = `Your account balances:\n\n${list}`
   } else if (lowerMessage.includes('transaction')) {
-    const txns = searchSharedTransactions('', 3)
-    responseText = 'Recent:\n' + txns.map(t => `- ${t.counterparty}: $${t.amount.toLocaleString()}`).join('\n')
+    const txns = getRecentTransactions(5)
+    responseText = 'Recent transactions:\n' + txns.map(t => `- ${t.merchant}: ${formatCurrency(t.amount)}`).join('\n')
+  } else if (lowerMessage.includes('runway') || lowerMessage.includes('burn')) {
+    const runway = getRunwayEstimate()
+    responseText = `Your runway is **${runway.monthsRemaining} months** at ${formatCurrency(runway.monthlyBurn)}/month burn rate.`
   }
 
   for (let i = 0; i < responseText.length; i += 3) {
@@ -762,7 +930,7 @@ export default async function handler(
     if (apiKey) {
       try {
         const client = new Anthropic({ apiKey })
-        
+
         sendEvent('ack', { message: 'Understanding your request...' })
 
         const classification = await classifyQuery(client, message)
