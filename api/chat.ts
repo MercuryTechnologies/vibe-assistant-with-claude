@@ -576,6 +576,432 @@ function getFlaggedTransactions(): FlaggedTransaction[] {
 }
 
 // =============================================================================
+// BOUNDARY HANDLING - Pivot to helpful alternatives when declining
+// =============================================================================
+
+interface PivotSuggestion {
+  cannotDo: string | null
+  canDo: string[]
+  showData?: 'treasury' | 'payroll' | 'vendors' | 'limits' | 'documents' | 'cards' | 'balances' | 'transactions' | 'team'
+}
+
+const BOUNDARY_PIVOTS: Record<string, PivotSuggestion> = {
+  // Advisory/Out-of-scope
+  investment_advice: {
+    cannotDo: "provide investment advice",
+    canDo: [
+      "show your Treasury account balance and APY",
+      "explain how Treasury works",
+      "show your current cash allocation across accounts"
+    ],
+    showData: 'treasury'
+  },
+  tax_advice: {
+    cannotDo: "provide tax advice or file taxes",
+    canDo: [
+      "export transactions for your accountant",
+      "show your 1099 forms and tax documents",
+      "provide quarterly transaction summaries"
+    ],
+    showData: 'documents'
+  },
+  salary_advice: {
+    cannotDo: "recommend employee salaries or compensation levels",
+    canDo: [
+      "show your current payroll spending",
+      "break down compensation you've paid by employee",
+      "show payroll trends over time"
+    ],
+    showData: 'payroll'
+  },
+  vendor_recommendation: {
+    cannotDo: "recommend specific vendors",
+    canDo: [
+      "show which vendors you currently pay",
+      "break down spending by vendor category",
+      "show your top vendors by spend"
+    ],
+    showData: 'vendors'
+  },
+  loan_origination: {
+    cannotDo: "provide loans directly",
+    canDo: [
+      "show Mercury credit line options",
+      "explain available financing products",
+      "show your current credit products"
+    ]
+  },
+  insurance: {
+    cannotDo: "provide business insurance",
+    canDo: [
+      "show partners who offer insurance through Mercury Perks",
+      "connect you with our perks program"
+    ]
+  },
+  
+  // Partial capability
+  cancel_payment: {
+    cannotDo: "cancel payments that have already been sent",
+    canDo: [
+      "show the payment status and details",
+      "explain ACH recall options",
+      "connect you with support to attempt a recall"
+    ],
+    showData: 'transactions'
+  },
+  increase_limits: {
+    cannotDo: "change account limits directly",
+    canDo: [
+      "show your current transfer limits",
+      "connect you with support to request an increase",
+      "explain the limit increase process"
+    ],
+    showData: 'limits'
+  },
+  add_admin: {
+    cannotDo: "modify user permissions directly",
+    canDo: [
+      "show current team members and roles",
+      "explain the admin invitation process",
+      "link you to Team Settings"
+    ],
+    showData: 'team'
+  },
+  close_account: {
+    cannotDo: "close accounts directly",
+    canDo: [
+      "show the account balance to transfer first",
+      "explain the closure process",
+      "connect you with support"
+    ],
+    showData: 'balances'
+  },
+  
+  // Real-time limits
+  forex_rates: {
+    cannotDo: "provide real-time exchange rates",
+    canDo: [
+      "show your recent international transactions",
+      "explain Mercury's forex fees",
+      "initiate an international payment (rate shown at confirmation)"
+    ],
+    showData: 'transactions'
+  },
+  pending_deposit_status: {
+    cannotDo: "see real-time deposit status from sending banks",
+    canDo: [
+      "show your recent incoming transactions",
+      "explain typical ACH timing (1-3 business days)",
+      "connect you with support for urgent deposits"
+    ],
+    showData: 'transactions'
+  },
+  
+  // Security operations
+  bulk_permissions: {
+    cannotDo: "grant bulk admin access (security risk)",
+    canDo: [
+      "show current team permissions",
+      "explain the security implications",
+      "link to Team Settings for individual changes"
+    ],
+    showData: 'team'
+  },
+  
+  // Creative problem-solving (we CAN actually help)
+  balance_discrepancy: {
+    cannotDo: null,
+    canDo: [
+      "show recent transactions",
+      "highlight pending items and holds",
+      "show account reconciliation"
+    ],
+    showData: 'transactions'
+  },
+  investor_verification: {
+    cannotDo: null,
+    canDo: [
+      "show your current account balances",
+      "help you find verification letters in Documents",
+      "show your latest account statement"
+    ],
+    showData: 'balances'
+  },
+  
+  // Urgent security (we CAN help immediately)
+  urgent_card_security: {
+    cannotDo: null,
+    canDo: [
+      "freeze all your cards immediately",
+      "freeze specific cards you select",
+      "connect you with Mercury support"
+    ],
+    showData: 'cards'
+  }
+}
+
+/**
+ * Detect if a query falls into a boundary case
+ */
+function detectBoundaryType(query: string): string | null {
+  const q = query.toLowerCase()
+  const patterns: [RegExp, string][] = [
+    [/invest(ment)?|stocks?|bonds?|portfolio|etf|mutual fund/i, 'investment_advice'],
+    [/tax(es)?|1099|file.*quarterly|irs|deduction/i, 'tax_advice'],
+    [/how much.*pay.*employee|salary|compensation|wage|pay rate/i, 'salary_advice'],
+    [/recommend.*vendor|which.*vendor|what.*use for|best.*provider/i, 'vendor_recommendation'],
+    [/\b(loan|borrow|financing|credit line|line of credit)\b/i, 'loan_origination'],
+    [/\binsurance\b/i, 'insurance'],
+    [/cancel.*payment|stop.*payment|reverse.*payment|undo.*payment/i, 'cancel_payment'],
+    [/increase.*limit|raise.*limit|higher.*limit|more.*limit/i, 'increase_limits'],
+    [/add.*admin|make.*admin|give.*access|grant.*permission/i, 'add_admin'],
+    [/close.*account|shut.*account|terminate.*account/i, 'close_account'],
+    [/exchange rate|forex rate|eur.*rate|usd.*rate|currency rate/i, 'forex_rates'],
+    [/deposit.*taking|pending.*deposit|where.*deposit|when.*deposit/i, 'pending_deposit_status'],
+    [/everyone.*admin|all.*admin|bulk.*access|mass.*permission/i, 'bulk_permissions'],
+    [/something.*wrong.*balance|balance.*off|balance.*incorrect|discrepancy/i, 'balance_discrepancy'],
+    [/prove.*investor|verification.*letter|show.*bank.*balance|verify.*funds/i, 'investor_verification'],
+    [/card.*stolen|stolen.*card|freeze.*everything|freeze.*all|hacked|compromised/i, 'urgent_card_security']
+  ]
+  
+  for (const [pattern, boundaryType] of patterns) {
+    if (pattern.test(q)) return boundaryType
+  }
+  return null
+}
+
+/**
+ * Detect urgency level from query
+ */
+function detectUrgency(query: string): 'critical' | 'urgent' | 'normal' {
+  if (/HELP|!!!|stolen|hacked|fraud|NOW|immediately|emergency|urgent/i.test(query)) {
+    return 'critical'
+  }
+  if (/asap|quickly|wrong person|mistake|error|problem/i.test(query)) {
+    return 'urgent'
+  }
+  return 'normal'
+}
+
+/**
+ * Adjust response tone based on urgency
+ */
+function adjustToneForUrgency(response: string, urgency: 'critical' | 'urgent' | 'normal'): string {
+  if (urgency === 'critical') {
+    return `I understand this is urgent—let's act fast.\n\n${response}`
+  }
+  if (urgency === 'urgent') {
+    return `I can help with this right away.\n\n${response}`
+  }
+  return response
+}
+
+/**
+ * Generate a helpful boundary response with pivot to available alternatives
+ */
+function generateBoundaryResponse(
+  boundaryType: string,
+  urgency: 'critical' | 'urgent' | 'normal'
+): { responseText: string; metadata: Record<string, unknown> } | null {
+  const pivot = BOUNDARY_PIVOTS[boundaryType]
+  if (!pivot) return null
+  
+  // Special handling for urgent card security
+  if (boundaryType === 'urgent_card_security') {
+    const cards = getCardsWithSpending()
+    const activeCards = cards.filter(c => c.status === 'active')
+    
+    const parts: string[] = [
+      `I understand this is urgent—let's secure your account right away.`,
+      '',
+      `**${activeCards.length} active cards found:**`
+    ]
+    
+    activeCards.forEach(c => {
+      const lastFour = c.cardNumber.slice(-4)
+      parts.push(`• ${c.cardName} (••${lastFour}) - ${c.cardholder}`)
+    })
+    
+    parts.push('')
+    parts.push(`**Quick actions:**`)
+    parts.push(`• **Freeze all cards** — I can do this immediately`)
+    parts.push(`• **Freeze specific card** — Select from above`)
+    parts.push(`• **Contact support** — For urgent assistance`)
+    parts.push('')
+    parts.push(`Which would you like?`)
+    
+    return {
+      responseText: parts.join('\n'),
+      metadata: {
+        cardsTable: {
+          title: 'Active Cards',
+          cards: activeCards.map(c => ({
+            id: c.id,
+            cardName: c.cardName,
+            cardholder: c.cardholder,
+            status: c.status,
+            lastFour: c.cardNumber.slice(-4),
+            spent: c.spent,
+            limit: c.monthlyLimit
+          })),
+          allowFreeze: true
+        }
+      }
+    }
+  }
+  
+  const parts: string[] = []
+  
+  // 1. Acknowledge what we can't do (if applicable)
+  if (pivot.cannotDo) {
+    parts.push(`I'm not able to ${pivot.cannotDo}.`)
+    parts.push('')
+  }
+  
+  // 2. Pivot to what we CAN do
+  if (pivot.cannotDo) {
+    parts.push(`However, I can help you with:`)
+  } else {
+    parts.push(`I can help you with this:`)
+  }
+  for (const option of pivot.canDo) {
+    parts.push(`• ${option.charAt(0).toUpperCase() + option.slice(1)}`)
+  }
+  
+  // 3. Add call to action
+  parts.push('')
+  parts.push(`Would you like me to show you any of these?`)
+  
+  // Build metadata based on showData type
+  const metadata: Record<string, unknown> = {}
+  
+  if (pivot.showData === 'treasury') {
+    const accounts = getAccounts()
+    const treasury = accounts.find(a => a.type === 'treasury')
+    if (treasury) {
+      parts.splice(-2, 0, '')
+      parts.splice(-2, 0, `**Your Treasury account:** ${formatCurrency(treasury.balance)} at ${treasury.apy || 4.5}% APY`)
+      metadata.accountBalances = {
+        accounts: [{ id: treasury.id, name: treasury.name, type: treasury.type, balance: treasury.balance, apy: treasury.apy }],
+        totalBalance: treasury.balance
+      }
+    }
+  }
+  
+  if (pivot.showData === 'balances') {
+    const accounts = getAccounts()
+    const total = getTotalBalance()
+    parts.splice(-2, 0, '')
+    parts.splice(-2, 0, `**Your total balance:** ${formatCurrency(total)} across ${accounts.length} accounts`)
+    metadata.accountBalances = {
+      accounts: accounts.map(a => ({ id: a.id, name: a.name, type: a.type, balance: a.balance, apy: a.apy })),
+      totalBalance: total
+    }
+  }
+  
+  if (pivot.showData === 'limits') {
+    // Show mock limits data
+    parts.splice(-2, 0, '')
+    parts.splice(-2, 0, `**Your current limits:**`)
+    parts.splice(-2, 0, `• Daily wire: **$250,000**`)
+    parts.splice(-2, 0, `• Daily ACH: **$500,000**`)
+    parts.splice(-2, 0, `• Single transaction: **$100,000**`)
+  }
+  
+  if (pivot.showData === 'documents') {
+    metadata.documents = {
+      title: 'Available Documents',
+      documents: [
+        { id: 'doc-1', name: 'January 2026 Statement', type: 'statement', date: '2026-01-15' },
+        { id: 'doc-2', name: '2025 1099-INT', type: 'tax', date: '2026-01-10' },
+        { id: 'doc-3', name: 'December 2025 Statement', type: 'statement', date: '2025-12-15' }
+      ]
+    }
+  }
+  
+  if (pivot.showData === 'transactions') {
+    const recent = getRecentTransactions(5)
+    metadata.transactionTable = {
+      title: 'Recent Transactions',
+      rows: recent.map(t => ({
+        id: t.id,
+        counterparty: t.merchant,
+        amount: t.amount,
+        date: t.date,
+        status: t.status
+      }))
+    }
+  }
+  
+  if (pivot.showData === 'cards') {
+    const cards = getCardsWithSpending()
+    metadata.cardsTable = {
+      title: 'Your Cards',
+      cards: cards.slice(0, 5).map(c => ({
+        id: c.id,
+        cardName: c.cardName,
+        cardholder: c.cardholder,
+        status: c.status,
+        lastFour: c.cardNumber.slice(-4),
+        spent: c.spent,
+        limit: c.monthlyLimit
+      }))
+    }
+  }
+  
+  if (pivot.showData === 'vendors') {
+    // Show top vendors from transactions
+    const transactions = getTransactions({ limit: 100 })
+    const vendorSpend: Record<string, number> = {}
+    transactions.forEach(t => {
+      if (t.amount < 0) {
+        vendorSpend[t.merchant] = (vendorSpend[t.merchant] || 0) + Math.abs(t.amount)
+      }
+    })
+    const topVendors = Object.entries(vendorSpend)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+    
+    if (topVendors.length > 0) {
+      parts.splice(-2, 0, '')
+      parts.splice(-2, 0, `**Your top vendors by spend:**`)
+      topVendors.forEach(([vendor, amount]) => {
+        parts.splice(-2, 0, `• ${vendor}: ${formatCurrency(amount)}`)
+      })
+    }
+  }
+  
+  if (pivot.showData === 'payroll') {
+    // Estimate payroll from transactions
+    const transactions = getTransactions({ limit: 200 })
+    const payrollTx = transactions.filter(t => 
+      t.category === 'payroll' || t.description.toLowerCase().includes('payroll')
+    )
+    const monthlyPayroll = payrollTx.reduce((sum, t) => sum + Math.abs(t.amount), 0)
+    const employees = getEmployees()
+    
+    parts.splice(-2, 0, '')
+    parts.splice(-2, 0, `**Your payroll summary:**`)
+    parts.splice(-2, 0, `• Employees: **${employees.length}**`)
+    if (monthlyPayroll > 0) {
+      parts.splice(-2, 0, `• Recent payroll total: **${formatCurrency(monthlyPayroll)}**`)
+    }
+  }
+  
+  if (pivot.showData === 'team') {
+    const employees = getEmployees()
+    parts.splice(-2, 0, '')
+    parts.splice(-2, 0, `**Your team:** ${employees.length} members`)
+    metadata.navigation = { target: 'Team Settings', url: '/settings/team', countdown: true }
+  }
+  
+  let responseText = parts.join('\n')
+  responseText = adjustToneForUrgency(responseText, urgency)
+  
+  return { responseText, metadata }
+}
+
+// =============================================================================
 // CHAT API LOGIC
 // =============================================================================
 
@@ -700,6 +1126,25 @@ async function handleWithRouter(
   let metadata: Record<string, unknown> | undefined
 
   const company = getCompany()
+  
+  // Check for boundary case FIRST - pivot to helpful alternatives
+  const boundaryType = detectBoundaryType(message)
+  if (boundaryType) {
+    const urgency = detectUrgency(message)
+    const boundaryResponse = generateBoundaryResponse(boundaryType, urgency)
+    if (boundaryResponse) {
+      responseText = boundaryResponse.responseText
+      metadata = boundaryResponse.metadata
+      
+      // Stream the boundary response
+      sendEvent('text_delta', { content: responseText })
+      sendEvent('done', { 
+        conversationId,
+        metadata 
+      })
+      return
+    }
+  }
 
   switch (classification.intent) {
     case 'FLAGGED_TRANSACTIONS': {
