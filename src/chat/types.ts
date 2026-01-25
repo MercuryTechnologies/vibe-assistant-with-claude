@@ -376,6 +376,7 @@ export interface ChatRequest {
  */
 export type ThinkingStatus = 
   | 'Thinking'
+  | 'Connecting to Mercury...'
   | 'Checking your accounts...'
   | 'Searching transactions...'
   | 'Looking up your cards...'
