@@ -1557,8 +1557,6 @@ async function handleWithRouter(
             rows: topRecipients.map(r => ({
               id: r.id,
               name: r.name,
-              bankName: r.bankName || undefined,
-              accountLast4: r.accountNumber?.slice(-4) || undefined,
               lastPaidDate: r.lastPaid,
               lastPaidAmount: r.totalPaid ? r.totalPaid / 10 : undefined,
             })),
@@ -1630,22 +1628,25 @@ async function handleWithRouter(
       // Try to find employee name
       const employees = getEmployees()
       const matchedEmployee = employees.find(e => 
-        cardQuery.includes(e.name.toLowerCase())
+        cardQuery.includes(`${e.firstName} ${e.lastName}`.toLowerCase()) ||
+        cardQuery.includes(e.firstName.toLowerCase())
       )
       
+      const matchedEmployeeName = matchedEmployee ? `${matchedEmployee.firstName} ${matchedEmployee.lastName}` : undefined
+      
       responseText = matchedEmployee
-        ? `Let's issue a ${cardType} card to **${matchedEmployee.name}**${limit ? ` with a **${formatCurrency(limit)}** monthly limit` : ''}. Confirm the details below:`
+        ? `Let's issue a ${cardType} card to **${matchedEmployeeName}**${limit ? ` with a **${formatCurrency(limit)}** monthly limit` : ''}. Confirm the details below:`
         : `Who should receive the new card? Select an employee below:`
       
       metadata = {
         cardIssue: {
           employeeId: matchedEmployee?.id,
-          employeeName: matchedEmployee?.name,
+          employeeName: matchedEmployeeName,
           cardType,
           suggestedLimit: limit || 2000,
           employees: employees.map(e => ({
             id: e.id,
-            name: e.name,
+            name: `${e.firstName} ${e.lastName}`,
             email: e.email,
             role: e.role,
           })),
