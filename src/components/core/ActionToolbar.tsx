@@ -126,7 +126,6 @@ export function ActionToolbar() {
   
   // @mention autocomplete state
   const [showMentionDropdown, setShowMentionDropdown] = useState(false);
-  const [mentionQuery, setMentionQuery] = useState('');
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -191,7 +190,6 @@ export function ActionToolbar() {
       const afterAt = value.slice(atIndex + 1);
       // Check if we're in a potential mention (no space after @)
       if (!afterAt.includes(' ')) {
-        setMentionQuery(afterAt.toLowerCase());
         // Show dropdown if "support" starts with what user typed
         setShowMentionDropdown('support'.startsWith(afterAt.toLowerCase()));
       } else {
@@ -521,15 +519,6 @@ export function ActionToolbar() {
     // Start a new conversation - don't pass message here, sendMessage will add it
     startNewConversation();
     await sendMessage(initialMessage);
-  };
-
-  // Handle cash flow action - open chat panel
-  const handleCashFlowAction = () => {
-    openChatWithMessage('How is my cashflow this quarter?');
-  };
-
-  const handleOpenRecurringPayment = () => {
-    openChatWithMessage('Create a recurring payment');
   };
 
   // Close panel and reset toolbar to default state

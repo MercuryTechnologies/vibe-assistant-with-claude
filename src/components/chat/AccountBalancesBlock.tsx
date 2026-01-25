@@ -64,9 +64,8 @@ export function AccountBalancesBlock({
               )}
               <td style={{ textAlign: 'right' }}>
                 <DSMoneyAmount 
-                  value={account.balance} 
-                  size="sm"
-                  showPositive={false}
+                  amount={account.balance} 
+                  tone="neutral"
                 />
               </td>
             </tr>
@@ -80,9 +79,8 @@ export function AccountBalancesBlock({
               </td>
               <td style={{ textAlign: 'right' }}>
                 <DSMoneyAmount 
-                  value={data.totalBalance} 
-                  size="sm"
-                  showPositive={false}
+                  amount={data.totalBalance} 
+                  tone="neutral"
                 />
               </td>
             </tr>

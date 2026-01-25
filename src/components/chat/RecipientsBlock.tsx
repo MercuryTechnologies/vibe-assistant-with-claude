@@ -85,8 +85,8 @@ export function RecipientsBlock({
                   </span>
                   {recipient.lastPaidAmount && (
                     <DSMoneyAmount 
-                      value={-recipient.lastPaidAmount} 
-                      size="sm"
+                      amount={-recipient.lastPaidAmount} 
+                      tone="neutral"
                     />
                   )}
                 </div>

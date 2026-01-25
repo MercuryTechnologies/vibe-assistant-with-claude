@@ -170,9 +170,7 @@ export function CardsTableBlock({
                     {formatCurrency(card.limit)}
                   </td>
                   <td>
-                    <Badge variant={getStatusBadgeVariant(effectiveStatus as CardTableRow['status'])}>
-                      {effectiveStatus}
-                    </Badge>
+                    <Badge type={getStatusBadgeVariant(effectiveStatus as CardTableRow['status'])} label={effectiveStatus} />
                   </td>
                 </tr>
                 {isExpanded && (
