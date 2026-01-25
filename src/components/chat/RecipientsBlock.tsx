@@ -53,31 +53,60 @@ export function RecipientsBlock({
         </h4>
       )}
       
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2" style={{ minWidth: 0 }}>
         {data.rows.map((recipient) => (
           <div 
             key={recipient.id}
-            className="flex items-center justify-between gap-3"
+            className="flex items-center justify-between"
             style={{
-              padding: '8px 12px',
+              padding: isCompact ? '6px 10px' : '8px 12px',
               backgroundColor: 'var(--ds-bg-secondary)',
               borderRadius: 'var(--radius-md)',
+              gap: isCompact ? 8 : 12,
+              minWidth: 0,
             }}
           >
-            <div className="flex items-center gap-3">
+            <div 
+              className="flex items-center" 
+              style={{ 
+                gap: isCompact ? 8 : 12,
+                minWidth: 0,
+                flex: 1,
+                overflow: 'hidden',
+              }}
+            >
               <DSAvatar type="trx" name={recipient.name} size="small" />
-              <div className="flex flex-col">
-                <span className="text-body-sm" style={{ color: 'var(--ds-text-default)' }}>
+              <div 
+                className="flex flex-col"
+                style={{ minWidth: 0, overflow: 'hidden' }}
+              >
+                <span 
+                  className="text-body-sm" 
+                  style={{ 
+                    color: 'var(--ds-text-default)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {recipient.name}
                 </span>
-                <span className="text-tiny" style={{ color: 'var(--ds-text-tertiary)' }}>
+                <span 
+                  className="text-tiny" 
+                  style={{ 
+                    color: 'var(--ds-text-tertiary)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {recipient.bankName && `${recipient.bankName} `}
                   {recipient.accountLast4 && `••${recipient.accountLast4}`}
                 </span>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center" style={{ gap: isCompact ? 6 : 12, flexShrink: 0 }}>
               {!isCompact && recipient.lastPaidDate && (
                 <div className="flex flex-col items-end">
                   <span className="text-tiny" style={{ color: 'var(--ds-text-tertiary)' }}>
@@ -99,7 +128,7 @@ export function RecipientsBlock({
                   onClick={() => handleSendPayment(recipient)}
                 >
                   <Icon icon={faPaperPlane} size="small" />
-                  Send
+                  {!isCompact && 'Send'}
                 </DSButton>
               )}
             </div>

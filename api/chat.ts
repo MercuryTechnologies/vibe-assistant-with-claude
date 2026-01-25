@@ -620,7 +620,11 @@ CRITICAL COMPLIANCE:
 
 MESSAGE: "${message}"
 
-INTENTS:
+INTENTS (choose the BEST match):
+- SEND_PAYMENT: User wants to send money, pay someone, make a payment, schedule a payment, transfer to a vendor, pay an invoice (PRIORITY: if message contains "send" + amount or recipient name, use this)
+- CARD_QUERY: User asks about cards, card spending, card limits, who has cards, what cards they have, cards overview, who is over their limit, card utilization
+- CARD_ACTION: User wants to freeze, unfreeze, lock, or cancel a specific card
+- MISSING_RECEIPTS: User asks about transactions missing receipts, expenses without documentation, unattached receipts
 - FLAGGED_TRANSACTIONS: User asks about suspicious, flagged, or unusual transactions
 - PAYMENT_LIMITS: User asks about payment limits
 - EIN_QUERY: User asks about their EIN
@@ -635,8 +639,6 @@ INTENTS:
 - BALANCE: User asks about account balances
 - ACCOUNT_QUERY: User asks about specific accounts, account types, account details
 - TRANSACTION_SEARCH: User asks about specific transactions, recent transactions, transaction history
-- CARD_QUERY: User asks about cards, card spending, card limits, who has cards
-- CARD_ACTION: User wants to freeze/manage cards
 - TASK_QUERY: User asks about tasks, pending items, what needs attention
 - DOCUMENT_QUERY: User asks about documents, statements, bank statements, tax documents
 - FEATURE_DISCOVERY: User asks what Mercury can do, what features are available, what products we offer, or wants personalized feature recommendations
@@ -645,10 +647,9 @@ INTENTS:
 - COMPLEX_QUESTION: Requires deep analysis, comparisons, forecasting
 - SIMPLE_QUESTION: General product questions
 - CHITCHAT: Casual conversation
-- SEND_PAYMENT: User wants to send money, pay someone, make a payment, send ACH or wire
 - CREATE_RECIPIENT: User wants to add a new recipient, add a vendor, add a payee
-- CREATE_INVOICE: User wants to create an invoice, bill a client, send an invoice
-- UPLOAD_BILL: User wants to upload a bill, pay a bill, schedule a bill payment
+- CREATE_INVOICE: User wants to create an invoice, bill a client (NOT pay an invoice - that's SEND_PAYMENT)
+- UPLOAD_BILL: User wants to upload a bill image/document for processing
 - ISSUE_CARD: User wants to issue a new card, create a card, get a card for someone
 - CREATE_EMPLOYEE: User wants to invite a team member, add an employee, add a user
 
@@ -1402,14 +1403,95 @@ async function handleWithRouter(
 
     case 'CARD_ACTION': {
       const cards = getCardsWithSpending()
-      responseText = `Here are your **${cards.length} cards**:\n\n`
-      cards.forEach((c, i) => {
-        const status = c.status === 'active' ? 'Active' : c.status.charAt(0).toUpperCase() + c.status.slice(1)
-        const overBudget = c.spentThisMonth > c.monthlyLimit ? ' ⚠️ Over limit' : ''
-        responseText += `${i + 1}. **${c.cardholder}** (••${c.cardNumber})\n`
-        responseText += `   ${c.nickname || c.cardName} · ${status}\n`
-        responseText += `   Spent: ${formatCurrency(c.spentThisMonth)} of ${formatCurrency(c.monthlyLimit)} limit${overBudget}\n\n`
+      const query = message.toLowerCase()
+      
+      // Detect action type
+      const isFreezeAction = query.includes('freeze') || query.includes('lock') || query.includes('disable')
+      const isUnfreezeAction = query.includes('unfreeze') || query.includes('unlock') || query.includes('enable') || query.includes('activate')
+      
+      // Try to find a matching card by name
+      const matchedCard = cards.find(c => {
+        const cardName = (c.nickname || c.cardName).toLowerCase()
+        const cardholder = c.cardholder.toLowerCase()
+        return query.includes(cardName) || query.includes(cardholder)
       })
+      
+      if (matchedCard) {
+        const cardDisplayName = matchedCard.nickname || matchedCard.cardName
+        
+        if (isFreezeAction) {
+          if (matchedCard.status === 'frozen') {
+            responseText = `The **${cardDisplayName}** card is already frozen.`
+            metadata = {
+              emptyState: {
+                message: 'Card already frozen',
+                suggestion: `This card held by ${matchedCard.cardholder} is currently frozen. Would you like to unfreeze it?`
+              }
+            }
+          } else {
+            responseText = `Ready to freeze the **${cardDisplayName}** card for ${matchedCard.cardholder}. This will immediately block all transactions.`
+            metadata = {
+              confirmationRequest: {
+                id: `freeze-${matchedCard.id}`,
+                action: 'freeze_card',
+                targetId: matchedCard.id,
+                targetName: cardDisplayName,
+                currentValue: 'Active',
+                newValue: 'Frozen',
+              }
+            }
+          }
+        } else if (isUnfreezeAction) {
+          if (matchedCard.status === 'active') {
+            responseText = `The **${cardDisplayName}** card is already active.`
+          } else {
+            responseText = `Ready to unfreeze the **${cardDisplayName}** card for ${matchedCard.cardholder}.`
+            metadata = {
+              confirmationRequest: {
+                id: `unfreeze-${matchedCard.id}`,
+                action: 'unfreeze_card',
+                targetId: matchedCard.id,
+                targetName: cardDisplayName,
+                currentValue: 'Frozen',
+                newValue: 'Active',
+              }
+            }
+          }
+        } else {
+          // General card action - show card details
+          responseText = `Here's the **${cardDisplayName}** card:\n\n`
+          responseText += `- Cardholder: ${matchedCard.cardholder}\n`
+          responseText += `- Status: ${matchedCard.status}\n`
+          responseText += `- Spent: ${formatCurrency(matchedCard.spentThisMonth)} of ${formatCurrency(matchedCard.monthlyLimit)} limit\n`
+        }
+      } else {
+        // No card matched - show all cards with actions
+        responseText = `Which card would you like to ${isFreezeAction ? 'freeze' : isUnfreezeAction ? 'unfreeze' : 'manage'}? Here are your cards:`
+        
+        // Build cards table with action capability
+        const cardRows = cards.map(c => ({
+          id: c.id,
+          cardholder: c.cardholder,
+          cardLast4: c.cardNumber,
+          cardName: c.nickname || c.cardName,
+          spent: c.spentThisMonth,
+          limit: c.monthlyLimit,
+          status: c.status as 'active' | 'frozen' | 'cancelled',
+        }))
+        
+        metadata = {
+          cardsTable: {
+            title: '',
+            rows: cardRows,
+            allowFreeze: true,
+          },
+          navigation: {
+            target: 'Cards',
+            url: '/cards',
+            countdown: true
+          }
+        }
+      }
       break
     }
 
@@ -1516,6 +1598,47 @@ async function handleWithRouter(
           emptyState: {
             message: 'No transactions found',
             suggestion: 'Try adjusting your filters or search for a merchant name.'
+          }
+        }
+      }
+      break
+    }
+
+    case 'MISSING_RECEIPTS': {
+      // Find transactions that are expenses (negative amount) and don't have attachments
+      const txns = getTransactions()
+        .filter(t => t.amount < 0 && !t.hasAttachment)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 20)
+      
+      if (txns.length > 0) {
+        const total = txns.reduce((sum, t) => sum + Math.abs(t.amount), 0)
+        responseText = `Found **${txns.length} transactions** (${formatCurrency(total)} total) missing receipts:`
+        metadata = {
+          transactionTable: {
+            title: 'Missing Receipts',
+            rows: txns.map(t => ({
+              id: t.id,
+              description: t.description,
+              merchant: t.merchant,
+              amount: t.amount,
+              date: t.date,
+              category: t.category,
+              status: t.status,
+            })),
+          },
+          navigation: {
+            target: 'Transactions',
+            url: '/transactions?filter=missing-receipt',
+            countdown: true
+          }
+        }
+      } else {
+        responseText = `Great news! All your transactions have receipts attached.`
+        metadata = {
+          emptyState: {
+            message: 'All receipts attached',
+            suggestion: 'Your expense documentation is complete.'
           }
         }
       }
