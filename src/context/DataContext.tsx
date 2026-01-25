@@ -1,11 +1,25 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react';
+import accountsData from '@/data/accounts.json';
 
 // ============================================================================
 // Types
 // ============================================================================
 
+interface Account {
+  id: string;
+  name: string;
+  type: 'checking' | 'savings' | 'treasury';
+  balance: number;
+  currency: string;
+  accountNumber: string;
+  routingNumber: string;
+  status: string;
+  apy?: number;
+  purpose?: string;
+}
+
 export interface DataSettings {
-  // Total balance across all accounts ($100 to $10,000,000)
+  // Total balance across all accounts (calculated from actual data)
   totalBalance: number;
   // Cash flow direction: -1 (negative), 0 (neutral), 1 (positive)
   // Stored as -100 to 100 for slider, mapped to transaction generation
@@ -18,7 +32,7 @@ interface DataContextValue {
   // Derived values
   formattedTotalBalance: string;
   cashFlowLabel: string;
-  // Account distribution (always adds up to totalBalance)
+  // Account distribution (from actual data)
   getAccountBalances: () => AccountBalance[];
 }
 
@@ -30,23 +44,20 @@ export interface AccountBalance {
 }
 
 // ============================================================================
+// Load Real Account Data
+// ============================================================================
+
+const accounts = accountsData.accounts as Account[];
+const calculatedTotalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+
+// ============================================================================
 // Default Values
 // ============================================================================
 
 const DEFAULT_SETTINGS: DataSettings = {
-  totalBalance: 5000000, // $5M default
+  totalBalance: calculatedTotalBalance, // Use actual total from data
   cashFlowDirection: 0, // Neutral
 };
-
-// Account distribution percentages (must sum to 1)
-const ACCOUNT_DISTRIBUTION = [
-  { id: 'treasury', name: 'Treasury', percentage: 0.04, type: 'treasury' as const },
-  { id: 'ops-payroll', name: 'Ops / Payroll', percentage: 0.40, type: 'checking' as const },
-  { id: 'ap', name: 'AP', percentage: 0.045, type: 'checking' as const },
-  { id: 'ar', name: 'AR', percentage: 0.015, type: 'checking' as const },
-  { id: 'checking-0297', name: 'Checking ••0297', percentage: 0.27, type: 'checking' as const },
-  { id: 'savings-7658', name: 'Savings ••7658', percentage: 0.23, type: 'savings' as const },
-];
 
 // ============================================================================
 // Context
@@ -66,12 +77,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Format balance for display
-  const formattedTotalBalance = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(settings.totalBalance);
+  const formattedTotalBalance = useMemo(() => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(settings.totalBalance);
+  }, [settings.totalBalance]);
 
   // Get cash flow label based on direction
   const getCashFlowLabel = (direction: number): string => {
@@ -82,15 +95,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const cashFlowLabel = getCashFlowLabel(settings.cashFlowDirection);
 
-  // Calculate account balances based on total balance
+  // Return actual account balances from data
   const getAccountBalances = useCallback((): AccountBalance[] => {
-    return ACCOUNT_DISTRIBUTION.map(account => ({
+    return accounts.map(account => ({
       id: account.id,
       name: account.name,
-      balance: Math.round(settings.totalBalance * account.percentage * 100) / 100,
+      balance: account.balance,
       type: account.type,
     }));
-  }, [settings.totalBalance]);
+  }, []);
 
   const value: DataContextValue = {
     settings,

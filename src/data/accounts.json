@@ -1,36 +1,72 @@
 {
   "accounts": [
     {
-      "id": "acc_001",
-      "name": "Mercury Checking",
+      "id": "acc_operating",
+      "name": "Operating",
       "type": "checking",
-      "balance": 125750.42,
+      "balance": 847523.41,
       "currency": "USD",
       "accountNumber": "****4521",
-      "routingNumber": "****8832",
-      "status": "active"
+      "routingNumber": "091311229",
+      "status": "active",
+      "purpose": "Day-to-day operations, vendor payments"
     },
     {
-      "id": "acc_002",
-      "name": "Mercury Treasury",
+      "id": "acc_payroll",
+      "name": "Payroll",
+      "type": "checking",
+      "balance": 456789.23,
+      "currency": "USD",
+      "accountNumber": "****2847",
+      "routingNumber": "091311229",
+      "status": "active",
+      "purpose": "Bi-weekly payroll processing"
+    },
+    {
+      "id": "acc_treasury",
+      "name": "Treasury",
       "type": "treasury",
-      "balance": 500000.00,
+      "balance": 15234567.89,
       "currency": "USD",
       "accountNumber": "****7893",
-      "routingNumber": "****8832",
+      "routingNumber": "091311229",
       "status": "active",
-      "apy": 5.02
+      "apy": 5.0,
+      "purpose": "Reserve funds earning interest"
     },
     {
-      "id": "acc_003",
-      "name": "Operating Expenses",
+      "id": "acc_ar",
+      "name": "Accounts Receivable",
       "type": "checking",
-      "balance": 45230.18,
+      "balance": 198432.56,
       "currency": "USD",
-      "accountNumber": "****2156",
-      "routingNumber": "****8832",
-      "status": "active"
+      "accountNumber": "****5912",
+      "routingNumber": "091311229",
+      "status": "active",
+      "purpose": "Customer payment collection"
+    },
+    {
+      "id": "acc_ap",
+      "name": "Accounts Payable",
+      "type": "checking",
+      "balance": 145678.90,
+      "currency": "USD",
+      "accountNumber": "****3156",
+      "routingNumber": "091311229",
+      "status": "active",
+      "purpose": "Vendor and subscription payments"
+    },
+    {
+      "id": "acc_savings",
+      "name": "Savings",
+      "type": "savings",
+      "balance": 512345.67,
+      "currency": "USD",
+      "accountNumber": "****7658",
+      "routingNumber": "091311229",
+      "status": "active",
+      "apy": 4.5,
+      "purpose": "Emergency fund"
     }
   ]
 }
-

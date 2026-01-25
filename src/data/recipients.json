@@ -2,164 +2,403 @@
   "recipients": [
     {
       "id": "rec_001",
-      "name": "Acme Corp",
-      "initials": "AC",
+      "name": "Amazon Web Services",
+      "initials": "AW",
+      "type": "vendor",
+      "category": "Infrastructure",
       "status": "active",
-      "lastPaid": "2024-12-15"
+      "lastPaid": "2026-01-01",
+      "totalPaid": 148628.14
     },
     {
       "id": "rec_002",
-      "name": "Jason Green",
-      "initials": "JG",
+      "name": "Gusto Payroll",
+      "initials": "GP",
+      "type": "vendor",
+      "category": "Payroll",
       "status": "active",
-      "lastPaid": "2024-12-10"
+      "lastPaid": "2026-01-15",
+      "totalPaid": 1894000.00
     },
     {
       "id": "rec_003",
-      "name": "Figma Inc",
-      "initials": "FI",
+      "name": "Stripe",
+      "initials": "S",
+      "type": "client",
+      "category": "Revenue",
       "status": "active",
-      "lastPaid": "2024-12-14"
+      "lastPaid": "2026-01-23",
+      "totalReceived": 899000.00
     },
     {
       "id": "rec_004",
-      "name": "Amazon Web Services",
-      "initials": "AW",
+      "name": "WeWork",
+      "initials": "WW",
+      "type": "vendor",
+      "category": "Office",
       "status": "active",
-      "lastPaid": "2024-12-17"
+      "lastPaid": "2026-01-01",
+      "totalPaid": 97000.00
     },
     {
       "id": "rec_005",
-      "name": "Gusto",
-      "initials": "G",
+      "name": "Google Cloud",
+      "initials": "GC",
+      "type": "vendor",
+      "category": "Infrastructure",
       "status": "active",
-      "lastPaid": "2024-12-15"
+      "lastPaid": "2026-01-03",
+      "totalPaid": 27731.24
     },
     {
       "id": "rec_006",
-      "name": "Notion Labs",
-      "initials": "NL",
-      "status": "inactive",
-      "lastPaid": "2024-11-20"
+      "name": "Slack Technologies",
+      "initials": "ST",
+      "type": "vendor",
+      "category": "Software",
+      "status": "active",
+      "lastPaid": "2026-01-05",
+      "totalPaid": 10400.00
     },
     {
       "id": "rec_007",
-      "name": "Slack Technologies",
-      "initials": "ST",
+      "name": "Notion Labs",
+      "initials": "NL",
+      "type": "vendor",
+      "category": "Software",
       "status": "active",
-      "lastPaid": "2024-12-11"
+      "lastPaid": "2026-01-10",
+      "totalPaid": 4040.00
     },
     {
       "id": "rec_008",
-      "name": "Stripe Payments",
-      "initials": "SP",
-      "status": "pending",
-      "lastPaid": null
+      "name": "Figma Inc",
+      "initials": "FI",
+      "type": "vendor",
+      "category": "Software",
+      "status": "active",
+      "lastPaid": "2026-01-15",
+      "totalPaid": 3825.00
     },
     {
       "id": "rec_009",
-      "name": "Lighthouse Properties #3431",
-      "initials": "L",
+      "name": "GitHub",
+      "initials": "GH",
+      "type": "vendor",
+      "category": "Software",
       "status": "active",
-      "lastPaid": "2024-12-18"
+      "lastPaid": "2026-01-12",
+      "totalPaid": 10500.00
     },
     {
       "id": "rec_010",
-      "name": "Nutritionist",
-      "initials": "N",
+      "name": "DataDog",
+      "initials": "DD",
+      "type": "vendor",
+      "category": "Infrastructure",
       "status": "active",
-      "lastPaid": "2024-12-12"
+      "lastPaid": "2026-01-20",
+      "totalPaid": 20740.00
     },
     {
       "id": "rec_011",
-      "name": "Jordi O'Donnell",
-      "initials": "JO",
+      "name": "OpenAI",
+      "initials": "OA",
+      "type": "vendor",
+      "category": "Infrastructure",
       "status": "active",
-      "lastPaid": "2024-12-16"
+      "lastPaid": "2026-01-22",
+      "totalPaid": 19230.00
     },
     {
       "id": "rec_012",
-      "name": "Domestic Ads",
-      "initials": "DA",
+      "name": "Anthropic",
+      "initials": "AN",
+      "type": "vendor",
+      "category": "Infrastructure",
       "status": "active",
-      "lastPaid": "2024-12-14"
+      "lastPaid": "2026-01-21",
+      "totalPaid": 10500.00
     },
     {
       "id": "rec_013",
-      "name": "Jean Vallee",
-      "initials": "JV",
+      "name": "Google Ads",
+      "initials": "GA",
+      "type": "vendor",
+      "category": "Marketing",
       "status": "active",
-      "lastPaid": "2024-12-13"
+      "lastPaid": "2026-01-20",
+      "totalPaid": 40700.00
     },
     {
       "id": "rec_014",
-      "name": "Deshaun Moore",
-      "initials": "DM",
+      "name": "Meta Platforms",
+      "initials": "MP",
+      "type": "vendor",
+      "category": "Marketing",
       "status": "active",
-      "lastPaid": "2024-12-11"
+      "lastPaid": "2026-01-22",
+      "totalPaid": 29600.00
     },
     {
       "id": "rec_015",
-      "name": "Anil Kapoor",
-      "initials": "AK",
+      "name": "HubSpot",
+      "initials": "HS",
+      "type": "vendor",
+      "category": "Marketing",
       "status": "active",
-      "lastPaid": "2024-12-10"
+      "lastPaid": "2026-01-07",
+      "totalPaid": 13200.00
     },
     {
       "id": "rec_016",
-      "name": "Bolat Akhmetov",
-      "initials": "BA",
+      "name": "Vercel",
+      "initials": "VE",
+      "type": "vendor",
+      "category": "Infrastructure",
       "status": "active",
-      "lastPaid": "2024-12-09"
+      "lastPaid": "2026-01-18",
+      "totalPaid": 7850.00
     },
     {
       "id": "rec_017",
-      "name": "Miles Davidson",
-      "initials": "MD",
+      "name": "Linear",
+      "initials": "LI",
+      "type": "vendor",
+      "category": "Software",
       "status": "active",
-      "lastPaid": "2024-12-08"
+      "lastPaid": "2026-01-08",
+      "totalPaid": 3080.00
     },
     {
       "id": "rec_018",
-      "name": "Jerick Cheung",
-      "initials": "JC",
+      "name": "Zendesk",
+      "initials": "ZD",
+      "type": "vendor",
+      "category": "Software",
       "status": "active",
-      "lastPaid": "2024-12-07"
+      "lastPaid": "2026-01-12",
+      "totalPaid": 5980.00
     },
     {
       "id": "rec_019",
-      "name": "Stefanie Katz",
-      "initials": "SK",
+      "name": "Intercom",
+      "initials": "IC",
+      "type": "vendor",
+      "category": "Software",
       "status": "active",
-      "lastPaid": "2024-12-06"
+      "lastPaid": "2026-01-15",
+      "totalPaid": 7950.00
     },
     {
       "id": "rec_020",
-      "name": "Tax Bureau Inc",
-      "initials": "TB",
+      "name": "Pilot",
+      "initials": "PI",
+      "type": "vendor",
+      "category": "Professional Services",
       "status": "active",
-      "lastPaid": "2024-12-05"
+      "lastPaid": "2026-01-05",
+      "totalPaid": 24000.00
     },
     {
       "id": "rec_021",
-      "name": "Nano Tech LLC",
-      "initials": "NT",
+      "name": "Wilson Sonsini",
+      "initials": "WS",
+      "type": "vendor",
+      "category": "Professional Services",
       "status": "active",
-      "lastPaid": "2024-12-04"
+      "lastPaid": "2025-11-15",
+      "totalPaid": 27700.00
     },
     {
       "id": "rec_022",
-      "name": "Karim Halabi",
-      "initials": "KH",
+      "name": "Embroker",
+      "initials": "EM",
+      "type": "vendor",
+      "category": "Insurance",
       "status": "active",
-      "lastPaid": "2024-12-03"
+      "lastPaid": "2025-08-01",
+      "totalPaid": 4300.00
     },
     {
       "id": "rec_023",
-      "name": "Contractor",
-      "initials": "C",
-      "status": "pending",
-      "lastPaid": null
+      "name": "Justworks",
+      "initials": "JW",
+      "type": "vendor",
+      "category": "Benefits",
+      "status": "active",
+      "lastPaid": "2026-01-15",
+      "totalPaid": 121000.00
+    },
+    {
+      "id": "rec_024",
+      "name": "TechCorp Industries",
+      "initials": "TI",
+      "type": "client",
+      "category": "Revenue",
+      "status": "active",
+      "lastPaid": "2025-09-15",
+      "totalReceived": 75000.00
+    },
+    {
+      "id": "rec_025",
+      "name": "GlobalTech Solutions",
+      "initials": "GS",
+      "type": "client",
+      "category": "Revenue",
+      "status": "active",
+      "lastPaid": "2025-10-20",
+      "totalReceived": 120000.00
+    },
+    {
+      "id": "rec_026",
+      "name": "Innovate Labs",
+      "initials": "IL",
+      "type": "client",
+      "category": "Revenue",
+      "status": "active",
+      "lastPaid": "2025-11-12",
+      "totalReceived": 95000.00
+    },
+    {
+      "id": "rec_027",
+      "name": "FinServ Corp",
+      "initials": "FC",
+      "type": "client",
+      "category": "Revenue",
+      "status": "active",
+      "lastPaid": "2025-12-08",
+      "totalReceived": 150000.00
+    },
+    {
+      "id": "rec_028",
+      "name": "DataFlow Inc",
+      "initials": "DF",
+      "type": "client",
+      "category": "Revenue",
+      "status": "active",
+      "lastPaid": "2026-01-10",
+      "totalReceived": 85000.00
+    },
+    {
+      "id": "rec_029",
+      "name": "Jane Smith Design",
+      "initials": "JS",
+      "type": "contractor",
+      "category": "Contractor",
+      "status": "active",
+      "lastPaid": "2025-09-25",
+      "totalPaid": 10000.00
+    },
+    {
+      "id": "rec_030",
+      "name": "TechPR Partners",
+      "initials": "TP",
+      "type": "vendor",
+      "category": "Marketing",
+      "status": "active",
+      "lastPaid": "2026-01-02",
+      "totalPaid": 25500.00
+    },
+    {
+      "id": "rec_031",
+      "name": "SecureCode Consulting",
+      "initials": "SC",
+      "type": "contractor",
+      "category": "Professional Services",
+      "status": "active",
+      "lastPaid": "2025-10-10",
+      "totalPaid": 15000.00
+    },
+    {
+      "id": "rec_032",
+      "name": "Sequoia Capital",
+      "initials": "SQ",
+      "type": "investor",
+      "category": "Investment",
+      "status": "active",
+      "lastPaid": "2025-07-15",
+      "totalReceived": 12000000.00
+    },
+    {
+      "id": "rec_033",
+      "name": "Andreessen Horowitz",
+      "initials": "A1",
+      "type": "investor",
+      "category": "Investment",
+      "status": "active",
+      "lastPaid": "2025-07-15",
+      "totalReceived": 5000000.00
+    },
+    {
+      "id": "rec_034",
+      "name": "Angel Syndicate",
+      "initials": "AS",
+      "type": "investor",
+      "category": "Investment",
+      "status": "active",
+      "lastPaid": "2025-07-15",
+      "totalReceived": 3000000.00
+    },
+    {
+      "id": "rec_035",
+      "name": "Apple Store",
+      "initials": "AP",
+      "type": "vendor",
+      "category": "Equipment",
+      "status": "active",
+      "lastPaid": "2025-12-05",
+      "totalPaid": 22500.00
+    },
+    {
+      "id": "rec_036",
+      "name": "Herman Miller",
+      "initials": "HM",
+      "type": "vendor",
+      "category": "Equipment",
+      "status": "active",
+      "lastPaid": "2025-09-25",
+      "totalPaid": 4800.00
+    },
+    {
+      "id": "rec_037",
+      "name": "Staples",
+      "initials": "SP",
+      "type": "vendor",
+      "category": "Office",
+      "status": "active",
+      "lastPaid": "2025-11-12",
+      "totalPaid": 1405.00
+    },
+    {
+      "id": "rec_038",
+      "name": "Zoom Video",
+      "initials": "ZV",
+      "type": "vendor",
+      "category": "Software",
+      "status": "active",
+      "lastPaid": "2025-08-01",
+      "totalPaid": 2400.00
+    },
+    {
+      "id": "rec_039",
+      "name": "1Password",
+      "initials": "1P",
+      "type": "vendor",
+      "category": "Software",
+      "status": "active",
+      "lastPaid": "2025-08-15",
+      "totalPaid": 576.00
+    },
+    {
+      "id": "rec_040",
+      "name": "Mercury Treasury",
+      "initials": "MT",
+      "type": "internal",
+      "category": "Interest",
+      "status": "active",
+      "lastPaid": "2025-12-31",
+      "totalReceived": 35194.14
     }
   ]
 }

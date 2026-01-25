@@ -130,15 +130,22 @@ export function searchTransactions(
  */
 export function getAccountName(accountId: string): string {
   const accountNames: Record<string, string> = {
-    'acc_001': 'Mercury Checking',
-    'acc_002': 'Mercury Treasury',
-    'acc_003': 'Operating Expenses',
+    'acc_operating': 'Operating',
+    'acc_payroll': 'Payroll',
+    'acc_treasury': 'Treasury',
+    'acc_ar': 'Accounts Receivable',
+    'acc_ap': 'Accounts Payable',
+    'acc_savings': 'Savings',
+    // Legacy mappings for backwards compatibility
+    'acc_001': 'Operating',
+    'acc_002': 'Treasury',
+    'acc_003': 'Payroll',
     'treasury': 'Treasury',
-    'ops-payroll': 'Ops / Payroll',
-    'ap': 'AP',
-    'ar': 'AR',
-    'checking-0297': 'Checking ••0297',
-    'savings-7658': 'Savings ••7658',
+    'ops-payroll': 'Payroll',
+    'ap': 'Accounts Payable',
+    'ar': 'Accounts Receivable',
+    'checking-0297': 'Operating',
+    'savings-7658': 'Savings',
   };
   return accountNames[accountId] || accountId;
 }

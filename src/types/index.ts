@@ -31,6 +31,7 @@ export interface Transaction {
 export interface Card {
   id: string;
   cardholder: string;
+  employeeId?: string;
   cardName: string;
   cardNumber: string;
   nickname?: string;
@@ -93,6 +94,24 @@ export interface Recipient {
   id: string;
   name: string;
   initials?: string;
+  type?: 'vendor' | 'client' | 'contractor' | 'investor' | 'internal';
+  category?: string;
   status: 'active' | 'inactive' | 'pending';
   lastPaid?: string;
+  totalPaid?: number;
+  totalReceived?: number;
+}
+
+// Employee types
+export interface Employee {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  department: string;
+  startDate: string;
+  salary: number;
+  cardId: string | null;
+  isAdmin: boolean;
 }

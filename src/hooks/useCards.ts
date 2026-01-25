@@ -12,10 +12,17 @@ export interface CardWithSpending extends Card {
 
 // Map accountId to display name
 const accountNames: Record<string, string> = {
-  'checking-0297': 'Checking',
-  'ops-payroll': 'Ops / Payroll',
-  'ap': 'AP',
-  'ar': 'AR',
+  'acc_operating': 'Operating',
+  'acc_payroll': 'Payroll',
+  'acc_treasury': 'Treasury',
+  'acc_ar': 'Accounts Receivable',
+  'acc_ap': 'Accounts Payable',
+  'acc_savings': 'Savings',
+  // Legacy mappings
+  'checking-0297': 'Operating',
+  'ops-payroll': 'Payroll',
+  'ap': 'Accounts Payable',
+  'ar': 'Accounts Receivable',
   'savings-7658': 'Savings',
   'treasury': 'Treasury',
 };
@@ -26,13 +33,9 @@ export function useCards() {
   const { transactions } = useTransactions();
 
   useEffect(() => {
-    // Simulate API delay for realistic feel
-    const timer = setTimeout(() => {
-      setCards(cardsData.cards as Card[]);
-      setIsLoading(false);
-    }, 100);
-
-    return () => clearTimeout(timer);
+    // Load cards immediately from the JSON data file
+    setCards(cardsData.cards as Card[]);
+    setIsLoading(false);
   }, []);
 
   // Enrich cards with spending data calculated from transactions
