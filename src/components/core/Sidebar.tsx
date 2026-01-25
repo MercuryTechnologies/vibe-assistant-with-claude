@@ -31,6 +31,7 @@ import {
   faFont,
   faTerminal,
   faXmark,
+  faSparkles,
 } from '@/icons';
 import { componentRegistry, getComponentId } from '@/lib/component-registry';
 import { useDataSettings, formatCurrency } from '@/context/DataContext';
@@ -510,6 +511,24 @@ export function Sidebar() {
           {/* Expanded Accounts List */}
           {accountsExpanded && (
             <div className="ds-sidebar-submenu" style={{ gap: '2px' }}>
+              {/* Explore Feature Discovery */}
+              <Link to="/command?q=what+features+would+be+good+for+me">
+                <button
+                  className={`ds-sidebar-btn ${location.search.includes('q=what') ? 'active' : ''}`}
+                  style={{ marginBottom: 4 }}
+                >
+                  <div className="ds-sidebar-btn-content">
+                    <span className="ds-sidebar-icon-wrapper">
+                      <FontAwesomeIcon
+                        icon={faSparkles}
+                        className="ds-sidebar-icon"
+                        style={{ color: 'var(--purple-magic-500)' }}
+                      />
+                    </span>
+                    <span className="ds-sidebar-btn-label">Explore</span>
+                  </div>
+                </button>
+              </Link>
               {accountsData.map((account) => {
                 const isAccountActive = location.pathname === `/accounts/${account.id}`;
                 const content = (

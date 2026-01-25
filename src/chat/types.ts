@@ -276,6 +276,28 @@ export interface AccountBalancesMetadata {
 }
 
 /**
+ * A feature discovery card
+ */
+export interface FeatureCard {
+  id: string
+  title: string
+  subtitle: string
+  description: string
+  icon: string  // FontAwesome icon name
+  color: 'purple-magic' | 'green' | 'neutral'
+  highlight?: string  // Optional badge text
+  stats: Array<{ label: string; value: string }>
+  cta: { label: string; action: string }
+}
+
+/**
+ * Metadata for feature cards display
+ */
+export interface FeatureCardsMetadata {
+  cards: FeatureCard[]
+}
+
+/**
  * Combined metadata that can be attached to assistant messages
  */
 export interface MessageMetadata {
@@ -297,6 +319,7 @@ export interface MessageMetadata {
   invoiceForm?: InvoiceFormMetadata
   billUpload?: BillUploadMetadata
   accountBalances?: AccountBalancesMetadata
+  featureCards?: FeatureCardsMetadata
 }
 
 /**

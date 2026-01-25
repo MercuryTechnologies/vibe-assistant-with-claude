@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '@/components/ui/icon';
 import { DSButton } from '@/components/ui/ds-button';
 import { faPlus, faMicrophone, faArrowUp } from '@/icons';
@@ -18,10 +18,12 @@ const SHORTCUT_CARDS = [
 export function Command() {
   const [inputValue, setInputValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const [hasProcessedQuery, setHasProcessedQuery] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Chat store and streaming
   const { 
@@ -33,6 +35,19 @@ export function Command() {
     markNavigationComplete,
   } = useChatStore();
   const { sendMessage } = useStreamingChat();
+
+  // Handle ?q= query parameter - auto-send message on mount
+  useEffect(() => {
+    const queryMessage = searchParams.get('q');
+    if (queryMessage && !hasProcessedQuery && !isLoading && messages.length === 0) {
+      setHasProcessedQuery(true);
+      // Clear the query param from URL
+      setSearchParams({}, { replace: true });
+      // Start new conversation and send the message
+      startNewConversation();
+      sendMessage(queryMessage);
+    }
+  }, [searchParams, hasProcessedQuery, isLoading, messages.length, setSearchParams, startNewConversation, sendMessage]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {

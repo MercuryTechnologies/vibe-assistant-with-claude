@@ -9,6 +9,7 @@ import { CardsTableBlock } from './CardsTableBlock';
 import { AccountBalancesBlock } from './AccountBalancesBlock';
 import { RecipientsBlock } from './RecipientsBlock';
 import { DocumentsBlock } from './DocumentsBlock';
+import { FeatureCardsBlock } from './FeatureCardsBlock';
 
 interface ChatBlockRendererProps {
   content: string;
@@ -95,6 +96,15 @@ export function ChatBlockRenderer({
         <DocumentsBlock 
           data={metadata.documents}
           context={context}
+        />
+      )}
+      
+      {/* Feature Cards */}
+      {metadata?.featureCards && (
+        <FeatureCardsBlock 
+          data={metadata.featureCards}
+          context={context}
+          onNavigate={handleNavigate}
         />
       )}
       

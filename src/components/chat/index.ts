@@ -15,4 +15,5 @@ export { CardsTableBlock } from './CardsTableBlock';
 export { AccountBalancesBlock } from './AccountBalancesBlock';
 export { RecipientsBlock } from './RecipientsBlock';
 export { DocumentsBlock } from './DocumentsBlock';
+export { FeatureCardsBlock } from './FeatureCardsBlock';
 export { ChatBlockRenderer } from './ChatBlockRenderer';
