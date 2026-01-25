@@ -807,8 +807,6 @@ async function handleWithRouter(
           rows: topByPaid.map(r => ({
             id: r.id,
             name: r.name,
-            bankName: r.bankName || undefined,
-            accountLast4: r.accountNumber?.slice(-4) || undefined,
             lastPaidDate: r.lastPaid || undefined,
             lastPaidAmount: r.totalPaid || undefined,
           })),
