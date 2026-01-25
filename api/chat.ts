@@ -773,21 +773,29 @@ async function handleWithRouter(
     }
 
     case 'WIRE_TRANSACTIONS': {
-      const wires = getWireTransactions(10)
+      const wires = getWireTransactions(20)
       const wireCount = wires.length
       const totalAmount = wires.reduce((sum, t) => sum + t.amount, 0)
 
-      responseText = `You have **${wireCount} wire transfers** totaling ${formatCurrency(totalAmount)}:\n\n`
-      wires.slice(0, 5).forEach((t, i) => {
-        responseText += `${i + 1}. **${t.merchant}** - ${formatCurrency(t.amount)} (${t.date})\n`
-      })
+      responseText = `Found **${wireCount} wire transfers** totaling ${formatCurrency(totalAmount)}:`
 
       metadata = {
+        transactionTable: {
+          title: 'Wire Transfers',
+          rows: wires.map(t => ({
+            id: t.id,
+            description: t.description,
+            merchant: t.merchant,
+            amount: t.amount,
+            date: t.date,
+            status: t.status,
+            category: t.category,
+          })),
+        },
         navigation: {
           target: 'Transactions',
           url: '/transactions?filter=wire',
-          countdown: true,
-          filters: { types: ['wire'] }
+          countdown: true
         }
       }
       break
@@ -1141,31 +1149,49 @@ async function handleWithRouter(
 
     case 'TASK_QUERY': {
       const tasks = getTasks()
-      const incomplete = tasks.filter(t => t.status === 'incomplete')
-      const completed = tasks.filter(t => t.status === 'completed')
+      const query = message.toLowerCase()
       
-      responseText = `**Tasks Overview:**\n\n`
-      responseText += `**Pending**: ${incomplete.length} tasks\n`
-      responseText += `**Completed**: ${completed.length} tasks\n\n`
+      // Detect status filter from query
+      const wantsIncomplete = /incomplete|pending|open|todo|need|outstanding/i.test(query)
+      const wantsCompleted = /completed?|done|finished/i.test(query)
       
-      if (incomplete.length > 0) {
-        responseText += `**Items Needing Attention:**\n`
-        incomplete.slice(0, 5).forEach((t, i) => {
-          const typeLabel = t.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-          responseText += `${i + 1}. **${typeLabel}**: ${t.description}\n`
-          if (t.received) {
-            responseText += `   Received: ${t.received}\n`
-          }
-        })
-        
-        if (incomplete.length > 5) {
-          responseText += `\n...and ${incomplete.length - 5} more tasks.`
-        }
-      } else {
-        responseText += `✅ No pending tasks! You're all caught up.`
+      let filteredTasks = tasks
+      let statusLabel = ''
+      
+      if (wantsIncomplete) {
+        filteredTasks = tasks.filter(t => t.status === 'incomplete')
+        statusLabel = 'incomplete '
+      } else if (wantsCompleted) {
+        filteredTasks = tasks.filter(t => t.status === 'completed')
+        statusLabel = 'completed '
       }
       
+      if (filteredTasks.length > 0) {
+        responseText = `Found **${filteredTasks.length} ${statusLabel}tasks**:`
+      } else {
+        responseText = wantsIncomplete 
+          ? `Great news! You have no incomplete tasks.`
+          : wantsCompleted 
+          ? `No completed tasks found.`
+          : `You have no tasks.`
+      }
+      
+      // Build task table metadata
       metadata = {
+        taskTable: {
+          title: statusLabel 
+            ? `${statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1).trim()} Tasks` 
+            : 'All Tasks',
+          rows: filteredTasks.map(t => ({
+            id: t.id,
+            description: t.description,
+            status: t.status,
+            type: t.type,
+            received: t.received,
+            actionLabel: t.actionLabel,
+            actionHref: t.actionHref,
+          })),
+        },
         navigation: {
           target: 'Tasks',
           url: '/tasks',
@@ -1575,9 +1601,13 @@ async function handleWithRouter(
       const status = statusMatch ? statusMatch[1] as 'pending' | 'completed' | 'failed' : undefined
       
       // Detect amount filter (e.g., "over $5,000", "more than $1000", "$5000+")
-      const amountMatch = query.match(/(?:over|more than|above|greater than|exceeds?)\s*\$?([\d,]+)/i)
+      const overMatch = query.match(/(?:over|more than|above|greater than|exceeds?)\s*\$?([\d,]+)/i)
         || query.match(/\$([\d,]+)\s*\+/)
-      const minAmount = amountMatch ? parseInt(amountMatch[1].replace(/,/g, ''), 10) : undefined
+      const minAmount = overMatch ? parseInt(overMatch[1].replace(/,/g, ''), 10) : undefined
+      
+      // Detect "under" amount filter (e.g., "under $100", "less than $50", "below $200")
+      const underMatch = query.match(/(?:under|less than|below|smaller than)\s*\$?([\d,]+)/i)
+      const maxAmount = underMatch ? parseInt(underMatch[1].replace(/,/g, ''), 10) : undefined
       
       // Detect date filter
       let startDate: string | undefined
@@ -1605,7 +1635,7 @@ async function handleWithRouter(
       const merchantFilter = merchantMatch ? merchantMatch[1].trim() : undefined
       
       // Build filters object
-      const hasFilters = status || minAmount || startDate || merchantFilter
+      const hasFilters = status || minAmount || maxAmount || startDate || merchantFilter
       let results: Transaction[]
       
       if (isRecentQuery && !hasFilters) {
@@ -1628,9 +1658,14 @@ async function handleWithRouter(
           )
         }
         
-        // Apply amount filter (getTransactions doesn't support this natively)
+        // Apply amount filter - minimum (over $X)
         if (minAmount) {
           results = results.filter(t => Math.abs(t.amount) >= minAmount)
+        }
+        
+        // Apply amount filter - maximum (under $X)
+        if (maxAmount) {
+          results = results.filter(t => Math.abs(t.amount) < maxAmount)
         }
         
         // Sort by date (newest first) and limit results
@@ -1667,6 +1702,7 @@ async function handleWithRouter(
         if (merchantFilter) filterParts.push(`with ${merchantFilter}`)
         if (status) filterParts.push(status)
         if (minAmount) filterParts.push(`over ${formatCurrency(minAmount)}`)
+        if (maxAmount) filterParts.push(`under ${formatCurrency(maxAmount)}`)
         if (dateLabel) filterParts.push(`from ${dateLabel}`)
         
         const filterDesc = filterParts.length > 0 ? filterParts.join(', ') + ' ' : ''
@@ -1679,6 +1715,7 @@ async function handleWithRouter(
         const urlParams = new URLSearchParams()
         if (status) urlParams.set('status', status)
         if (minAmount) urlParams.set('minAmount', minAmount.toString())
+        if (maxAmount) urlParams.set('maxAmount', maxAmount.toString())
         if (startDate) urlParams.set('startDate', startDate)
         if (merchantFilter) urlParams.set('merchant', merchantFilter)
         const navUrl = urlParams.toString() ? `/transactions?${urlParams.toString()}` : '/transactions'
@@ -1704,7 +1741,10 @@ async function handleWithRouter(
           }
         }
       } else {
-        const filterDesc = merchantFilter ? `with "${merchantFilter}"` : (minAmount ? `over ${formatCurrency(minAmount)}` : (dateLabel ? `from ${dateLabel}` : ''))
+        const filterDesc = merchantFilter ? `with "${merchantFilter}"` : 
+          (minAmount ? `over ${formatCurrency(minAmount)}` : 
+          (maxAmount ? `under ${formatCurrency(maxAmount)}` : 
+          (dateLabel ? `from ${dateLabel}` : '')))
         responseText = `I couldn't find any ${status ? status + ' ' : ''}transactions${filterDesc ? ' ' + filterDesc : ''}.`
         metadata = {
           emptyState: {

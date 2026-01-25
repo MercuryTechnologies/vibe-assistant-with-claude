@@ -349,6 +349,29 @@ export interface EmptyStateMetadata {
 /**
  * Combined metadata that can be attached to assistant messages
  */
+/**
+ * A task row in a table
+ */
+export interface TaskTableRow {
+  id: string
+  description: string
+  status: 'incomplete' | 'completed'
+  type: string
+  received?: string
+  completedOn?: string
+  completedBy?: string
+  actionLabel?: string
+  actionHref?: string
+}
+
+/**
+ * Metadata for task table display
+ */
+export interface TaskTableMetadata {
+  title: string
+  rows: TaskTableRow[]
+}
+
 export interface MessageMetadata {
   navigation?: NavigationMetadata
   formPrefill?: FormPrefillMetadata
@@ -357,6 +380,7 @@ export interface MessageMetadata {
   supportHandoff?: SupportHandoffMetadata
   transactionTable?: TransactionTableMetadata
   employeeTable?: EmployeeTableMetadata
+  taskTable?: TaskTableMetadata
   thinkingChain?: ThinkingStep[]
   clarificationRequest?: ClarificationRequest
   entityCards?: EntityCard[]

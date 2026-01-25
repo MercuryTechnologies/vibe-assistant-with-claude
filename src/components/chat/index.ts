@@ -11,6 +11,7 @@ export { SpendingBarChart } from './SpendingBarChart';
 export { SummaryStats } from './SummaryStats';
 export { TransactionTable } from './TransactionTable';
 export { EmployeeTable } from './EmployeeTable';
+export { TaskTableBlock } from './TaskTableBlock';
 export { CardsTableBlock } from './CardsTableBlock';
 export { AccountBalancesBlock } from './AccountBalancesBlock';
 export { RecipientsBlock } from './RecipientsBlock';

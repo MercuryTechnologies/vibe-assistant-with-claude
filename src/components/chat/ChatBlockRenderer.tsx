@@ -5,6 +5,7 @@ import { ThinkingChain } from './ThinkingChain';
 import { NavigationCard } from './NavigationCard';
 import { TransactionTable } from './TransactionTable';
 import { EmployeeTable } from './EmployeeTable';
+import { TaskTableBlock } from './TaskTableBlock';
 import { CardsTableBlock } from './CardsTableBlock';
 import { AccountBalancesBlock } from './AccountBalancesBlock';
 import { RecipientsBlock } from './RecipientsBlock';
@@ -133,6 +134,11 @@ export function ChatBlockRenderer({
           data={metadata.employeeTable}
           onSelectionChange={onEmployeeSelect}
         />
+      )}
+      
+      {/* Task Table */}
+      {metadata?.taskTable && (
+        <TaskTableBlock data={metadata.taskTable} />
       )}
       
       {/* Cards Table */}
