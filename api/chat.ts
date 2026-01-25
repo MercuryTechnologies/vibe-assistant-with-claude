@@ -841,7 +841,7 @@ function generateBoundaryResponse(
             cardholder: c.cardholder,
             status: c.status,
             lastFour: c.cardNumber.slice(-4),
-            spent: c.spent,
+            spent: c.spentThisMonth,
             limit: c.monthlyLimit
           })),
           allowFreeze: true
@@ -943,7 +943,7 @@ function generateBoundaryResponse(
         cardholder: c.cardholder,
         status: c.status,
         lastFour: c.cardNumber.slice(-4),
-        spent: c.spent,
+        spent: c.spentThisMonth,
         limit: c.monthlyLimit
       }))
     }
