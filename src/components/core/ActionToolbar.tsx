@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import { Icon } from '@/components/ui/icon';
 import { faArrowRightArrowLeft, faEllipsis, faXmark, faMagnifyingGlass, faClock, faWindowMaximize, faChartLine, faCreditCard, faArrowUpFromLine, faArrowUp, faChevronLeft, faPlus, faUpRightAndDownLeftFromCenter, faDownLeftAndUpRightToCenter, faUser } from '@/icons';
 import { cn } from '@/lib/utils';
@@ -108,6 +109,7 @@ export function ActionToolbar() {
     clearConversation,
     isNavigationComplete,
     markNavigationComplete,
+    setFullScreenChat,
   } = useChatStore();
   const { sendMessage } = useStreamingChat();
 
@@ -127,16 +129,26 @@ export function ActionToolbar() {
       !isNavigationComplete(lastMessage.id)
     ) {
       const nav = lastMessage.metadata.navigation;
+      const targetUrl = nav.url;
+      
+      // Mark as complete before navigating to prevent re-triggering
       markNavigationComplete(lastMessage.id, nav);
+      
+      const doNavigate = () => {
+        if (targetUrl && targetUrl !== location.pathname) {
+          navigate(targetUrl);
+        }
+      };
       
       if (nav.countdown) {
         // Navigate after 2 second delay for countdown
-        setTimeout(() => navigate(nav.url), 2000);
+        const timer = setTimeout(doNavigate, 2000);
+        return () => clearTimeout(timer);
       } else {
-        navigate(nav.url);
+        doNavigate();
       }
     }
-  }, [messages, navigate, isNavigationComplete, markNavigationComplete]);
+  }, [messages, navigate, isNavigationComplete, markNavigationComplete, location.pathname]);
 
   // Handle sending a chat message
   const handleSendChatMessage = async () => {
@@ -215,6 +227,18 @@ export function ActionToolbar() {
       })
       .slice(0, 6); // Show top 6 recent recipients
   }, [recipients]);
+
+  // Get dynamic CTA label based on current page
+  const primaryCTALabel = useMemo(() => {
+    const path = location.pathname;
+    if (path.startsWith('/payments') || path === '/payments/recipients') {
+      return 'Send';
+    }
+    if (path === '/cards') {
+      return 'Create Card';
+    }
+    return 'Ask';
+  }, [location.pathname]);
 
   // Reset selected index when filtered results change
   useEffect(() => {
@@ -339,15 +363,18 @@ export function ActionToolbar() {
   }, [panelType]);
 
   useEffect(() => {
-    if (panelType && isPanelFullScreen) {
+    const isFullScreen = panelType && isPanelFullScreen;
+    if (isFullScreen) {
       document.body.classList.add('ds-panel-open');
     } else {
       document.body.classList.remove('ds-panel-open');
     }
+    // Sync full-screen chat state with the store for nav highlighting
+    setFullScreenChat(!!isFullScreen);
     return () => {
       document.body.classList.remove('ds-panel-open');
     };
-  }, [panelType, isPanelFullScreen]);
+  }, [panelType, isPanelFullScreen, setFullScreenChat]);
 
   // Handle panel resize
   const handleResizeStart = (e: React.MouseEvent) => {
@@ -581,12 +608,10 @@ export function ActionToolbar() {
                           </div>
                         ) : (
                           <div className="ds-chat-panel-ai-response">
-                            <div className="ds-chat-panel-copy">
-                              {message.content.split('\n\n').map((paragraph, idx) => (
-                                <p key={idx} className="text-body" style={{ color: 'var(--ds-text-default)' }}>
-                                  {paragraph}
-                                </p>
-                              ))}
+                            <div className="ds-chat-panel-copy ds-chat-markdown">
+                              <ReactMarkdown>
+                                {message.content}
+                              </ReactMarkdown>
                             </div>
                           </div>
                         )}
@@ -714,12 +739,45 @@ export function ActionToolbar() {
                       </span>
                     </div>
                   ))
+                ) : inputValue.trim() ? (
+                  <div 
+                    className="ds-action-result-item ai-mode"
+                    onClick={() => openChatWithMessage(inputValue.trim())}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="ds-action-result-icon"
+                        style={{ 
+                          background: 'linear-gradient(135deg, var(--purple-magic-500), var(--purple-magic-600))',
+                          borderRadius: 'var(--radius-sm)'
+                        }}
+                      >
+                        <Icon 
+                          icon={faArrowUp} 
+                          size="small"
+                          style={{ color: 'white' }} 
+                        />
+                      </div>
+                      <span 
+                        className="text-body"
+                        style={{ color: 'var(--ds-text-default)' }}
+                      >
+                        Ask Mercury AI: "{inputValue}"
+                      </span>
+                    </div>
+                    <span 
+                      className="text-label"
+                      style={{ color: 'var(--purple-magic-600)' }}
+                    >
+                      Press Enter
+                    </span>
+                  </div>
                 ) : (
                   <div 
                     className="flex items-center justify-center py-4"
                     style={{ color: 'var(--ds-text-tertiary)' }}
                   >
-                    <span className="text-body">No pages found</span>
+                    <span className="text-body">Type to search or ask AI</span>
                   </div>
                 )}
               </div>
@@ -846,7 +904,7 @@ export function ActionToolbar() {
                     variant="primary" 
                     size="large"
                   >
-                    Send
+                    {primaryCTALabel}
                   </DSButton>
                 </div>
 

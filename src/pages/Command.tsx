@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import { Icon } from '@/components/ui/icon';
 import { DSButton } from '@/components/ui/ds-button';
 import { faPlus, faMicrophone, faArrowUp } from '@/icons';
@@ -54,13 +55,23 @@ export function Command() {
       !isNavigationComplete(lastMessage.id)
     ) {
       const nav = lastMessage.metadata.navigation;
+      const targetUrl = nav.url;
+      
+      // Mark as complete before navigating to prevent re-triggering
       markNavigationComplete(lastMessage.id, nav);
+      
+      const doNavigate = () => {
+        if (targetUrl) {
+          navigate(targetUrl);
+        }
+      };
       
       if (nav.countdown) {
         // Navigate after 2 second delay for countdown
-        setTimeout(() => navigate(nav.url), 2000);
+        const timer = setTimeout(doNavigate, 2000);
+        return () => clearTimeout(timer);
       } else {
-        navigate(nav.url);
+        doNavigate();
       }
     }
   }, [messages, navigate, isNavigationComplete, markNavigationComplete]);
@@ -159,12 +170,10 @@ export function Command() {
                     </span>
                   </div>
                 ) : (
-                  <div className="command-message-assistant">
-                    {message.content.split('\n\n').map((paragraph, idx) => (
-                      <p key={idx} className="text-body" style={{ color: 'var(--ds-text-default)' }}>
-                        {paragraph}
-                      </p>
-                    ))}
+                  <div className="command-message-assistant ds-chat-markdown">
+                    <ReactMarkdown>
+                      {message.content}
+                    </ReactMarkdown>
                   </div>
                 )}
               </div>

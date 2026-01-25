@@ -3711,6 +3711,18 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   background-color: var(--ds-bg-default-hovered);
 }
 
+.ds-action-result-item.ai-mode {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(167, 139, 250, 0.08));
+  border: 1px solid var(--purple-magic-200);
+  border-radius: var(--radius-md);
+  margin: 4px 0;
+}
+
+.ds-action-result-item.ai-mode:hover {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(167, 139, 250, 0.12));
+  border-color: var(--purple-magic-300);
+}
+
 .ds-action-result-icon {
   width: 20px;
   display: flex;
@@ -4156,6 +4168,66 @@ body.ds-panel-resizing * {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* Markdown styling for AI responses */
+.ds-chat-markdown {
+  color: var(--ds-text-default);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+.ds-chat-markdown p {
+  margin: 0 0 12px 0;
+}
+
+.ds-chat-markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.ds-chat-markdown strong {
+  font-weight: 600;
+  color: var(--ds-text-emphasized);
+}
+
+.ds-chat-markdown a {
+  color: var(--ds-text-link);
+  text-decoration: underline;
+}
+
+.ds-chat-markdown a:hover {
+  text-decoration: none;
+}
+
+.ds-chat-markdown ul,
+.ds-chat-markdown ol {
+  margin: 0 0 12px 0;
+  padding-left: 1.5rem;
+}
+
+.ds-chat-markdown li {
+  margin-bottom: 4px;
+}
+
+.ds-chat-markdown code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background-color: var(--ds-bg-subtle);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.ds-chat-markdown pre {
+  background-color: var(--ds-bg-subtle);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin: 0 0 12px 0;
+}
+
+.ds-chat-markdown pre code {
+  background: none;
+  padding: 0;
 }
 
 .ds-chat-panel-ai-response {

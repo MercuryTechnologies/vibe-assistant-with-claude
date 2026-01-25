@@ -39,6 +39,9 @@ interface ChatState {
   // Floating chat state (when navigated away from full chat page)
   isFloating: boolean
   
+  // Full-screen chat panel state (for syncing nav highlight to Command)
+  isFullScreenChat: boolean
+  
   // Track which navigation actions have completed (by message ID)
   completedNavigations: Set<string>
   
@@ -58,6 +61,7 @@ interface ChatState {
   setThinking: (status: ThinkingStatus | null) => void
   setLoading: (loading: boolean) => void
   setFloating: (floating: boolean) => void
+  setFullScreenChat: (fullScreen: boolean) => void
   markNavigationComplete: (messageId: string, navigationMeta?: NavigationMetadata) => void
   isNavigationComplete: (messageId: string) => boolean
   clearConversation: () => void
@@ -86,6 +90,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   thinkingStatus: null,
   streamingMessageId: null,
   isFloating: false,
+  isFullScreenChat: false,
   completedNavigations: new Set<string>(),
   pendingFollowUp: null,
   pendingClarification: null,
@@ -203,6 +208,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // Set floating state (for when navigated away from chat page)
   setFloating: (floating: boolean) => {
     set({ isFloating: floating })
+  },
+  
+  // Set full-screen chat state (for syncing nav highlight to Command)
+  setFullScreenChat: (fullScreen: boolean) => {
+    set({ isFullScreenChat: fullScreen })
   },
   
   // Mark a navigation as completed (so countdown doesn't restart)
