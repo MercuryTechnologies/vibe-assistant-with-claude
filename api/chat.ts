@@ -273,12 +273,14 @@ function getTopSpendingCategories(limit: number = 5, period: '30d' | '90d' = '30
   category: string
   amount: number
   count: number
+  percentOfTotal: number
 }> {
   const days = period === '30d' ? 30 : 90
   const startDate = getDateNDaysAgo(days)
   const txns = getTransactions({ startDate })
     .filter(t => t.amount < 0 && t.type !== 'transfer')
 
+  const totalSpend = txns.reduce((sum, t) => sum + Math.abs(t.amount), 0)
   const categoryMap = new Map<string, { amount: number; count: number }>()
 
   for (const t of txns) {
@@ -290,7 +292,12 @@ function getTopSpendingCategories(limit: number = 5, period: '30d' | '90d' = '30
   }
 
   return Array.from(categoryMap.entries())
-    .map(([category, data]) => ({ category, amount: data.amount, count: data.count }))
+    .map(([category, data]) => ({ 
+      category, 
+      amount: data.amount, 
+      count: data.count,
+      percentOfTotal: totalSpend > 0 ? (data.amount / totalSpend) * 100 : 0,
+    }))
     .sort((a, b) => b.amount - a.amount)
     .slice(0, limit)
 }
@@ -867,14 +874,14 @@ async function handleWithRouter(
       
       // List a few key people (executives/leadership)
       const leadership = employees.filter(e => 
-        e.title.includes('CEO') || e.title.includes('CTO') || e.title.includes('CFO') || 
-        e.title.includes('Head') || e.title.includes('Director') || e.title.includes('VP')
+        e.role.includes('CEO') || e.role.includes('CTO') || e.role.includes('CFO') || 
+        e.role.includes('Head') || e.role.includes('Director') || e.role.includes('VP')
       ).slice(0, 5)
       
       if (leadership.length > 0) {
         responseText += `\n**Leadership:**\n`
         leadership.forEach(e => {
-          responseText += `- **${e.firstName} ${e.lastName}** - ${e.title}\n`
+          responseText += `- **${e.firstName} ${e.lastName}** - ${e.role}\n`
         })
       }
       break
