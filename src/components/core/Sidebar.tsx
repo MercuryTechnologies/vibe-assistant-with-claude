@@ -30,14 +30,25 @@ import {
   faPalette,
   faFont,
   faTerminal,
+  faXmark,
 } from '@/icons';
 import { componentRegistry, getComponentId } from '@/lib/component-registry';
 import { useDataSettings, formatCurrency } from '@/context/DataContext';
 import { useChatStore } from '@/chat';
+import { useMobileLayout } from '@/hooks';
+import { cn } from '@/lib/utils';
 
 export function Sidebar() {
   const location = useLocation();
   const { isFullScreenChat } = useChatStore();
+  const { isMobile, isSidebarOpen, closeSidebar } = useMobileLayout();
+  
+  // Close sidebar on route change (mobile only)
+  useEffect(() => {
+    if (isMobile) {
+      closeSidebar();
+    }
+  }, [location.pathname, isMobile, closeSidebar]);
   
   // Check if a path is active, with special handling for Command when chat is full-screen
   const isActive = (path: string) => {
@@ -126,8 +137,32 @@ export function Sidebar() {
 
   // If we're on a design system route, show the design system sidebar
   if (isDesignSystemRoute) {
+    // For mobile: don't render if sidebar is closed
+    if (isMobile && !isSidebarOpen) {
+      return null;
+    }
+    
   return (
-    <aside className="ds-sidebar">
+    <>
+      {/* Mobile overlay backdrop */}
+      {isMobile && isSidebarOpen && (
+        <div 
+          className="ds-sidebar-overlay"
+          onClick={closeSidebar}
+          aria-hidden="true"
+        />
+      )}
+      <aside className={cn('ds-sidebar', isMobile && 'ds-sidebar-mobile', isMobile && isSidebarOpen && 'ds-sidebar-open')}>
+        {/* Mobile close button */}
+        {isMobile && (
+          <button 
+            className="ds-sidebar-close-btn"
+            onClick={closeSidebar}
+            aria-label="Close sidebar"
+          >
+            <FontAwesomeIcon icon={faXmark} />
+          </button>
+        )}
       {/* Back to Vibes Button */}
       <div className="ds-sidebar-header">
         <Link to="/dashboard">
@@ -275,11 +310,36 @@ export function Sidebar() {
         </div>
         </nav>
       </aside>
+    </>
     );
   }
 
+  // For mobile: don't render if sidebar is closed
+  if (isMobile && !isSidebarOpen) {
+    return null;
+  }
+
   return (
-    <aside className="ds-sidebar">
+    <>
+      {/* Mobile overlay backdrop */}
+      {isMobile && isSidebarOpen && (
+        <div 
+          className="ds-sidebar-overlay"
+          onClick={closeSidebar}
+          aria-hidden="true"
+        />
+      )}
+      <aside className={cn('ds-sidebar', isMobile && 'ds-sidebar-mobile', isMobile && isSidebarOpen && 'ds-sidebar-open')}>
+        {/* Mobile close button */}
+        {isMobile && (
+          <button 
+            className="ds-sidebar-close-btn"
+            onClick={closeSidebar}
+            aria-label="Close sidebar"
+          >
+            <FontAwesomeIcon icon={faXmark} />
+          </button>
+        )}
       {/* Company Selector */}
       <div className="ds-sidebar-header" style={{ height: '64px' }}>
         <DropdownMenu>
@@ -532,5 +592,6 @@ export function Sidebar() {
         </Link>
       </div>
     </aside>
+    </>
   );
 }

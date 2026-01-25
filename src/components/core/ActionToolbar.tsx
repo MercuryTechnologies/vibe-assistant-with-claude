@@ -1,13 +1,13 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
 import { Icon } from '@/components/ui/icon';
 import { faArrowRightArrowLeft, faEllipsis, faXmark, faMagnifyingGlass, faClock, faWindowMaximize, faChartLine, faCreditCard, faArrowUpFromLine, faArrowUp, faChevronLeft, faPlus, faUpRightAndDownLeftFromCenter, faDownLeftAndUpRightToCenter, faUser } from '@/icons';
 import { cn } from '@/lib/utils';
 import { DSButton } from '@/components/ui/ds-button';
 import { DSAvatar } from '@/components/ui/ds-avatar';
-import { useRecipients } from '@/hooks';
+import { useRecipients, useMobileLayout } from '@/hooks';
 import { useChatStore, useStreamingChat, type ChatMessage } from '@/chat';
+import { ChatBlockRenderer } from '@/components/chat';
 
 // Suggestion types
 type SuggestionType = 'action' | 'page' | 'recipient' | 'card';
@@ -80,6 +80,7 @@ export function ActionToolbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { recipients } = useRecipients();
+  const { isMobile } = useMobileLayout();
   const isCommandPage = location.pathname === '/command';
   const [inputValue, setInputValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -609,9 +610,14 @@ export function ActionToolbar() {
                         ) : (
                           <div className="ds-chat-panel-ai-response">
                             <div className="ds-chat-panel-copy ds-chat-markdown">
-                              <ReactMarkdown>
-                                {message.content}
-                              </ReactMarkdown>
+                              <ChatBlockRenderer
+                                content={message.content}
+                                metadata={message.metadata}
+                                onNavigate={(url) => {
+                                  handleClosePanel();
+                                  navigate(url);
+                                }}
+                              />
                             </div>
                           </div>
                         )}
@@ -676,12 +682,12 @@ export function ActionToolbar() {
           </div>
         </div>
       )}
-      <div className={cn('ds-action-container', isCommandPage && 'hidden-on-command')}>
+      <div className={cn('ds-action-container', isCommandPage && 'hidden-on-command', isMobile && 'ds-action-container-mobile')}>
         {!panelType && (
           <div 
             ref={toolbarRef}
-            className={cn('ds-action-toolbar', isFocused && 'focused')} 
-            style={{ width: isFocused ? 672 : 484 }}
+            className={cn('ds-action-toolbar', isFocused && 'focused', isMobile && 'ds-action-toolbar-mobile')} 
+            style={{ width: isMobile ? (isFocused ? '100%' : 'auto') : (isFocused ? 672 : 484) }}
           >
             {/* Expanded Results Area - Only visible when focused */}
             {isFocused && (
