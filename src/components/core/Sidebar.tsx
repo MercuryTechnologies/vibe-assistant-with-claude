@@ -33,11 +33,19 @@ import {
 } from '@/icons';
 import { componentRegistry, getComponentId } from '@/lib/component-registry';
 import { useDataSettings, formatCurrency } from '@/context/DataContext';
+import { useChatStore } from '@/chat';
 
 export function Sidebar() {
   const location = useLocation();
+  const { isFullScreenChat } = useChatStore();
   
-  const isActive = (path: string) => location.pathname === path;
+  // Check if a path is active, with special handling for Command when chat is full-screen
+  const isActive = (path: string) => {
+    if (path === '/command' && isFullScreenChat) {
+      return true;
+    }
+    return location.pathname === path;
+  };
   const isPaymentsRoute = location.pathname.startsWith('/payments');
   const isAccountsRoute = location.pathname.startsWith('/accounts');
   const isDesignSystemRoute = isActive('/components') || location.pathname.startsWith('/components/') || isActive('/colors') || isActive('/typography') || isActive('/border-radius');

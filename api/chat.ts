@@ -495,6 +495,7 @@ INTENTS:
 - EIN_QUERY: User asks about their EIN
 - CASHFLOW_QUESTION: User asks about cashflow, money in/out, spending trends, burn rate, runway
 - WIRE_TRANSACTIONS: User asks about wire transfers
+- RECIPIENT_QUERY: User asks about recipients, top recipients, who they paid, vendors they paid most
 - NAVIGATE: User wants to go to a page
 - BALANCE: User asks about account balances
 - TRANSACTION_SEARCH: User asks about specific transactions, spending on a vendor/category
@@ -639,6 +640,47 @@ async function handleWithRouter(
           url: '/transactions?filter=wire',
           countdown: true,
           filters: { types: ['wire'] }
+        }
+      }
+      break
+    }
+
+    case 'RECIPIENT_QUERY': {
+      const recipients = getRecipients()
+      
+      // Get top recipients by amount paid
+      const topByPaid = [...recipients]
+        .filter(r => r.totalPaid && r.totalPaid > 0)
+        .sort((a, b) => (b.totalPaid || 0) - (a.totalPaid || 0))
+        .slice(0, 5)
+      
+      // Get top recipients by amount received (clients)
+      const topByReceived = [...recipients]
+        .filter(r => r.totalReceived && r.totalReceived > 0)
+        .sort((a, b) => (b.totalReceived || 0) - (a.totalReceived || 0))
+        .slice(0, 5)
+      
+      if (topByPaid.length > 0) {
+        responseText = `Here are your **top recipients** by amount paid:\n\n`
+        topByPaid.forEach((r, i) => {
+          responseText += `${i + 1}. **${r.name}** (${r.category}) - ${formatCurrency(r.totalPaid || 0)}\n`
+        })
+        
+        if (topByReceived.length > 0) {
+          responseText += `\n**Top clients** by revenue received:\n\n`
+          topByReceived.forEach((r, i) => {
+            responseText += `${i + 1}. **${r.name}** - ${formatCurrency(r.totalReceived || 0)}\n`
+          })
+        }
+      } else {
+        responseText = `You have **${recipients.length} recipients** set up. Check your Recipients page for details.`
+      }
+      
+      metadata = {
+        navigation: {
+          target: 'Recipients',
+          url: '/payments/recipients',
+          countdown: true
         }
       }
       break
