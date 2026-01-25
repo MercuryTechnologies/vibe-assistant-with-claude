@@ -1379,24 +1379,8 @@ async function handleWithRouter(
 
   const company = getCompany()
   
-  // Check for boundary case FIRST - pivot to helpful alternatives
-  const boundaryType = detectBoundaryType(message)
-  if (boundaryType) {
-    const urgency = detectUrgency(message)
-    const boundaryResponse = generateBoundaryResponse(boundaryType, urgency)
-    if (boundaryResponse) {
-      responseText = boundaryResponse.responseText
-      metadata = boundaryResponse.metadata
-      
-      // Stream the boundary response
-      sendEvent('text_delta', { content: responseText })
-      sendEvent('done', { 
-        conversationId,
-        metadata 
-      })
-      return
-    }
-  }
+  // Note: Boundary handling now happens at the top level in the main handler
+  // before classification, so boundary cases won't reach this point
 
   switch (classification.intent) {
     case 'FLAGGED_TRANSACTIONS': {
@@ -2957,6 +2941,23 @@ export default async function handler(
     if (apiKey) {
       try {
         const client = new Anthropic({ apiKey })
+
+        // Check for boundary case FIRST - before any LLM classification
+        // This ensures boundary responses are always used for out-of-scope queries
+        const boundaryType = detectBoundaryType(message)
+        if (boundaryType && !isSupportMode) {
+          sendEvent('ack', { message: 'Let me help with that...' })
+          const urgency = detectUrgency(message)
+          const boundaryResponse = generateBoundaryResponse(boundaryType, urgency)
+          if (boundaryResponse) {
+            sendEvent('text_delta', { content: boundaryResponse.responseText })
+            sendEvent('done', { 
+              conversationId: convId,
+              metadata: boundaryResponse.metadata 
+            })
+            return
+          }
+        }
 
         sendEvent('ack', { message: isSupportMode ? 'Connecting to support...' : 'Understanding your request...' })
 
