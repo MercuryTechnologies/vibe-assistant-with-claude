@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useUser, useTransactions } from '@/hooks';
 import { Icon } from '@/components/ui/icon';
-import { faChevronDown, faArrowTrendUp, faArrowTrendDown, faPlus, faCircleQuestion, faXmark, faArrowUpRight, faArrowDownRight, faArrowRightArrowLeft, faClock, faArrowUpFromLine, faArrowTurnDownLeft } from '@/icons';
+import { faChevronDown, faPlus, faCircleQuestion, faXmark, faArrowUpRight, faArrowDownRight, faArrowRightArrowLeft, faClock, faArrowUpFromLine, faArrowTurnDownLeft } from '@/icons';
 import { cn } from '@/lib/utils';
 import { Chip } from '@/components/ui/chip';
 import { DSButton } from '@/components/ui/ds-button';

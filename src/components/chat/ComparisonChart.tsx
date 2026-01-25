@@ -23,11 +23,11 @@ interface ComparisonChartProps {
 export function ComparisonChart({ 
   periods, 
   legend, 
-  yAxisLabel = '$K',
+  yAxisLabel: _yAxisLabel = '$K',
   className = '' 
 }: ComparisonChartProps) {
   // Generate SVG points from data
-  const { previousPoints, currentPoints, maxValue } = useMemo(() => {
+  const { previousPoints, currentPoints, maxValue: _maxValue } = useMemo(() => {
     const allValues = periods.flatMap(p => [p.previousValue, p.currentValue]);
     const max = Math.max(...allValues);
     
