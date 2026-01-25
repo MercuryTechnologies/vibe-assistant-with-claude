@@ -8,12 +8,12 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import Anthropic from '@anthropic-ai/sdk'
 
 // Import unified data from JSON files
-import companyData from '../src/data/company.json'
-import accountsData from '../src/data/accounts.json'
-import transactionsData from '../src/data/transactions.json'
-import cardsData from '../src/data/cards.json'
-import employeesData from '../src/data/employees.json'
-import recipientsData from '../src/data/recipients.json'
+import companyData from '../src/data/company.json' with { type: 'json' }
+import accountsData from '../src/data/accounts.json' with { type: 'json' }
+import transactionsData from '../src/data/transactions.json' with { type: 'json' }
+import cardsData from '../src/data/cards.json' with { type: 'json' }
+import employeesData from '../src/data/employees.json' with { type: 'json' }
+import recipientsData from '../src/data/recipients.json' with { type: 'json' }
 
 // =============================================================================
 // Type Definitions
