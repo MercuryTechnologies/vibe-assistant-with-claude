@@ -15,6 +15,8 @@ interface BreakdownModuleProps {
   tabs: string[];
   items: BreakdownItem[];
   isNegative?: boolean;
+  onItemClick?: (item: BreakdownItem, category: 'moneyIn' | 'moneyOut') => void;
+  category: 'moneyIn' | 'moneyOut';
 }
 
 const BreakdownModule: React.FC<BreakdownModuleProps> = ({
@@ -23,6 +25,8 @@ const BreakdownModule: React.FC<BreakdownModuleProps> = ({
   tabs,
   items,
   isNegative = false,
+  onItemClick,
+  category,
 }) => {
   const [activeTab, setActiveTab] = useState(tabs[0]);
   const activeTabIndex = tabs.indexOf(activeTab);
@@ -87,10 +91,10 @@ const BreakdownModule: React.FC<BreakdownModuleProps> = ({
         </div>
 
         {/* Breakdown Table */}
-        <div className="flex gap-2">
-          {/* Label Column */}
-          <div className="flex flex-col gap-1" style={{ minWidth: 120, maxWidth: 200, flexShrink: 1 }}>
-            <div className="pb-1 pt-0">
+        <div className="flex flex-col">
+          {/* Header Row */}
+          <div className="flex gap-2 pb-1 pt-0">
+            <div style={{ minWidth: 120, maxWidth: 200, flexShrink: 1 }}>
               <span 
                 className="text-label"
                 style={{ color: 'var(--ds-text-secondary)' }}
@@ -98,21 +102,7 @@ const BreakdownModule: React.FC<BreakdownModuleProps> = ({
                 {activeTabIndex === 0 ? (title === 'Money In' ? 'Source' : 'Category') : activeTab}
               </span>
             </div>
-            {items.map((item, index) => (
-              <div key={index} className="py-1">
-                <span 
-                  className="text-body"
-                  style={{ color: 'var(--ds-text-default)' }}
-                >
-                  {item.label}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Gauge Column */}
-          <div className="flex flex-col gap-1 flex-1">
-            <div className="pb-1 pt-0">
+            <div className="flex-1">
               <span 
                 className="text-label block text-right"
                 style={{ color: 'var(--ds-text-secondary)' }}
@@ -120,8 +110,36 @@ const BreakdownModule: React.FC<BreakdownModuleProps> = ({
                 % of total
               </span>
             </div>
-            {items.map((item, index) => (
-              <div key={index} className="py-1 flex items-center gap-2">
+            <div style={{ flexShrink: 0 }}>
+              <span 
+                className="text-label"
+                style={{ color: 'var(--ds-text-secondary)' }}
+              >
+                Amount
+              </span>
+            </div>
+          </div>
+
+          {/* Data Rows */}
+          {items.map((item, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => onItemClick?.(item, category)}
+              className="insights-breakdown-row"
+            >
+              {/* Label */}
+              <div style={{ minWidth: 120, maxWidth: 200, flexShrink: 1, textAlign: 'left' }}>
+                <span 
+                  className="text-body"
+                  style={{ color: 'var(--ds-text-default)' }}
+                >
+                  {item.label}
+                </span>
+              </div>
+
+              {/* Gauge */}
+              <div className="flex-1 flex items-center gap-2">
                 <span 
                   className="text-body text-right tabular-nums"
                   style={{ width: 40, color: 'var(--ds-text-default)' }}
@@ -153,21 +171,9 @@ const BreakdownModule: React.FC<BreakdownModuleProps> = ({
                   })}
                 </div>
               </div>
-            ))}
-          </div>
 
-          {/* Amount Column */}
-          <div className="flex flex-col gap-1 items-end" style={{ flexShrink: 0 }}>
-            <div className="pb-1 pt-0">
-              <span 
-                className="text-label"
-                style={{ color: 'var(--ds-text-secondary)' }}
-              >
-                Amount
-              </span>
-            </div>
-            {items.map((item, index) => (
-              <div key={index} className="py-1">
+              {/* Amount */}
+              <div style={{ flexShrink: 0, textAlign: 'right' }}>
                 <span 
                   className="text-body tabular-nums"
                   style={{ color: 'var(--ds-text-default)' }}
@@ -175,8 +181,15 @@ const BreakdownModule: React.FC<BreakdownModuleProps> = ({
                   {formatAmount(item.amount)}
                 </span>
               </div>
-            ))}
-          </div>
+
+              {/* Chat hint icon - appears on hover */}
+              <div className="insights-breakdown-chat-icon">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                </svg>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -188,6 +201,7 @@ export interface InsightsBreakdownProps {
   moneyOutTotal: string;
   moneyInItems?: BreakdownItem[];
   moneyOutItems?: BreakdownItem[];
+  onItemClick?: (item: BreakdownItem, category: 'moneyIn' | 'moneyOut') => void;
 }
 
 export const InsightsBreakdown: React.FC<InsightsBreakdownProps> = ({
@@ -195,6 +209,7 @@ export const InsightsBreakdown: React.FC<InsightsBreakdownProps> = ({
   moneyOutTotal,
   moneyInItems,
   moneyOutItems,
+  onItemClick,
 }) => {
   // Default sample data for Money In
   const defaultMoneyInItems: BreakdownItem[] = moneyInItems || [
@@ -228,6 +243,8 @@ export const InsightsBreakdown: React.FC<InsightsBreakdownProps> = ({
         tabs={['Sources', 'Category']}
         items={defaultMoneyInItems}
         isNegative={false}
+        onItemClick={onItemClick}
+        category="moneyIn"
       />
       <BreakdownModule
         title="Money Out"
@@ -235,6 +252,8 @@ export const InsightsBreakdown: React.FC<InsightsBreakdownProps> = ({
         tabs={['Category', 'GL Code', 'Recipient']}
         items={defaultMoneyOutItems}
         isNegative={true}
+        onItemClick={onItemClick}
+        category="moneyOut"
       />
     </div>
   );

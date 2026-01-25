@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTransactions } from '@/hooks';
+import { useChatStore, useStreamingChat } from '@/chat';
 import { 
   transactionsToCashFlow, 
   aggregateByCadence, 
@@ -168,6 +170,11 @@ const defaultGradientSettingsMoneyIn: GradientSettingsMoneyIn = {
 
 export function Insights() {
   const { transactions, isLoading } = useTransactions();
+  const navigate = useNavigate();
+  
+  // Chat integration
+  const { startNewConversation, setFloating } = useChatStore();
+  const { sendMessage } = useStreamingChat();
   
   // State
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('ytd');
@@ -385,9 +392,41 @@ export function Insights() {
     return { moneyInItems, moneyOutItems };
   }, [filteredTransactions, transactionsSummary]);
   
-  const handleInsightClick = (insight: Insight) => {
-    console.log('Insight clicked:', insight);
-  };
+  const handleInsightClick = useCallback(async (insight: Insight) => {
+    const message = `Tell me more about this: ${insight.title}. ${insight.description}`;
+    
+    // Start a new conversation
+    startNewConversation(message);
+    setFloating(true);
+    
+    // Navigate to the command page
+    navigate('/command');
+    
+    // Send the message to the API
+    await sendMessage(message);
+  }, [startNewConversation, setFloating, navigate, sendMessage]);
+  
+  const handleBreakdownItemClick = useCallback(async (item: BreakdownItem, category: 'moneyIn' | 'moneyOut') => {
+    const categoryLabel = category === 'moneyIn' ? 'money in' : 'spending';
+    const formattedAmount = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(item.amount);
+    
+    const message = `Tell me more about this: ${item.label} - ${formattedAmount} (${item.percentage}% of total ${categoryLabel})`;
+    
+    // Start a new conversation
+    startNewConversation(message);
+    setFloating(true);
+    
+    // Navigate to the command page
+    navigate('/command');
+    
+    // Send the message to the API
+    await sendMessage(message);
+  }, [startNewConversation, setFloating, navigate, sendMessage]);
   
   if (isLoading) {
     return (
@@ -557,6 +596,7 @@ export function Insights() {
           moneyOutTotal={`–${insightsFormatCurrency(transactionsSummary.moneyOut)}`}
           moneyInItems={moneyInItems.length > 0 ? moneyInItems : undefined}
           moneyOutItems={moneyOutItems.length > 0 ? moneyOutItems : undefined}
+          onItemClick={handleBreakdownItemClick}
         />
       </div>
     </div>

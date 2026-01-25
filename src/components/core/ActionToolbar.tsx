@@ -768,7 +768,7 @@ export function ActionToolbar() {
                         className="text-body"
                         style={{ color: 'var(--ds-text-default)' }}
                       >
-                        Ask Mercury AI: "{inputValue}"
+                        Ask Mercury Command: "{inputValue}"
                       </span>
                     </div>
                     <span 
