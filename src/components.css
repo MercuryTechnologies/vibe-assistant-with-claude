@@ -6483,3 +6483,387 @@ body.ds-panel-resizing {
     padding: 0 16px;
   }
 }
+
+/* ========================================
+   MOBILE DASHBOARD STYLES
+   Responsive layout for iPhone and mobile devices
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Dashboard container */
+  .ds-dashboard-container {
+    width: 100% !important;
+    padding: 0 16px !important;
+  }
+  
+  /* Dashboard header - stack welcome and time periods */
+  .ds-dashboard-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+    width: 100% !important;
+    height: auto !important;
+    padding: 16px !important;
+  }
+  
+  /* Time period tabs - horizontal scroll on mobile */
+  .ds-time-period-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .ds-time-period-container::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Data summary tabs - stack vertically on mobile */
+  .ds-data-summary-container {
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 12px !important;
+  }
+  
+  .ds-data-summary-tab {
+    width: 100% !important;
+    padding: 12px 16px !important;
+  }
+  
+  /* Chart section - full width, reduced height */
+  .ds-chart-section {
+    width: 100% !important;
+    height: 300px !important;
+  }
+  
+  .ds-chart-container {
+    left: 0 !important;
+    right: 0 !important;
+  }
+  
+  /* X-axis labels - hide some on mobile for space */
+  .ds-xaxis-labels {
+    width: 100% !important;
+    padding: 8px 16px !important;
+  }
+  
+  /* Dashboard cards section - stack vertically */
+  .ds-dashboard-cards {
+    flex-direction: column !important;
+    width: 100% !important;
+    padding: 16px !important;
+    gap: 16px !important;
+  }
+  
+  .ds-dashboard-card {
+    width: 100% !important;
+  }
+  
+  /* Account list items - ensure they fit */
+  .ds-account-list-item {
+    width: 100% !important;
+  }
+  
+  /* Transaction rows - adjust for mobile */
+  .ds-transaction-row {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+  
+  /* Balance text - ensure it doesn't overflow */
+  .ds-balance-text {
+    font-size: 20px !important;
+    word-break: break-word;
+  }
+  
+  .ds-balance-text-large {
+    font-size: 24px !important;
+  }
+  
+  /* Treasury bar chart */
+  .ds-treasury-bars {
+    height: 40px !important;
+  }
+  
+  /* Insight panel - full screen on mobile */
+  .ds-insights-panel {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    z-index: 1000 !important;
+  }
+}
+
+/* ========================================
+   MOBILE FEATURE CARDS (Explore Page)
+   ======================================== */
+
+@media (max-width: 768px) {
+  .feature-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    padding: 12px 0 !important;
+  }
+  
+  .feature-card {
+    min-height: auto !important;
+    padding: 16px !important;
+  }
+  
+  /* Explore page */
+  .explore-page {
+    padding: 0 16px;
+  }
+  
+  .explore-page h1 {
+    font-size: 24px !important;
+  }
+}
+
+/* ========================================
+   MOBILE CHART RESPONSIVENESS
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Chart hover interactions - disable complex interactions on mobile */
+  .ds-chart-hover-line {
+    display: none !important;
+  }
+  
+  /* Make chart dots larger for touch */
+  .ds-chart-dot {
+    width: 12px !important;
+    height: 12px !important;
+  }
+  
+  /* Chart tooltip - position better on mobile */
+  .ds-chart-tooltip {
+    max-width: 200px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* ========================================
+   MOBILE CARDS PAGE
+   ======================================== */
+
+@media (max-width: 768px) {
+  .ds-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .ds-card-item {
+    width: 100% !important;
+  }
+}
+
+/* ========================================
+   MOBILE TABLES
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Table container - horizontal scroll */
+  .ds-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Reduce table font size slightly */
+  .ds-table {
+    font-size: 14px;
+  }
+  
+  /* Transaction table specific */
+  .transaction-table-container {
+    overflow-x: auto;
+  }
+}
+
+/* ========================================
+   MOBILE COMMAND PAGE
+   ======================================== */
+
+@media (max-width: 768px) {
+  .ds-command-container {
+    padding: 16px !important;
+  }
+  
+  .ds-command-suggestions {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  
+  .ds-command-suggestion-chip {
+    flex-shrink: 0;
+  }
+}
+
+/* ========================================
+   MOBILE PAGE CONTAINER
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Page container adjustments */
+  .page-container,
+  .ds-page-container {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  
+  /* Full width pages on mobile */
+  .page-container > *,
+  .ds-page-container > * {
+    max-width: 100% !important;
+  }
+}
+
+/* ========================================
+   MOBILE DS-TABLE
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Table wrapper for horizontal scroll */
+  .ds-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -16px;
+    padding: 0 16px;
+  }
+  
+  /* Ensure table has min-width for proper display */
+  .ds-table {
+    min-width: 600px;
+  }
+  
+  /* Make table cells more compact on mobile */
+  .ds-table th,
+  .ds-table td {
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+  }
+  
+  /* Hide less important columns on mobile */
+  .ds-table .ds-table-col-hide-mobile {
+    display: none !important;
+  }
+  
+  /* Table toolbar adjustments */
+  .ds-table-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .ds-table-toolbar-search {
+    width: 100%;
+    order: -1;
+  }
+}
+
+/* ========================================
+   MOBILE TRANSACTIONS PAGE
+   ======================================== */
+
+@media (max-width: 768px) {
+  .transactions-page {
+    padding: 16px !important;
+  }
+  
+  .transactions-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  
+  .transactions-filters {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 8px;
+    margin-right: -16px;
+    padding-right: 16px;
+  }
+}
+
+/* ========================================
+   MOBILE RECIPIENTS PAGE
+   ======================================== */
+
+@media (max-width: 768px) {
+  .recipients-page {
+    padding: 16px !important;
+  }
+  
+  .recipient-card {
+    width: 100% !important;
+  }
+}
+
+/* ========================================
+   MOBILE TASKS PAGE
+   ======================================== */
+
+@media (max-width: 768px) {
+  .tasks-page {
+    padding: 16px !important;
+  }
+  
+  .task-item {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+}
+
+/* ========================================
+   MOBILE INSIGHTS PAGE
+   ======================================== */
+
+@media (max-width: 768px) {
+  .insights-page {
+    padding: 16px !important;
+  }
+  
+  .insights-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  
+  .insights-chart-container {
+    height: 200px !important;
+  }
+}
+
+/* ========================================
+   MOBILE ACTION TOOLBAR IMPROVEMENTS
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Ensure action toolbar is above other content */
+  .ds-action-toolbar {
+    z-index: 100;
+  }
+  
+  /* Make input larger on mobile for easier tapping */
+  .ds-action-composer-input {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+}
+
+/* ========================================
+   MOBILE TYPOGRAPHY ADJUSTMENTS
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Slightly smaller titles on mobile */
+  .text-title-hero {
+    font-size: 28px !important;
+    line-height: 36px !important;
+  }
+  
+  .text-title-main {
+    font-size: 24px !important;
+    line-height: 32px !important;
+  }
+}

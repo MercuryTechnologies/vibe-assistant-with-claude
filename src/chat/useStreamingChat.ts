@@ -7,6 +7,10 @@ import { useCallback, useRef, useState } from 'react'
 import { useChatStore } from './useChatStore'
 import type { MessageMetadata } from './types'
 
+// Track if this is the first API request (for cold start handling)
+let isFirstRequest = true
+const COLD_START_KEY = 'mercury-chat-warmed'
+
 interface UseStreamingChatOptions {
   /** Called when an acknowledgment is received from the API */
   onAcknowledgment?: (message: string) => void
@@ -123,11 +127,100 @@ async function parseSSEStream(
       }
     }
   } catch (e) {
-    console.error('SSE stream error:', e)
-    handlers.onError(e instanceof Error ? e.message : 'Stream error')
+    const errorMessage = e instanceof Error ? e.message : 'Stream error'
+    // Only log as error if we haven't received done - network interruptions are common
+    if (!doneReceived) {
+      console.error('SSE stream error:', errorMessage)
+      handlers.onError(errorMessage)
+    } else {
+      // Stream closed after done was received - this is normal
+      console.log('SSE stream closed after completion')
+    }
   }
   
   return { hasStartedStreaming: state.hasStartedStreaming, doneReceived }
+}
+
+/**
+ * Sleep utility for retry delays
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/**
+ * Check if the API has been warmed (not a cold start)
+ */
+function checkIsWarmed(): boolean {
+  try {
+    const warmedAt = sessionStorage.getItem(COLD_START_KEY)
+    if (warmedAt) {
+      const elapsed = Date.now() - parseInt(warmedAt, 10)
+      // Consider warmed if last successful request was within 5 minutes
+      return elapsed < 5 * 60 * 1000
+    }
+  } catch {
+    // sessionStorage not available
+  }
+  return false
+}
+
+/**
+ * Mark the API as warmed after successful request
+ */
+function markAsWarmed(): void {
+  try {
+    sessionStorage.setItem(COLD_START_KEY, Date.now().toString())
+  } catch {
+    // sessionStorage not available
+  }
+  isFirstRequest = false
+}
+
+/**
+ * Fetch with retry logic and exponential backoff for SSE stream reliability
+ * Uses more retries and longer delays for cold start scenarios
+ */
+async function fetchWithRetry(
+  url: string, 
+  options: RequestInit, 
+  maxRetries = 3
+): Promise<Response> {
+  let lastError: Error | null = null
+  
+  // Use more retries for cold start
+  const isColdStart = isFirstRequest && !checkIsWarmed()
+  const retries = isColdStart ? 4 : maxRetries
+  const baseDelay = isColdStart ? 1000 : 500 // Longer initial delay for cold start
+  
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const response = await fetch(url, options)
+      if (response.ok) {
+        markAsWarmed()
+        return response
+      }
+      
+      // Don't retry on client errors (4xx), only server errors (5xx)
+      if (response.status >= 400 && response.status < 500) {
+        throw new Error(`Request failed with status ${response.status}`)
+      }
+      
+      lastError = new Error(`Request failed with status ${response.status}`)
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error('Network error')
+      console.warn(`SSE fetch attempt ${attempt + 1} failed:`, lastError.message)
+      
+      // Don't wait after the last attempt
+      if (attempt < retries - 1) {
+        const delay = Math.pow(2, attempt) * baseDelay
+        console.log(`Retrying in ${delay}ms...`)
+        await sleep(delay)
+      }
+    }
+  }
+  
+  throw lastError || new Error('Failed to fetch after retries')
 }
 
 /**
@@ -163,7 +256,7 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}): UseStre
     const currentConversationId = state.conversationId
     const agentMode = state.agentMode
     
-    const response = await fetch('/api/chat', {
+    const response = await fetchWithRetry('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -248,7 +341,20 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}): UseStre
     
     addUserMessage(content)
     setLoading(true)
-    setThinking('Thinking')
+    
+    // Show cold start message if this is the first request
+    const isColdStart = isFirstRequest && !checkIsWarmed()
+    if (isColdStart) {
+      setThinking('Connecting to Mercury...')
+      // Show extended thinking message after a moment if still waiting
+      setTimeout(() => {
+        if (useChatStore.getState().isLoading) {
+          setAcknowledgment('This may take a moment on first connection...')
+        }
+      }, 2000)
+    } else {
+      setThinking('Thinking')
+    }
     setAcknowledgment(null)
     
     try {

@@ -10,6 +10,7 @@ import { AccountBalancesBlock } from './AccountBalancesBlock';
 import { RecipientsBlock } from './RecipientsBlock';
 import { DocumentsBlock } from './DocumentsBlock';
 import { FeatureCardsBlock } from './FeatureCardsBlock';
+import { Badge } from '@/components/ui/badge';
 
 interface ChatBlockRendererProps {
   content: string;
@@ -44,6 +45,15 @@ export function ChatBlockRenderer({
 
   return (
     <div className={`chat-block-renderer ${className}`}>
+      {/* Support Mode Badge */}
+      {metadata?.supportMode && (
+        <div style={{ marginBottom: 8 }}>
+          <Badge type="highlight">
+            Mercury Support
+          </Badge>
+        </div>
+      )}
+      
       {/* Thinking Chain (shows tool usage steps) */}
       {metadata?.thinkingChain && (
         <ThinkingChain steps={metadata.thinkingChain} />
@@ -106,6 +116,40 @@ export function ChatBlockRenderer({
           context={context}
           onNavigate={handleNavigate}
         />
+      )}
+      
+      {/* Empty State */}
+      {metadata?.emptyState && (
+        <div 
+          className="chat-empty-state"
+          style={{
+            padding: 16,
+            backgroundColor: 'var(--ds-bg-secondary)',
+            borderRadius: 8,
+            marginTop: 12,
+          }}
+        >
+          <p 
+            className="text-body"
+            style={{ 
+              color: 'var(--ds-text-secondary)', 
+              margin: 0,
+            }}
+          >
+            {metadata.emptyState.message || 'No results found'}
+          </p>
+          {metadata.emptyState.suggestion && (
+            <p 
+              className="text-label"
+              style={{ 
+                color: 'var(--ds-text-tertiary)', 
+                margin: '8px 0 0 0',
+              }}
+            >
+              {metadata.emptyState.suggestion}
+            </p>
+          )}
+        </div>
       )}
       
       {/* Navigation Card */}

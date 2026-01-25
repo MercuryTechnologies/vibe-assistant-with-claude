@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import { Layout, PageContainer } from '@/components/core';
-import { Dashboard, ComponentGallery, ComponentDetail, DesignSystemOverview, TypographyGallery, ColorsGallery, BorderRadiusGallery, Tasks, Transactions, Cards, Recipients, VisualTestPage, BillPay, Command, AccountDetail, Insights } from '@/pages';
+import { Dashboard, ComponentGallery, ComponentDetail, DesignSystemOverview, TypographyGallery, ColorsGallery, BorderRadiusGallery, Tasks, Transactions, Cards, Recipients, VisualTestPage, BillPay, Command, AccountDetail, Insights, Explore } from '@/pages';
 import { ToastProvider } from '@/components/ui/toast';
 import { DataProvider } from '@/context/DataContext';
 
@@ -124,6 +124,14 @@ function App() {
               <div className="py-6">
                 <Insights />
               </div>
+            }
+          />
+          <Route
+            path="/explore"
+            element={
+              <PageContainer fullWidth={false} className="py-8">
+                <Explore />
+              </PageContainer>
             }
           />
           <Route

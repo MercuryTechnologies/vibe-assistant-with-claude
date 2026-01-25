@@ -147,6 +147,7 @@ function getTransactions(filters?: {
   merchants?: string[]
   type?: string
   cardId?: string
+  status?: 'completed' | 'pending' | 'failed'
   limit?: number
 }): Transaction[] {
   let txns = transactionsData.transactions as Transaction[]
@@ -170,6 +171,9 @@ function getTransactions(filters?: {
   }
   if (filters?.cardId) {
     txns = txns.filter(t => t.cardId === filters.cardId)
+  }
+  if (filters?.status) {
+    txns = txns.filter(t => t.status === filters.status)
   }
   if (filters?.limit) {
     txns = txns.slice(0, filters.limit)
@@ -1296,23 +1300,48 @@ async function handleWithRouter(
 
     case 'TRANSACTION_SEARCH': {
       const query = message.toLowerCase()
-      const results = searchTransactions(query, 10)
+      
+      // Detect if query asks for pending/completed/failed status
+      const statusMatch = query.match(/\b(pending|completed|failed)\b/)
+      const status = statusMatch ? statusMatch[1] as 'pending' | 'completed' | 'failed' : undefined
+      
+      // Use status filter if detected, otherwise search by text
+      const results = status 
+        ? getTransactions({ status, limit: 20 })
+        : searchTransactions(query, 20)
 
       if (results.length > 0) {
         const total = results.reduce((sum, t) => sum + Math.abs(t.amount), 0)
-        responseText = `I found **${results.length} transactions** (${formatCurrency(total)} total):\n\n`
-        results.slice(0, 5).forEach((t, i) => {
-          const amount = t.amount < 0
-            ? `-$${Math.abs(t.amount).toLocaleString()}`
-            : `+$${t.amount.toLocaleString()}`
-          responseText += `${i + 1}. **${t.merchant}** - ${amount}\n`
-          responseText += `   ${t.date} · ${t.category}\n\n`
-        })
-        if (results.length > 5) {
-          responseText += `...and ${results.length - 5} more.`
+        responseText = `I found **${results.length} ${status ? status + ' ' : ''}transactions** (${formatCurrency(total)} total):`
+        
+        // Build transaction table metadata for UI rendering
+        metadata = {
+          transactionTable: {
+            title: '',
+            rows: results.map(t => ({
+              id: t.id,
+              description: t.description,
+              merchant: t.merchant,
+              amount: t.amount,
+              date: t.date,
+              status: t.status,
+              category: t.category,
+            })),
+          },
+          navigation: {
+            target: 'Transactions',
+            url: status ? `/transactions?status=${status}` : '/transactions',
+            countdown: true
+          }
         }
       } else {
-        responseText = `I couldn't find any transactions matching your search. Try searching for a merchant name, category, or amount.`
+        responseText = `I couldn't find any ${status ? status + ' ' : ''}transactions matching your search.`
+        metadata = {
+          emptyState: {
+            message: 'No transactions found',
+            suggestion: 'Try searching for a merchant name, category, or amount.'
+          }
+        }
       }
       break
     }
@@ -1457,7 +1486,7 @@ GUIDELINES:
     sendEvent('chunk', { text: "I'm sorry, I'm having trouble connecting right now. Please try again in a moment." })
   }
 
-  sendEvent('done', { conversationId })
+  sendEvent('done', { conversationId, metadata: { supportMode: true } })
 }
 
 async function handleAgentMode(

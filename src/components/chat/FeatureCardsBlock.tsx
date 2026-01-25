@@ -75,8 +75,9 @@ export function FeatureCardsBlock({ data, context = 'command', onNavigate }: Fea
     }
   };
 
-  // Grid columns: 2 for RHC, 3 for Command
-  const gridColumns = context === 'rhc' ? 2 : 3;
+  // Grid columns: 1 for RHC (mobile), 2 for tablet, 3 for Command (desktop)
+  // Using CSS media queries for true responsiveness
+  const gridColumns = context === 'rhc' ? 1 : 3;
 
   return (
     <div
@@ -84,8 +85,8 @@ export function FeatureCardsBlock({ data, context = 'command', onNavigate }: Fea
       style={{
         display: 'grid',
         gridTemplateColumns: `repeat(${gridColumns}, 1fr)`,
-        gap: 16,
-        padding: '16px 0',
+        gap: context === 'rhc' ? 12 : 16,
+        padding: context === 'rhc' ? '12px 0' : '16px 0',
         width: '100%',
       }}
     >

@@ -93,12 +93,15 @@ export interface SupportHandoffMetadata {
  */
 export interface TransactionTableRow {
   id: string
-  counterparty: string
+  counterparty?: string
+  merchant?: string
+  description?: string
   amount: number
   date: string
   category?: string
   type?: string
-  dashboardLink: string
+  status?: 'completed' | 'pending' | 'failed'
+  dashboardLink?: string
 }
 
 /**
@@ -298,6 +301,14 @@ export interface FeatureCardsMetadata {
 }
 
 /**
+ * Metadata for empty state display
+ */
+export interface EmptyStateMetadata {
+  message: string
+  suggestion?: string
+}
+
+/**
  * Combined metadata that can be attached to assistant messages
  */
 export interface MessageMetadata {
@@ -320,6 +331,10 @@ export interface MessageMetadata {
   billUpload?: BillUploadMetadata
   accountBalances?: AccountBalancesMetadata
   featureCards?: FeatureCardsMetadata
+  // Empty state for zero-result queries
+  emptyState?: EmptyStateMetadata
+  // Support mode indicator
+  supportMode?: boolean
 }
 
 /**
@@ -382,6 +397,7 @@ export const NAVIGATION_URLS: Record<string, { url: string; displayName: string 
   accounts: { url: '/accounts', displayName: 'Accounts' },
   transactions: { url: '/transactions', displayName: 'Transactions' },
   insights: { url: '/dashboard', displayName: 'Insights' },
+  explore: { url: '/explore', displayName: 'Explore' },
   cards: { url: '/cards', displayName: 'Cards' },
   payments: { url: '/payments/recipients', displayName: 'Payments' },
   tasks: { url: '/tasks', displayName: 'Tasks' },

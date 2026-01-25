@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useUser, useTransactions } from '@/hooks';
+import { useUser, useTransactions, useMobileLayout } from '@/hooks';
 import { Icon } from '@/components/ui/icon';
 import { faChevronDown, faPlus, faCircleQuestion, faXmark, faArrowUpRight, faArrowDownRight, faArrowRightArrowLeft, faClock, faArrowUpFromLine, faArrowTurnDownLeft } from '@/icons';
 import { cn } from '@/lib/utils';
@@ -188,6 +188,7 @@ function generateChartPath(settings: ChartSettings): {
 
 export function Dashboard() {
   const { user, isLoading: userLoading } = useUser();
+  const { isMobile } = useMobileLayout();
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('YTD');
   const [selectedTab, setSelectedTab] = useState<DataTab>('Net Cashflow');
   
@@ -587,19 +588,22 @@ export function Dashboard() {
         {/* Header with Welcome and Time Period Tabs */}
         <div
           className="flex items-center justify-center w-full"
-          style={{ paddingTop: 24, paddingBottom: 16 }}
+          style={{ paddingTop: isMobile ? 16 : 24, paddingBottom: 16, paddingLeft: isMobile ? 16 : 0, paddingRight: isMobile ? 16 : 0 }}
         >
           <div
-            className="flex items-center justify-between"
-            style={{ width: 1024, height: 36 }}
+            className={cn(
+              "flex items-center justify-between ds-dashboard-header",
+              isMobile && "flex-col items-start gap-4"
+            )}
+            style={{ width: isMobile ? '100%' : 1024, height: isMobile ? 'auto' : 36 }}
           >
             {/* Welcome Title */}
-            <h1 className="text-title-main">
+            <h1 className={cn("text-title-main", isMobile && "text-title-secondary")}>
               Welcome {user?.firstName}
             </h1>
 
             {/* Time Period Tabs */}
-            <div className="flex items-center overflow-clip">
+            <div className={cn("flex items-center overflow-clip ds-time-period-container", isMobile && "w-full overflow-x-auto")}>
               <div className="flex items-center gap-[2px]">
                 {TIME_PERIODS.map((period) => (
                   <button
@@ -636,8 +640,8 @@ export function Dashboard() {
 
         {/* Overview Section with Chart */}
         <div
-          className="flex flex-col items-center justify-between w-full overflow-clip relative"
-          style={{ height: 440, isolation: 'isolate' }}
+          className="flex flex-col items-center justify-between w-full overflow-clip relative ds-chart-section"
+          style={{ height: isMobile ? 320 : 440, isolation: 'isolate' }}
         >
           {/* Dot grid background with contained fade overlays */}
           <div
@@ -669,11 +673,11 @@ export function Dashboard() {
           {/* Data Summary Header (Insights) */}
           <div
             className="flex flex-col items-center w-full z-[30]"
-            style={{ borderTop: '1px solid var(--color-border-default)', position: 'relative', backgroundColor: 'var(--ds-bg-default)' }}
+            style={{ borderTop: '1px solid var(--color-border-default)', position: 'relative', backgroundColor: 'var(--ds-bg-default)', paddingLeft: isMobile ? 16 : 0, paddingRight: isMobile ? 16 : 0 }}
           >
             <div
-              className="flex flex-col items-start"
-              style={{ width: 1024 }}
+              className="flex flex-col items-start ds-data-summary-container"
+              style={{ width: isMobile ? '100%' : 1024 }}
             >
               <div className="flex items-start gap-2 w-full">
                 <div className="flex items-center gap-6">
@@ -700,14 +704,14 @@ export function Dashboard() {
                         {/* Amount */}
                         <div className="flex items-center">
                           <span
-                            className="font-display"
+                            className="font-display ds-balance-text"
                             style={{
-                              fontSize: 24,
+                              fontSize: isMobile ? 20 : 24,
                               fontWeight: 480,
                               lineHeight: 1.1,
                               color: 'var(--ds-text-default)',
                               fontVariantNumeric: 'tabular-nums',
-                              minWidth: 80,
+                              minWidth: isMobile ? 60 : 80,
                               textAlign: 'left',
                             }}
                           >
@@ -715,7 +719,7 @@ export function Dashboard() {
                           </span>
                         </div>
                         {/* Money In/Out */}
-                        <div className="flex items-center gap-4">
+                        <div className={cn("flex items-center", isMobile ? "gap-3" : "gap-4")}>
                           {/* Money In */}
                           <div className="flex items-center gap-[6px]" style={{ height: 24 }}>
                             <Icon
@@ -724,11 +728,11 @@ export function Dashboard() {
                               style={{ color: 'var(--ds-icon-success)' }}
                             />
                             <span
-                              className="text-body-sm"
+                              className={cn(isMobile ? "text-label" : "text-body-sm")}
                               style={{ 
                                 color: 'var(--ds-text-default)',
                                 fontVariantNumeric: 'tabular-nums',
-                                minWidth: 55,
+                                minWidth: isMobile ? 40 : 55,
                                 textAlign: 'left',
                               }}
                             >
@@ -743,11 +747,11 @@ export function Dashboard() {
                               style={{ color: 'var(--ds-icon-error)' }}
                             />
                             <span
-                              className="text-body-sm"
+                              className={cn(isMobile ? "text-label" : "text-body-sm")}
                               style={{ 
                                 color: 'var(--ds-text-default)',
                                 fontVariantNumeric: 'tabular-nums',
-                                minWidth: 55,
+                                minWidth: isMobile ? 40 : 55,
                                 textAlign: 'left',
                               }}
                             >
@@ -782,14 +786,14 @@ export function Dashboard() {
                         {/* Amount */}
                         <div className="flex items-center">
                           <span
-                            className="font-display"
+                            className="font-display ds-balance-text-large"
                             style={{
-                              fontSize: 24,
+                              fontSize: isMobile ? 18 : 24,
                               fontWeight: 480,
                               lineHeight: 1.1,
                               color: 'var(--ds-text-secondary)',
                               fontVariantNumeric: 'tabular-nums',
-                              minWidth: 140,
+                              minWidth: isMobile ? 'auto' : 140,
                               textAlign: 'left',
                             }}
                           >
@@ -815,10 +819,10 @@ export function Dashboard() {
 
           {/* X-Axis Labels */}
           <div
-            className="z-[5] relative"
+            className="z-[5] relative ds-xaxis-labels"
             style={{
-              width: 1026,
-              padding: '8px 0',
+              width: isMobile ? '100%' : 1026,
+              padding: isMobile ? '8px 16px' : '8px 0',
               borderBottomLeftRadius: 12,
               borderBottomRightRadius: 12,
             }}
@@ -872,25 +876,25 @@ export function Dashboard() {
           {/* Chart Area - extends from left edge to Today marker */}
           <div
             ref={chartRef}
-            className="absolute z-[2]"
+            className="absolute z-[2] ds-chart-container"
             style={{
               left: 0,
-              right: 'calc(50% - 513px)',
-              top: 167,
-              height: 230,
-              cursor: isDragging ? 'ew-resize' : 'crosshair',
+              right: isMobile ? 0 : 'calc(50% - 513px)',
+              top: isMobile ? 120 : 167,
+              height: isMobile ? 160 : 230,
+              cursor: isMobile ? 'default' : (isDragging ? 'ew-resize' : 'crosshair'),
               userSelect: 'none',
             }}
-            onMouseEnter={() => setIsHoveringChart(true)}
+            onMouseEnter={() => !isMobile && setIsHoveringChart(true)}
             onMouseLeave={() => {
-              if (!isDragging) {
+              if (!isDragging && !isMobile) {
                 setIsHoveringChart(false);
                 setHoveredDotIndex(null);
               }
             }}
-            onMouseMove={handleChartMouseMove}
-            onMouseDown={handleChartMouseDown}
-            onMouseUp={handleChartMouseUp}
+            onMouseMove={!isMobile ? handleChartMouseMove : undefined}
+            onMouseDown={!isMobile ? handleChartMouseDown : undefined}
+            onMouseUp={!isMobile ? handleChartMouseUp : undefined}
           >
             {/* Hover tracking line - hide while dragging */}
             {isHoveringChart && !isDragging && (
@@ -1421,6 +1425,7 @@ function DashboardCards() {
   const [selectedFilter, setSelectedFilter] = useState<TransactionFilter>('Recent');
   const { transactions } = useTransactions();
   const { getAccountBalances } = useDataSettings();
+  const { isMobile } = useMobileLayout();
   
   // Get dynamic account balances (exclude credit and treasury - treasury has its own section)
   const depositoryAccounts = getAccountBalances().filter(acc => acc.type !== 'credit' && acc.type !== 'treasury');
@@ -1441,14 +1446,14 @@ function DashboardCards() {
   return (
     <div
       className="flex items-center justify-center w-full"
-      style={{ paddingTop: 24, paddingBottom: 48 }}
+      style={{ paddingTop: 24, paddingBottom: isMobile ? 100 : 48, paddingLeft: isMobile ? 16 : 0, paddingRight: isMobile ? 16 : 0 }}
     >
-      <div className="flex gap-6" style={{ width: 1024 }}>
+      <div className={cn("flex gap-6 ds-dashboard-cards", isMobile && "flex-col")} style={{ width: isMobile ? '100%' : 1024 }}>
         {/* Left Column - Account Breakdown Card */}
         <div
-          className="flex flex-col rounded-lg overflow-clip"
+          className="flex flex-col rounded-lg overflow-clip ds-dashboard-card"
           style={{
-            width: 500,
+            width: isMobile ? '100%' : 500,
             border: '1px solid var(--color-border-default)',
           }}
         >
@@ -1513,7 +1518,7 @@ function DashboardCards() {
             </div>
 
             {/* Account List */}
-            <div className="flex flex-col" style={{ width: 458 }}>
+            <div className="flex flex-col ds-account-list" style={{ width: isMobile ? '100%' : 458 }}>
               {depositoryAccounts.map((account, index) => {
                 const hasDetailPage = account.type !== 'treasury';
                 const rowContent = (
@@ -1631,9 +1636,9 @@ function DashboardCards() {
 
         {/* Right Column - Transactions */}
         <div
-          className="flex flex-col gap-4 rounded-lg relative overflow-clip"
+          className="flex flex-col gap-4 rounded-lg relative overflow-clip ds-dashboard-card"
           style={{
-            width: 500,
+            width: isMobile ? '100%' : 500,
             backgroundColor: 'var(--ds-bg-default)',
             border: '1px solid var(--color-border-default)',
             paddingTop: 24,

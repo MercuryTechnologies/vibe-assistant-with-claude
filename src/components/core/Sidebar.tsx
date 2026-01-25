@@ -94,6 +94,7 @@ export function Sidebar() {
     { path: '/tasks', label: 'Tasks', icon: faInbox, badge: 3 },
     { path: '/transactions', label: 'Transactions', icon: faList },
     { path: '/insights', label: 'Insights', icon: faChartBar },
+    { path: '/explore', label: 'Explore', icon: faSparkles },
     { path: '/cards', label: 'Cards', icon: faCreditCard },
     { path: '/capital', label: 'Capital', icon: faChartLine },
   ];
@@ -511,24 +512,6 @@ export function Sidebar() {
           {/* Expanded Accounts List */}
           {accountsExpanded && (
             <div className="ds-sidebar-submenu" style={{ gap: '2px' }}>
-              {/* Explore Feature Discovery */}
-              <Link to="/command?q=what+features+would+be+good+for+me">
-                <button
-                  className={`ds-sidebar-btn ${location.search.includes('q=what') ? 'active' : ''}`}
-                  style={{ marginBottom: 4 }}
-                >
-                  <div className="ds-sidebar-btn-content">
-                    <span className="ds-sidebar-icon-wrapper">
-                      <FontAwesomeIcon
-                        icon={faSparkles}
-                        className="ds-sidebar-icon"
-                        style={{ color: 'var(--purple-magic-500)' }}
-                      />
-                    </span>
-                    <span className="ds-sidebar-btn-label">Explore</span>
-                  </div>
-                </button>
-              </Link>
               {accountsData.map((account) => {
                 const isAccountActive = location.pathname === `/accounts/${account.id}`;
                 const content = (
