@@ -5,12 +5,17 @@ import { ThinkingChain } from './ThinkingChain';
 import { NavigationCard } from './NavigationCard';
 import { TransactionTable } from './TransactionTable';
 import { EmployeeTable } from './EmployeeTable';
+import { CardsTableBlock } from './CardsTableBlock';
+import { AccountBalancesBlock } from './AccountBalancesBlock';
+import { RecipientsBlock } from './RecipientsBlock';
+import { DocumentsBlock } from './DocumentsBlock';
 
 interface ChatBlockRendererProps {
   content: string;
   metadata?: MessageMetadata;
   onNavigate?: (url: string) => void;
   onEmployeeSelect?: (ids: string[]) => void;
+  context?: 'rhc' | 'command';
   className?: string;
 }
 
@@ -23,6 +28,7 @@ export function ChatBlockRenderer({
   metadata,
   onNavigate,
   onEmployeeSelect,
+  context = 'rhc',
   className = '' 
 }: ChatBlockRendererProps) {
   const navigate = useNavigate();
@@ -57,6 +63,38 @@ export function ChatBlockRenderer({
         <EmployeeTable 
           data={metadata.employeeTable}
           onSelectionChange={onEmployeeSelect}
+        />
+      )}
+      
+      {/* Cards Table */}
+      {metadata?.cardsTable && (
+        <CardsTableBlock 
+          data={metadata.cardsTable}
+          context={context}
+        />
+      )}
+      
+      {/* Account Balances */}
+      {metadata?.accountBalances && (
+        <AccountBalancesBlock 
+          data={metadata.accountBalances}
+          context={context}
+        />
+      )}
+      
+      {/* Recipients */}
+      {metadata?.recipients && (
+        <RecipientsBlock 
+          data={metadata.recipients}
+          context={context}
+        />
+      )}
+      
+      {/* Documents */}
+      {metadata?.documents && (
+        <DocumentsBlock 
+          data={metadata.documents}
+          context={context}
         />
       )}
       

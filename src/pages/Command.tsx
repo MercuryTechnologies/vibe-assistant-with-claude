@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
 import { Icon } from '@/components/ui/icon';
 import { DSButton } from '@/components/ui/ds-button';
 import { faPlus, faMicrophone, faArrowUp } from '@/icons';
 import { useChatStore, useStreamingChat, type ChatMessage } from '@/chat';
+import { ChatBlockRenderer } from '@/components/chat';
 
 // Shortcut card labels and their initial messages
 const SHORTCUT_CARDS = [
@@ -171,9 +171,12 @@ export function Command() {
                   </div>
                 ) : (
                   <div className="command-message-assistant ds-chat-markdown">
-                    <ReactMarkdown>
-                      {message.content}
-                    </ReactMarkdown>
+                    <ChatBlockRenderer
+                      content={message.content}
+                      metadata={message.metadata}
+                      context="command"
+                      onNavigate={(url) => navigate(url)}
+                    />
                   </div>
                 )}
               </div>

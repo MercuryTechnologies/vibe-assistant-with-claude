@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Icon } from '@/components/ui/icon';
-import { faArrowRightArrowLeft, faEllipsis, faXmark, faMagnifyingGlass, faClock, faWindowMaximize, faChartLine, faCreditCard, faArrowUpFromLine, faArrowUp, faChevronLeft, faPlus, faUpRightAndDownLeftFromCenter, faDownLeftAndUpRightToCenter, faUser } from '@/icons';
+import { faArrowRightArrowLeft, faEllipsis, faXmark, faMagnifyingGlass, faClock, faWindowMaximize, faCreditCard, faArrowUpFromLine, faArrowUp, faChevronLeft, faPlus, faUpRightAndDownLeftFromCenter, faDownLeftAndUpRightToCenter, faUser, faPaperPlane, faFileText, faCalendar, faSparkles, faHeadset } from '@/icons';
 import { cn } from '@/lib/utils';
 import { DSButton } from '@/components/ui/ds-button';
 import { DSAvatar } from '@/components/ui/ds-avatar';
@@ -41,23 +41,31 @@ const CARDS_DATA: CardData[] = [
   { id: '8', cardholder: 'Michael Torres', card: '•••• 1234', nickname: 'Software Licenses' },
 ];
 
-// All available suggestions for the command palette search
-const SUGGESTIONS: Suggestion[] = [
-  // Quick actions (shown at top)
-  { icon: faChartLine, label: 'How is my cashflow this quarter', type: 'action', path: '/dashboard', description: 'Side Panel' },
-  { icon: faCreditCard, label: 'Create a recurring payment', type: 'action', path: '/cards', description: 'Full Page' },
-  // Main navigation
+// Navigation suggestions (shown at top when no search)
+const NAV_SUGGESTIONS: Suggestion[] = [
   { icon: faWindowMaximize, label: 'Dashboard', type: 'page', path: '/dashboard' },
   { icon: faWindowMaximize, label: 'Transactions', type: 'page', path: '/transactions' },
   { icon: faWindowMaximize, label: 'Cards', type: 'page', path: '/cards' },
+];
+
+// AI command examples (shown after navigation)
+const AI_SUGGESTIONS: Suggestion[] = [
+  { icon: faCreditCard, label: 'What cards do I have and who is over their limit?', type: 'action', path: '', description: 'AI' },
+  { icon: faPaperPlane, label: 'Send $5,000 to AWS for this month\'s invoice', type: 'action', path: '', description: 'AI' },
+  { icon: faFileText, label: 'Create an invoice for Acme Corp for $12,500', type: 'action', path: '', description: 'AI' },
+  { icon: faCalendar, label: 'Show me my January bank statements', type: 'action', path: '', description: 'AI' },
+];
+
+// All searchable suggestions (includes more pages for search)
+const ALL_SUGGESTIONS: Suggestion[] = [
+  ...NAV_SUGGESTIONS,
+  ...AI_SUGGESTIONS,
+  // Additional navigation for search
   { icon: faWindowMaximize, label: 'Tasks', type: 'page', path: '/tasks' },
-  // Payments section
   { icon: faWindowMaximize, label: 'Recipients', type: 'page', path: '/payments/recipients' },
   { icon: faWindowMaximize, label: 'Bill Pay', type: 'page', path: '/workflows/bill-pay' },
-  // Accounts section
   { icon: faWindowMaximize, label: 'Accounts', type: 'page', path: '/accounts' },
   { icon: faWindowMaximize, label: 'Accounting', type: 'page', path: '/accounting' },
-  // Individual accounts
   { icon: faWindowMaximize, label: 'Treasury', type: 'page', path: '/accounts/treasury', description: 'Account' },
   { icon: faWindowMaximize, label: 'Ops / Payroll', type: 'page', path: '/accounts/ops-payroll', description: 'Account' },
   { icon: faWindowMaximize, label: 'AP', type: 'page', path: '/accounts/ap', description: 'Account' },
@@ -111,8 +119,14 @@ export function ActionToolbar() {
     isNavigationComplete,
     markNavigationComplete,
     setFullScreenChat,
+    agentMode,
+    setAgentMode,
   } = useChatStore();
   const { sendMessage } = useStreamingChat();
+  
+  // @mention autocomplete state
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -166,8 +180,56 @@ export function ActionToolbar() {
     await sendMessage(content);
   };
 
+  // Handle chat input change with @mention detection
+  const handleChatInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setChatInput(value);
+    
+    // Check for @ mention pattern
+    const atIndex = value.lastIndexOf('@');
+    if (atIndex !== -1) {
+      const afterAt = value.slice(atIndex + 1);
+      // Check if we're in a potential mention (no space after @)
+      if (!afterAt.includes(' ')) {
+        setMentionQuery(afterAt.toLowerCase());
+        // Show dropdown if "support" starts with what user typed
+        setShowMentionDropdown('support'.startsWith(afterAt.toLowerCase()));
+      } else {
+        setShowMentionDropdown(false);
+      }
+    } else {
+      setShowMentionDropdown(false);
+    }
+  };
+  
+  // Handle selecting @support mention
+  const handleSelectMention = () => {
+    // Remove the @query from input and set agent mode
+    const atIndex = chatInput.lastIndexOf('@');
+    if (atIndex !== -1) {
+      setChatInput(chatInput.slice(0, atIndex));
+    }
+    setAgentMode('support');
+    setShowMentionDropdown(false);
+    chatInputRef.current?.focus();
+  };
+
   // Handle chat input keydown
   const handleChatKeyDown = (e: React.KeyboardEvent) => {
+    // Handle mention dropdown selection
+    if (showMentionDropdown) {
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        handleSelectMention();
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowMentionDropdown(false);
+        return;
+      }
+    }
+    
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendChatMessage();
@@ -175,12 +237,16 @@ export function ActionToolbar() {
   };
 
   // Filter suggestions based on input (includes pages, actions, recipients, and cards)
+  // For no search: show structured sections; for search: filter all suggestions
   const filteredSuggestions = useMemo(() => {
-    if (!inputValue) return SUGGESTIONS;
+    if (!inputValue) {
+      // When not searching, return nav + AI suggestions in order
+      return [...NAV_SUGGESTIONS, ...AI_SUGGESTIONS];
+    }
     const searchTerm = inputValue.toLowerCase();
     
-    // Filter page/action suggestions
-    const filteredPages = SUGGESTIONS.filter(s => 
+    // Filter page/action suggestions from ALL_SUGGESTIONS
+    const filteredPages = ALL_SUGGESTIONS.filter(s => 
       s.label.toLowerCase().includes(searchTerm) ||
       s.path.toLowerCase().includes(searchTerm) ||
       (s.description && s.description.toLowerCase().includes(searchTerm))
@@ -515,15 +581,15 @@ export function ActionToolbar() {
         // If there's a selected suggestion, use it
         if (filteredSuggestions.length > 0 && filteredSuggestions[selectedIndex]) {
           const suggestion = filteredSuggestions[selectedIndex];
-          if (suggestion.label === 'How is my cashflow this quarter') {
-            handleCashFlowAction();
+          // AI action suggestions open chat with the label as the query
+          if (suggestion.type === 'action' && suggestion.description === 'AI') {
+            openChatWithMessage(suggestion.label);
             break;
           }
-          if (suggestion.label === 'Create a recurring payment') {
-            handleOpenRecurringPayment();
-            break;
+          // Regular navigation
+          if (suggestion.path) {
+            handleNavigate(suggestion.path);
           }
-          handleNavigate(suggestion.path);
         } else if (inputValue.trim()) {
           // If input has content but no matching suggestions, open chat with it
           openChatWithMessage(inputValue.trim());
@@ -613,6 +679,7 @@ export function ActionToolbar() {
                               <ChatBlockRenderer
                                 content={message.content}
                                 metadata={message.metadata}
+                                context="rhc"
                                 onNavigate={(url) => {
                                   handleClosePanel();
                                   navigate(url);
@@ -643,15 +710,78 @@ export function ActionToolbar() {
               </div>
 
               <div className="ds-chat-panel-footer">
+                {/* @support mention autocomplete dropdown */}
+                {showMentionDropdown && (
+                  <div 
+                    className="ds-mention-dropdown"
+                    style={{
+                      position: 'absolute',
+                      bottom: 80,
+                      left: 0,
+                      right: 0,
+                      margin: '0 auto',
+                      maxWidth: 280,
+                      backgroundColor: 'var(--ds-bg-default)',
+                      border: '1px solid var(--color-border-default)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      padding: 4,
+                      zIndex: 100,
+                    }}
+                  >
+                    <div
+                      className="ds-mention-option"
+                      onClick={handleSelectMention}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '8px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        cursor: 'pointer',
+                        backgroundColor: 'var(--ds-bg-emphasized)',
+                      }}
+                    >
+                      <Icon icon={faHeadset} size="small" style={{ color: 'var(--ds-icon-primary)' }} />
+                      <div className="flex flex-col">
+                        <span className="text-body-demi" style={{ color: 'var(--ds-text-default)' }}>
+                          @support
+                        </span>
+                        <span className="text-label" style={{ color: 'var(--ds-text-tertiary)' }}>
+                          Connect to Support Agent
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="ds-chat-composer">
                   <div className="ds-chat-composer-input">
+                    {/* Agent mode badge */}
+                    {agentMode === 'support' && (
+                      <div 
+                        className="flex items-center gap-1"
+                        style={{
+                          backgroundColor: 'var(--ds-bg-primary)',
+                          color: 'var(--ds-text-on-primary)',
+                          padding: '2px 8px',
+                          borderRadius: 'var(--radius-full)',
+                          marginRight: 8,
+                          fontSize: 12,
+                          fontWeight: 480,
+                        }}
+                      >
+                        <Icon icon={faHeadset} size="small" style={{ color: 'var(--ds-icon-on-primary)' }} />
+                        Support
+                      </div>
+                    )}
                     <input
                       ref={chatInputRef}
                       type="text"
                       className="ds-chat-composer-field"
-                      placeholder="Ask anything"
+                      placeholder={agentMode === 'support' ? 'Describe your issue...' : 'Ask anything'}
                       value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
+                      onChange={handleChatInputChange}
                       onKeyDown={handleChatKeyDown}
                       disabled={isLoading}
                     />
@@ -693,58 +823,131 @@ export function ActionToolbar() {
             {isFocused && (
               <div className="ds-action-results">
                 {filteredSuggestions.length > 0 ? (
-                  filteredSuggestions.map((suggestion, index) => (
-                    <div 
-                      key={`${suggestion.type}-${suggestion.label}-${suggestion.recipientId || suggestion.cardId || ''}`}
-                      className={cn(
-                        'ds-action-result-item',
-                        index === selectedIndex && 'selected',
-                        suggestion.type === 'action' && 'action-item'
-                      )}
-                      onMouseEnter={() => setSelectedIndex(index)}
-                      onClick={() => {
-                        if (suggestion.label === 'How is my cashflow this quarter') {
-                          handleCashFlowAction();
-                          return;
-                        }
-                        if (suggestion.label === 'Create a recurring payment') {
-                          handleOpenRecurringPayment();
-                          return;
-                        }
-                        handleNavigate(suggestion.path);
-                      }}
-                    >
-                      <div className="flex items-center gap-2">
-                        {suggestion.type === 'recipient' ? (
-                          <DSAvatar type="trx" name={suggestion.label} size="small" />
-                        ) : (
-                          <div className="ds-action-result-icon">
-                            <Icon 
-                              icon={suggestion.icon} 
-                              size="small"
-                              style={{ 
-                                color: suggestion.type === 'action' 
-                                  ? 'var(--purple-magic-600)' 
-                                  : 'var(--ds-icon-secondary)' 
-                              }} 
-                            />
-                          </div>
+                  <>
+                    {/* Section Headers only shown when not searching */}
+                    {!inputValue && (
+                      <div 
+                        className="text-tiny" 
+                        style={{ 
+                          color: 'var(--ds-text-tertiary)', 
+                          padding: '8px 12px 4px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}
+                      >
+                        Jump to
+                      </div>
+                    )}
+                    {filteredSuggestions.slice(0, !inputValue ? NAV_SUGGESTIONS.length : filteredSuggestions.length).map((suggestion, index) => (
+                      <div 
+                        key={`${suggestion.type}-${suggestion.label}-${suggestion.recipientId || suggestion.cardId || ''}`}
+                        className={cn(
+                          'ds-action-result-item',
+                          index === selectedIndex && 'selected',
+                          suggestion.type === 'action' && 'action-item'
                         )}
+                        onMouseEnter={() => setSelectedIndex(index)}
+                        onClick={() => {
+                          if (suggestion.type === 'action' && suggestion.description === 'AI') {
+                            openChatWithMessage(suggestion.label);
+                            return;
+                          }
+                          handleNavigate(suggestion.path);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          {suggestion.type === 'recipient' ? (
+                            <DSAvatar type="trx" name={suggestion.label} size="small" />
+                          ) : (
+                            <div className="ds-action-result-icon">
+                              <Icon 
+                                icon={suggestion.icon} 
+                                size="small"
+                                style={{ 
+                                  color: suggestion.type === 'action' 
+                                    ? 'var(--purple-magic-600)' 
+                                    : 'var(--ds-icon-secondary)' 
+                                }} 
+                              />
+                            </div>
+                          )}
+                          <span 
+                            className="text-body"
+                            style={{ color: 'var(--ds-text-default)' }}
+                          >
+                            {suggestion.label}
+                          </span>
+                        </div>
                         <span 
-                          className="text-body"
-                          style={{ color: 'var(--ds-text-default)' }}
+                          className="text-label"
+                          style={{ color: suggestion.description === 'AI' ? 'var(--purple-magic-600)' : 'var(--ds-text-tertiary)' }}
                         >
-                          {suggestion.label}
+                          {suggestion.description === 'AI' ? (
+                            <span className="flex items-center gap-1">
+                              <Icon icon={faSparkles} size="small" style={{ color: 'var(--purple-magic-600)' }} />
+                              AI
+                            </span>
+                          ) : (
+                            suggestion.description || suggestion.path
+                          )}
                         </span>
                       </div>
-                      <span 
-                        className="text-label"
-                        style={{ color: 'var(--ds-text-tertiary)' }}
-                      >
-                        {suggestion.description || suggestion.path}
-                      </span>
-                    </div>
-                  ))
+                    ))}
+                    {/* AI Section Header and items - only when not searching */}
+                    {!inputValue && (
+                      <>
+                        <div 
+                          className="text-tiny" 
+                          style={{ 
+                            color: 'var(--ds-text-tertiary)', 
+                            padding: '12px 12px 4px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}
+                        >
+                          Try asking
+                        </div>
+                        {AI_SUGGESTIONS.map((suggestion, idx) => {
+                          const index = NAV_SUGGESTIONS.length + idx;
+                          return (
+                            <div 
+                              key={`ai-${suggestion.label}`}
+                              className={cn(
+                                'ds-action-result-item',
+                                index === selectedIndex && 'selected',
+                                'action-item'
+                              )}
+                              onMouseEnter={() => setSelectedIndex(index)}
+                              onClick={() => openChatWithMessage(suggestion.label)}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="ds-action-result-icon">
+                                  <Icon 
+                                    icon={suggestion.icon} 
+                                    size="small"
+                                    style={{ color: 'var(--purple-magic-600)' }} 
+                                  />
+                                </div>
+                                <span 
+                                  className="text-body"
+                                  style={{ color: 'var(--ds-text-default)' }}
+                                >
+                                  {suggestion.label}
+                                </span>
+                              </div>
+                              <span 
+                                className="text-label flex items-center gap-1"
+                                style={{ color: 'var(--purple-magic-600)' }}
+                              >
+                                <Icon icon={faSparkles} size="small" style={{ color: 'var(--purple-magic-600)' }} />
+                                AI
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </>
+                    )}
+                  </>
                 ) : inputValue.trim() ? (
                   <div 
                     className="ds-action-result-item ai-mode"

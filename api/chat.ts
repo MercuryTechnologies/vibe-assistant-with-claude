@@ -634,6 +634,7 @@ INTENTS:
 - CARD_QUERY: User asks about cards, card spending, card limits, who has cards
 - CARD_ACTION: User wants to freeze/manage cards, issue new cards
 - TASK_QUERY: User asks about tasks, pending items, what needs attention
+- DOCUMENT_QUERY: User asks about documents, statements, bank statements, tax documents
 - AGENT_MODE: Multi-step workflow like issuing cards to employees
 - SUPPORT: User explicitly asks for human support
 - COMPLEX_QUESTION: Requires deep analysis, comparisons, forecasting
@@ -788,29 +789,26 @@ async function handleWithRouter(
         .sort((a, b) => (b.totalPaid || 0) - (a.totalPaid || 0))
         .slice(0, 5)
       
-      // Get top recipients by amount received (clients)
-      const topByReceived = [...recipients]
-        .filter(r => r.totalReceived && r.totalReceived > 0)
-        .sort((a, b) => (b.totalReceived || 0) - (a.totalReceived || 0))
-        .slice(0, 5)
-      
       if (topByPaid.length > 0) {
-        responseText = `Here are your **top recipients** by amount paid:\n\n`
-        topByPaid.forEach((r, i) => {
-          responseText += `${i + 1}. **${r.name}** (${r.category}) - ${formatCurrency(r.totalPaid || 0)}\n`
-        })
-        
-        if (topByReceived.length > 0) {
-          responseText += `\n**Top clients** by revenue received:\n\n`
-          topByReceived.forEach((r, i) => {
-            responseText += `${i + 1}. **${r.name}** - ${formatCurrency(r.totalReceived || 0)}\n`
-          })
-        }
+        responseText = `Here are your **top recipients** by amount paid. Click "Send" to make a payment.`
       } else {
-        responseText = `You have **${recipients.length} recipients** set up. Check your Recipients page for details.`
+        responseText = `You have **${recipients.length} recipients** set up.`
       }
       
+      // Build recipients metadata for the UI
       metadata = {
+        recipients: {
+          title: '',
+          rows: topByPaid.map(r => ({
+            id: r.id,
+            name: r.name,
+            bankName: r.bankName || undefined,
+            accountLast4: r.accountNumber?.slice(-4) || undefined,
+            lastPaidDate: r.lastPaid || undefined,
+            lastPaidAmount: r.totalPaid || undefined,
+          })),
+          allowPayment: true,
+        },
         navigation: {
           target: 'Recipients',
           url: '/payments/recipients',
@@ -957,17 +955,21 @@ async function handleWithRouter(
       const total = getTotalBalance()
       
       responseText = `**Account Details:**\n\n`
-      accounts.forEach((a, i) => {
-        const typeLabel = a.type.charAt(0).toUpperCase() + a.type.slice(1)
-        responseText += `**${i + 1}. ${a.name}** (${typeLabel})\n`
-        responseText += `   Balance: ${formatCurrency(a.balance)}\n`
-        responseText += `   Account #: ••${a.accountNumber}\n`
-        responseText += `   Routing: ${a.routingNumber}\n\n`
-      })
+      responseText += `You have **${accounts.length} accounts** with a total balance of **${formatCurrency(total)}**.`
       
-      responseText += `**Total Across All Accounts**: ${formatCurrency(total)}`
-      
+      // Build account balances metadata for the UI
       metadata = {
+        accountBalances: {
+          title: '',
+          accounts: accounts.map(a => ({
+            id: a.id,
+            name: a.name,
+            type: a.type as 'checking' | 'savings' | 'treasury',
+            balance: a.balance,
+            accountNumber: a.accountNumber,
+          })),
+          totalBalance: total,
+        },
         navigation: {
           target: 'Accounts',
           url: '/accounts',
@@ -984,22 +986,37 @@ async function handleWithRouter(
       const overBudget = cards.filter(c => c.spentThisMonth > c.monthlyLimit)
       
       responseText = `**Card Overview** (${cards.length} cards):\n\n`
-      responseText += `**Total This Month**: ${formatCurrency(totalSpent)} of ${formatCurrency(totalLimit)} (${((totalSpent/totalLimit)*100).toFixed(0)}% used)\n\n`
+      responseText += `**Total This Month**: ${formatCurrency(totalSpent)} of ${formatCurrency(totalLimit)} (${((totalSpent/totalLimit)*100).toFixed(0)}% used)`
       
       if (overBudget.length > 0) {
-        responseText += `⚠️ **${overBudget.length} cards over limit**\n\n`
+        responseText += `\n\n⚠️ **${overBudget.length} card${overBudget.length > 1 ? 's' : ''} over limit** - click to freeze if needed.`
       }
       
-      responseText += `**Cards:**\n`
-      cards.forEach((c, i) => {
-        const pct = c.monthlyLimit > 0 ? ((c.spentThisMonth / c.monthlyLimit) * 100).toFixed(0) : 0
-        const overMsg = c.spentThisMonth > c.monthlyLimit ? ' ⚠️' : ''
-        const statusBadge = c.status === 'active' ? '✓' : c.status === 'frozen' ? '❄️' : '○'
-        responseText += `${i + 1}. ${statusBadge} **${c.cardholder}** (••${c.cardNumber})\n`
-        responseText += `   ${formatCurrency(c.spentThisMonth)} / ${formatCurrency(c.monthlyLimit)} (${pct}%)${overMsg}\n`
+      // Build cards table metadata for the UI
+      const cardRows = cards.map(c => ({
+        id: c.id,
+        cardholder: c.cardholder,
+        cardLast4: c.cardNumber,
+        cardName: c.nickname || c.cardName,
+        spent: c.spentThisMonth,
+        limit: c.monthlyLimit,
+        status: c.status as 'active' | 'frozen' | 'cancelled',
+      }))
+      
+      // Sort by over-limit first, then by spent
+      cardRows.sort((a, b) => {
+        const aOver = a.spent > a.limit ? 1 : 0
+        const bOver = b.spent > b.limit ? 1 : 0
+        if (aOver !== bOver) return bOver - aOver
+        return b.spent - a.spent
       })
       
       metadata = {
+        cardsTable: {
+          title: '',
+          rows: cardRows,
+          showDetailFor: overBudget.length > 0 ? overBudget[0].id : undefined,
+        },
         navigation: {
           target: 'Cards',
           url: '/cards',
@@ -1045,6 +1062,43 @@ async function handleWithRouter(
       break
     }
 
+    case 'DOCUMENT_QUERY': {
+      // Generate mock document data
+      const accounts = getAccounts()
+      const currentDate = new Date()
+      const currentMonth = currentDate.toLocaleString('default', { month: 'long' })
+      const currentYear = currentDate.getFullYear()
+      
+      // Generate last 3 months of statements
+      const mockDocuments = []
+      for (let i = 0; i < 3; i++) {
+        const docDate = new Date(currentDate)
+        docDate.setMonth(docDate.getMonth() - i)
+        const monthName = docDate.toLocaleString('default', { month: 'long' })
+        const year = docDate.getFullYear()
+        
+        for (const account of accounts.slice(0, 2)) {
+          mockDocuments.push({
+            id: `stmt-${account.id}-${year}-${docDate.getMonth()}`,
+            name: `${monthName} ${year} Statement`,
+            type: 'statement' as const,
+            date: docDate.toISOString().split('T')[0],
+            accountName: account.name,
+          })
+        }
+      }
+      
+      responseText = `Here are your recent statements and documents:`
+      
+      metadata = {
+        documents: {
+          title: '',
+          documents: mockDocuments.slice(0, 6),
+        }
+      }
+      break
+    }
+
     case 'NAVIGATE': {
       const page = classification.navigationTarget || 'home'
       const pageUrls: Record<string, string> = {
@@ -1066,8 +1120,23 @@ async function handleWithRouter(
     case 'BALANCE': {
       const accounts = getAccounts()
       const total = getTotalBalance()
-      const list = accounts.map(a => `- **${a.name}** (${a.type}): ${formatCurrency(a.balance)}`).join('\n')
-      responseText = `Here are your account balances:\n\n${list}\n\n**Total**: ${formatCurrency(total)}`
+      
+      responseText = `Here are your account balances:`
+      
+      // Build account balances metadata for the UI
+      metadata = {
+        accountBalances: {
+          title: '',
+          accounts: accounts.map(a => ({
+            id: a.id,
+            name: a.name,
+            type: a.type as 'checking' | 'savings' | 'treasury',
+            balance: a.balance,
+            accountNumber: a.accountNumber,
+          })),
+          totalBalance: total,
+        }
+      }
       break
     }
 
@@ -1177,6 +1246,74 @@ GUIDELINES:
   } catch (e) {
     console.error('Smart model error:', e)
     sendEvent('chunk', { text: "I encountered an issue. Please try again." })
+  }
+
+  sendEvent('done', { conversationId })
+}
+
+async function handleSupportMode(
+  client: Anthropic,
+  sendEvent: (event: string, data: object) => void,
+  message: string,
+  history: Array<{ role: string; content: string }> | undefined,
+  conversationId: string
+): Promise<void> {
+  const aiContext = buildAIContext()
+
+  const systemPrompt = `You are Mercury Support, a friendly and knowledgeable support agent for Mercury banking.
+
+Your role is to help users with:
+- Account questions and troubleshooting
+- Understanding their transactions and statements
+- Card issues (freezing, limits, replacements)
+- Payment problems and recipient management
+- General questions about Mercury features
+
+You have access to the following account data to help resolve issues:
+
+${aiContext}
+
+GUIDELINES:
+- Be warm, empathetic, and patient
+- Acknowledge the user's concern before providing solutions
+- Use **bold** for important information and action items
+- Provide step-by-step guidance when explaining processes
+- If you can see the issue in their data, proactively mention it
+- If you cannot resolve an issue, explain what the next steps would be
+- Always ask if there's anything else you can help with
+- Sign off as "Mercury Support" or just "Support"`
+
+  const messages: Anthropic.MessageParam[] = []
+  if (history) {
+    for (const h of history) {
+      messages.push({ role: h.role as 'user' | 'assistant', content: h.content })
+    }
+  }
+  messages.push({ role: 'user', content: message })
+
+  try {
+    const response = await client.messages.create({
+      model: SMART_MODEL,
+      max_tokens: 512,
+      temperature: 0.7,
+      system: systemPrompt,
+      messages,
+    })
+
+    let responseText = ''
+    for (const block of response.content) {
+      if (block.type === 'text') {
+        responseText += block.text
+      }
+    }
+
+    for (let i = 0; i < responseText.length; i += 3) {
+      sendEvent('chunk', { text: responseText.slice(i, i + 3) })
+      await sleep(15)
+    }
+  } catch (e) {
+    console.error('Support mode error:', e)
+    sendEvent('chunk', { text: "I'm sorry, I'm having trouble connecting right now. Please try again in a moment." })
   }
 
   sendEvent('done', { conversationId })
@@ -1317,7 +1454,7 @@ export default async function handler(
   const sendEvent = createEventSender(res)
 
   try {
-    const { message, conversationId, history } = req.body || {}
+    const { message, conversationId, history, agentMode } = req.body || {}
 
     if (!message || typeof message !== 'string') {
       sendEvent('error', { error: 'Message is required' })
@@ -1327,24 +1464,31 @@ export default async function handler(
 
     const convId = conversationId || generateConversationId()
     const apiKey = process.env.ANTHROPIC_API_KEY
+    const isSupportMode = agentMode === 'support'
 
     if (apiKey) {
       try {
         const client = new Anthropic({ apiKey })
 
-        sendEvent('ack', { message: 'Understanding your request...' })
+        sendEvent('ack', { message: isSupportMode ? 'Connecting to support...' : 'Understanding your request...' })
 
-        const classification = await classifyQuery(client, message)
-
-        if (classification.intent === 'AGENT_MODE') {
-          sendEvent('ack', { message: classification.handoffMessage || 'Starting workflow...' })
-          await handleAgentMode(sendEvent, message, history, convId)
-        } else if (classification.needsSmartModel) {
-          sendEvent('ack', { message: classification.handoffMessage || 'Looking into that...' })
+        // In support mode, skip classification and go straight to support handler
+        if (isSupportMode) {
           await sleep(300)
-          await handleWithSmartModel(client, sendEvent, message, history, convId)
+          await handleSupportMode(client, sendEvent, message, history, convId)
         } else {
-          await handleWithRouter(sendEvent, message, classification, convId)
+          const classification = await classifyQuery(client, message)
+
+          if (classification.intent === 'AGENT_MODE') {
+            sendEvent('ack', { message: classification.handoffMessage || 'Starting workflow...' })
+            await handleAgentMode(sendEvent, message, history, convId)
+          } else if (classification.needsSmartModel) {
+            sendEvent('ack', { message: classification.handoffMessage || 'Looking into that...' })
+            await sleep(300)
+            await handleWithSmartModel(client, sendEvent, message, history, convId)
+          } else {
+            await handleWithRouter(sendEvent, message, classification, convId)
+          }
         }
       } catch (apiError) {
         console.error('API error:', apiError)

@@ -161,6 +161,121 @@ export interface EntityCard {
 }
 
 /**
+ * A card row in a table
+ */
+export interface CardTableRow {
+  id: string
+  cardholder: string
+  cardLast4: string
+  cardName?: string
+  spent: number
+  limit: number
+  status: 'active' | 'frozen' | 'cancelled'
+}
+
+/**
+ * Metadata for cards table display
+ */
+export interface CardsTableMetadata {
+  title?: string
+  rows: CardTableRow[]
+  showDetailFor?: string  // Card ID to show expanded details for
+}
+
+/**
+ * A recipient row in a list
+ */
+export interface RecipientRow {
+  id: string
+  name: string
+  bankName?: string
+  accountLast4?: string
+  lastPaidDate?: string
+  lastPaidAmount?: number
+}
+
+/**
+ * Metadata for recipients display
+ */
+export interface RecipientsMetadata {
+  title?: string
+  rows: RecipientRow[]
+  allowPayment?: boolean  // Whether to show "Send Payment" action
+}
+
+/**
+ * Metadata for inline payment form
+ */
+export interface PaymentFormMetadata {
+  recipientId?: string
+  recipientName?: string
+  suggestedAmount?: number
+  paymentType: 'ach' | 'wire'
+  memo?: string
+}
+
+/**
+ * A document row in a list
+ */
+export interface DocumentRow {
+  id: string
+  name: string
+  type: 'statement' | 'tax' | 'receipt' | 'other'
+  date: string
+  accountName?: string
+  url?: string
+}
+
+/**
+ * Metadata for documents display
+ */
+export interface DocumentsMetadata {
+  title?: string
+  documents: DocumentRow[]
+}
+
+/**
+ * Metadata for inline invoice form
+ */
+export interface InvoiceFormMetadata {
+  clientId?: string
+  clientName?: string
+  draftItems?: Array<{ description: string; amount: number }>
+  dueDate?: string
+}
+
+/**
+ * Metadata for bill upload display
+ */
+export interface BillUploadMetadata {
+  billId?: string
+  vendorName?: string
+  extractedAmount?: number
+  extractedDueDate?: string
+  status: 'uploading' | 'extracted' | 'confirmed'
+}
+
+/**
+ * Account balance information
+ */
+export interface AccountBalanceRow {
+  id: string
+  name: string
+  type: 'checking' | 'savings' | 'treasury'
+  balance: number
+  accountNumber?: string
+}
+
+/**
+ * Metadata for account balances display
+ */
+export interface AccountBalancesMetadata {
+  title?: string
+  accounts: AccountBalanceRow[]
+  totalBalance?: number
+}
+
+/**
  * Combined metadata that can be attached to assistant messages
  */
 export interface MessageMetadata {
@@ -174,6 +289,14 @@ export interface MessageMetadata {
   thinkingChain?: ThinkingStep[]
   clarificationRequest?: ClarificationRequest
   entityCards?: EntityCard[]
+  // New metadata types for extended chat capabilities
+  cardsTable?: CardsTableMetadata
+  recipients?: RecipientsMetadata
+  paymentForm?: PaymentFormMetadata
+  documents?: DocumentsMetadata
+  invoiceForm?: InvoiceFormMetadata
+  billUpload?: BillUploadMetadata
+  accountBalances?: AccountBalancesMetadata
 }
 
 /**

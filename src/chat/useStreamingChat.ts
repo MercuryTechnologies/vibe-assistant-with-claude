@@ -159,7 +159,9 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}): UseStre
     content: string,
     history: Array<{ role: string; content: string }>
   ) => {
-    const currentConversationId = useChatStore.getState().conversationId
+    const state = useChatStore.getState()
+    const currentConversationId = state.conversationId
+    const agentMode = state.agentMode
     
     const response = await fetch('/api/chat', {
       method: 'POST',
@@ -168,6 +170,7 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}): UseStre
         message: content,
         conversationId: currentConversationId,
         history,
+        agentMode,
       }),
     })
     

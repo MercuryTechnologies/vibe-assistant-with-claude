@@ -4158,6 +4158,7 @@ body.ds-panel-resizing * {
 
 .ds-chat-panel-message-bubble {
   align-self: flex-end;
+  width: fit-content;
   max-width: 360px;
   padding: 8px 12px;
   background-color: var(--ds-bg-emphasized);
@@ -4433,7 +4434,8 @@ body.ds-panel-resizing * {
 }
 
 .ds-chat-panel-side .ds-chat-panel-message-bubble {
-  max-width: 280px;
+  width: fit-content;
+  max-width: 85%;
 }
 
 /* Panel Resize Handle */

@@ -23,6 +23,9 @@ function generateConversationNumber(): number {
   return count
 }
 
+// Agent modes for different chat personas
+export type AgentMode = 'assistant' | 'support'
+
 interface ChatState {
   // Conversation state
   messages: ChatMessage[]
@@ -55,6 +58,9 @@ interface ChatState {
   // Pending clarification request (for agentic flows)
   pendingClarification: ClarificationRequest | null
   
+  // Agent mode (assistant or support)
+  agentMode: AgentMode
+  
   // Actions
   addUserMessage: (content: string) => void
   addAssistantMessage: (content: string, metadata?: MessageMetadata) => string
@@ -79,6 +85,9 @@ interface ChatState {
   setPendingClarification: (request: ClarificationRequest | null) => void
   respondToClarification: (requestId: string, optionId: string) => void
   updateEntityCardStatus: (messageId: string, entityId: string, status: EntityCard['status']) => void
+  
+  // Agent mode actions
+  setAgentMode: (mode: AgentMode) => void
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -94,6 +103,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   completedNavigations: new Set<string>(),
   pendingFollowUp: null,
   pendingClarification: null,
+  agentMode: 'assistant',
   
   // Add a user message to the conversation
   addUserMessage: (content: string) => {
@@ -298,6 +308,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       completedNavigations: new Set<string>(),
       pendingFollowUp: null,
       pendingClarification: null,
+      agentMode: 'assistant',
     })
   },
   
@@ -369,5 +380,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
       }),
     }))
+  },
+  
+  // Set the agent mode (assistant or support)
+  setAgentMode: (mode: AgentMode) => {
+    set({ agentMode: mode })
   },
 }))
