@@ -985,16 +985,52 @@ async function handleWithRouter(
     }
 
     case 'CARD_QUERY': {
-      const cards = getCardsWithSpending()
+      const allCards = getCardsWithSpending()
+      const query = message.toLowerCase()
+      
+      // Detect card status filter
+      let filteredCards = allCards
+      let statusFilter: 'frozen' | 'active' | 'cancelled' | undefined
+      
+      if (query.includes('frozen')) {
+        filteredCards = allCards.filter(c => c.status === 'frozen')
+        statusFilter = 'frozen'
+      } else if (query.includes('active')) {
+        filteredCards = allCards.filter(c => c.status === 'active')
+        statusFilter = 'active'
+      } else if (query.includes('cancelled') || query.includes('canceled')) {
+        filteredCards = allCards.filter(c => c.status === 'cancelled')
+        statusFilter = 'cancelled'
+      }
+      
+      // Handle empty filter results
+      if (filteredCards.length === 0 && statusFilter) {
+        responseText = `You don't have any **${statusFilter}** cards.`
+        metadata = {
+          emptyState: {
+            message: `No ${statusFilter} cards found`,
+            suggestion: statusFilter === 'frozen' 
+              ? 'All your cards are currently active.' 
+              : `Try asking about your ${statusFilter === 'active' ? 'frozen' : 'active'} cards instead.`
+          }
+        }
+        break
+      }
+      
+      const cards = filteredCards
       const totalSpent = cards.reduce((sum, c) => sum + c.spentThisMonth, 0)
       const totalLimit = cards.reduce((sum, c) => sum + c.monthlyLimit, 0)
       const overBudget = cards.filter(c => c.spentThisMonth > c.monthlyLimit)
       
-      responseText = `**Card Overview** (${cards.length} cards):\n\n`
-      responseText += `**Total This Month**: ${formatCurrency(totalSpent)} of ${formatCurrency(totalLimit)} (${((totalSpent/totalLimit)*100).toFixed(0)}% used)`
-      
-      if (overBudget.length > 0) {
-        responseText += `\n\n⚠️ **${overBudget.length} card${overBudget.length > 1 ? 's' : ''} over limit** - click to freeze if needed.`
+      if (statusFilter) {
+        responseText = `You have **${cards.length} ${statusFilter} card${cards.length !== 1 ? 's' : ''}**:`
+      } else {
+        responseText = `**Card Overview** (${cards.length} cards):\n\n`
+        responseText += `**Total This Month**: ${formatCurrency(totalSpent)} of ${formatCurrency(totalLimit)} (${((totalSpent/totalLimit)*100).toFixed(0)}% used)`
+        
+        if (overBudget.length > 0) {
+          responseText += `\n\n⚠️ **${overBudget.length} card${overBudget.length > 1 ? 's' : ''} over limit** - click to freeze if needed.`
+        }
       }
       
       // Build cards table metadata for the UI
@@ -1016,15 +1052,18 @@ async function handleWithRouter(
         return b.spent - a.spent
       })
       
+      // Build navigation URL with optional status filter
+      const navUrl = statusFilter ? `/cards?status=${statusFilter}` : '/cards'
+      
       metadata = {
         cardsTable: {
-          title: '',
+          title: statusFilter ? `${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} Cards` : '',
           rows: cardRows,
           showDetailFor: overBudget.length > 0 ? overBudget[0].id : undefined,
         },
         navigation: {
           target: 'Cards',
-          url: '/cards',
+          url: navUrl,
           countdown: true
         }
       }
@@ -1265,7 +1304,78 @@ async function handleWithRouter(
     case 'BALANCE': {
       const accounts = getAccounts()
       const total = getTotalBalance()
+      const query = message.toLowerCase()
       
+      // Check for Treasury-specific query
+      if (query.includes('treasury')) {
+        const treasury = accounts.find(a => a.type === 'treasury')
+        if (treasury) {
+          responseText = `Your **Treasury** balance is **${formatCurrency(treasury.balance)}**`
+          if (treasury.apy) {
+            responseText += ` earning **${treasury.apy}% APY**.`
+          } else {
+            responseText += `.`
+          }
+          
+          // Return with single-account metadata including APY
+          metadata = {
+            accountBalances: {
+              title: 'Treasury Account',
+              accounts: [{
+                id: treasury.id,
+                name: treasury.name,
+                type: 'treasury' as const,
+                balance: treasury.balance,
+                accountNumber: treasury.accountNumber,
+                apy: treasury.apy,
+              }],
+              totalBalance: treasury.balance,
+            },
+            navigation: {
+              target: 'Treasury',
+              url: '/accounts/treasury',
+              countdown: true
+            }
+          }
+          break
+        }
+      }
+      
+      // Check for specific account type queries (Operating, Payroll, Savings)
+      const accountTypeMatch = query.match(/\b(operating|payroll|savings|checking)\b/i)
+      if (accountTypeMatch) {
+        const searchTerm = accountTypeMatch[1].toLowerCase()
+        const matchedAccount = accounts.find(a => 
+          a.name.toLowerCase().includes(searchTerm) || 
+          a.type.toLowerCase() === searchTerm
+        )
+        if (matchedAccount) {
+          responseText = `Your **${matchedAccount.name}** account balance is **${formatCurrency(matchedAccount.balance)}**`
+          if (matchedAccount.apy) {
+            responseText += ` earning **${matchedAccount.apy}% APY**.`
+          } else {
+            responseText += `.`
+          }
+          
+          metadata = {
+            accountBalances: {
+              title: `${matchedAccount.name} Account`,
+              accounts: [{
+                id: matchedAccount.id,
+                name: matchedAccount.name,
+                type: matchedAccount.type as 'checking' | 'savings' | 'treasury',
+                balance: matchedAccount.balance,
+                accountNumber: matchedAccount.accountNumber,
+                apy: matchedAccount.apy,
+              }],
+              totalBalance: matchedAccount.balance,
+            }
+          }
+          break
+        }
+      }
+      
+      // Default: show all accounts
       responseText = `Here are your account balances:`
       
       // Build account balances metadata for the UI
@@ -1278,6 +1388,7 @@ async function handleWithRouter(
             type: a.type as 'checking' | 'savings' | 'treasury',
             balance: a.balance,
             accountNumber: a.accountNumber,
+            apy: a.apy,
           })),
           totalBalance: total,
         }
@@ -1305,14 +1416,74 @@ async function handleWithRouter(
       const statusMatch = query.match(/\b(pending|completed|failed)\b/)
       const status = statusMatch ? statusMatch[1] as 'pending' | 'completed' | 'failed' : undefined
       
-      // Use status filter if detected, otherwise search by text
-      const results = status 
-        ? getTransactions({ status, limit: 20 })
-        : searchTransactions(query, 20)
+      // Detect amount filter (e.g., "over $5,000", "more than $1000", "$5000+")
+      const amountMatch = query.match(/(?:over|more than|above|greater than|exceeds?)\s*\$?([\d,]+)/i)
+        || query.match(/\$([\d,]+)\s*\+/)
+      const minAmount = amountMatch ? parseInt(amountMatch[1].replace(/,/g, ''), 10) : undefined
+      
+      // Detect date filter
+      let startDate: string | undefined
+      let dateLabel = ''
+      if (query.includes('last week') || query.includes('past week')) {
+        startDate = getDateNDaysAgo(7)
+        dateLabel = 'last week'
+      } else if (query.includes('yesterday')) {
+        startDate = getDateNDaysAgo(1)
+        dateLabel = 'yesterday'
+      } else if (query.includes('this month')) {
+        const now = new Date()
+        startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+        dateLabel = 'this month'
+      } else if (query.includes('last month') || query.includes('past month')) {
+        startDate = getDateNDaysAgo(30)
+        dateLabel = 'last 30 days'
+      } else if (query.includes('this year')) {
+        startDate = `${new Date().getFullYear()}-01-01`
+        dateLabel = 'this year'
+      }
+      
+      // Build filters object
+      const hasFilters = status || minAmount || startDate
+      let results: Transaction[]
+      
+      if (hasFilters) {
+        // Apply filters via getTransactions
+        results = getTransactions({ 
+          status, 
+          startDate,
+          limit: 50 
+        })
+        
+        // Apply amount filter (getTransactions doesn't support this natively)
+        if (minAmount) {
+          results = results.filter(t => Math.abs(t.amount) >= minAmount)
+        }
+        
+        // Limit results
+        results = results.slice(0, 20)
+      } else {
+        // No filters - do text search
+        results = searchTransactions(query, 20)
+      }
 
       if (results.length > 0) {
         const total = results.reduce((sum, t) => sum + Math.abs(t.amount), 0)
-        responseText = `I found **${results.length} ${status ? status + ' ' : ''}transactions** (${formatCurrency(total)} total):`
+        
+        // Build description based on filters applied
+        const filterParts: string[] = []
+        if (status) filterParts.push(status)
+        if (minAmount) filterParts.push(`over ${formatCurrency(minAmount)}`)
+        if (dateLabel) filterParts.push(`from ${dateLabel}`)
+        
+        const filterDesc = filterParts.length > 0 ? filterParts.join(', ') + ' ' : ''
+        responseText = `I found **${results.length} ${filterDesc}transactions** (${formatCurrency(total)} total):`
+        
+        // Build navigation URL with query params
+        const urlParams = new URLSearchParams()
+        if (status) urlParams.set('status', status)
+        if (minAmount) urlParams.set('minAmount', minAmount.toString())
+        if (startDate) urlParams.set('startDate', startDate)
+        const navUrl = urlParams.toString() ? `/transactions?${urlParams.toString()}` : '/transactions'
         
         // Build transaction table metadata for UI rendering
         metadata = {
@@ -1330,16 +1501,17 @@ async function handleWithRouter(
           },
           navigation: {
             target: 'Transactions',
-            url: status ? `/transactions?status=${status}` : '/transactions',
+            url: navUrl,
             countdown: true
           }
         }
       } else {
-        responseText = `I couldn't find any ${status ? status + ' ' : ''}transactions matching your search.`
+        const filterDesc = minAmount ? `over ${formatCurrency(minAmount)}` : (dateLabel ? `from ${dateLabel}` : '')
+        responseText = `I couldn't find any ${status ? status + ' ' : ''}transactions${filterDesc ? ' ' + filterDesc : ''} matching your search.`
         metadata = {
           emptyState: {
             message: 'No transactions found',
-            suggestion: 'Try searching for a merchant name, category, or amount.'
+            suggestion: 'Try adjusting your filters or search for a merchant name.'
           }
         }
       }

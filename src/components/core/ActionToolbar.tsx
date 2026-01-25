@@ -190,8 +190,9 @@ export function ActionToolbar() {
       const afterAt = value.slice(atIndex + 1);
       // Check if we're in a potential mention (no space after @)
       if (!afterAt.includes(' ')) {
-        // Show dropdown if "support" starts with what user typed
-        setShowMentionDropdown('support'.startsWith(afterAt.toLowerCase()));
+        // Show dropdown immediately on @ or if "support" starts with what user typed
+        // Empty string means just @ was typed - show dropdown immediately
+        setShowMentionDropdown(afterAt === '' || 'support'.startsWith(afterAt.toLowerCase()));
       } else {
         setShowMentionDropdown(false);
       }
@@ -530,6 +531,7 @@ export function ActionToolbar() {
     setPanelWidth(400);
     setChatInput('');
     clearConversation();
+    setAgentMode('assistant'); // Reset to default mode
     if (inputRef.current) {
       inputRef.current.blur();
     }
@@ -538,6 +540,7 @@ export function ActionToolbar() {
   // Start a new conversation in the panel
   const handleNewConversation = () => {
     clearConversation();
+    setAgentMode('assistant'); // Reset to default mode
     setChatInput('');
     setTimeout(() => {
       chatInputRef.current?.focus();
@@ -617,10 +620,29 @@ export function ActionToolbar() {
           )}
           <div className={cn('ds-chat-panel', !isPanelFullScreen && 'ds-chat-panel-side')}>
             <div className="ds-chat-panel-header">
-              <button className="ds-chat-panel-back-btn" onClick={handleClosePanel}>
-                <Icon icon={faChevronLeft} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
-                <span className="text-body-demi" style={{ color: 'var(--ds-text-default)' }}>{panelTitle}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button className="ds-chat-panel-back-btn" onClick={handleClosePanel}>
+                  <Icon icon={faChevronLeft} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
+                  <span className="text-body-demi" style={{ color: 'var(--ds-text-default)' }}>{panelTitle}</span>
+                </button>
+                {/* Support mode badge in header */}
+                {agentMode === 'support' && (
+                  <div
+                    className="flex items-center gap-1"
+                    style={{
+                      backgroundColor: 'var(--ds-bg-primary)',
+                      color: 'var(--ds-text-on-primary)',
+                      padding: '2px 8px',
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: 12,
+                      fontWeight: 480,
+                    }}
+                  >
+                    <Icon icon={faHeadset} size="small" style={{ color: 'var(--ds-icon-on-primary)' }} />
+                    Support
+                  </div>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <DSButton variant="tertiary" size="small" iconOnly aria-label="New conversation" onClick={handleNewConversation}>
                   <Icon icon={faPlus} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
