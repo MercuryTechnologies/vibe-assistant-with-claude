@@ -632,11 +632,35 @@ const BOUNDARY_PIVOTS: Record<string, PivotSuggestion> = {
     ]
   },
   insurance: {
-    cannotDo: "provide business insurance",
+    cannotDo: "provide business insurance directly",
     canDo: [
-      "show partners who offer insurance through Mercury Perks",
+      "show you Mercury Perks partners who offer insurance",
+      "show your current insurance-related spending",
       "connect you with our perks program"
     ]
+  },
+  
+  // Compliance/Legal
+  sanctions: {
+    cannotDo: null,  // Don't say "can't" - just explain policy
+    canDo: [
+      "explain Mercury's compliance with U.S. sanctions regulations",
+      "show your recent international payments",
+      "connect you with our compliance team for specific guidance"
+    ],
+    showData: 'transactions'
+  },
+  
+  // Vague requests
+  vague_fix_request: {
+    cannotDo: null,
+    canDo: [
+      "help with card issues (frozen, declined, lost)",
+      "investigate payment problems (failed, pending)",
+      "check balance questions (missing money, discrepancies)",
+      "resolve access issues (permissions, login)"
+    ],
+    showData: 'cards'
   },
   
   // Partial capability
@@ -761,7 +785,9 @@ function detectBoundaryType(query: string): string | null {
     [/everyone.*admin|all.*admin|bulk.*access|mass.*permission/i, 'bulk_permissions'],
     [/something.*wrong.*balance|balance.*off|balance.*incorrect|discrepancy/i, 'balance_discrepancy'],
     [/prove.*investor|verification.*letter|show.*bank.*balance|verify.*funds/i, 'investor_verification'],
-    [/card.*stolen|stolen.*card|freeze.*everything|freeze.*all|hacked|compromised/i, 'urgent_card_security']
+    [/card.*stolen|stolen.*card|freeze.*everything|freeze.*all|hacked|compromised/i, 'urgent_card_security'],
+    [/sanction(ed)?|embargo|ofac|restricted.*country|iran|north korea|cuba|syria/i, 'sanctions'],
+    [/^fix it\.?$|^fix this\.?$|^fix$|^help$|^help me$/i, 'vague_fix_request']
   ]
   
   for (const [pattern, boundaryType] of patterns) {
@@ -845,6 +871,232 @@ function generateBoundaryResponse(
             limit: c.monthlyLimit
           })),
           allowFreeze: true
+        }
+      }
+    }
+  }
+  
+  // Special handling for sanctions queries
+  if (boundaryType === 'sanctions') {
+    const recentTx = getRecentTransactions(5)
+    const intlTx = recentTx.filter(t => t.category === 'International' || t.description.includes('Wire'))
+    
+    const parts: string[] = [
+      `Mercury complies with U.S. sanctions regulations (OFAC). Payments to certain countries are restricted by federal law.`,
+      '',
+      `**What I can help with:**`,
+      `• Connect you with our compliance team for guidance`,
+      `• Show your recent international payments`,
+      `• Explain which countries have restrictions`,
+      ''
+    ]
+    
+    if (intlTx.length > 0) {
+      parts.push(`**Your recent international payments:**`)
+      intlTx.slice(0, 3).forEach(t => {
+        parts.push(`• ${t.merchant}: ${formatCurrency(t.amount)} (${t.date})`)
+      })
+      parts.push('')
+    }
+    
+    parts.push(`Would you like me to connect you with support for specific guidance?`)
+    
+    return {
+      responseText: parts.join('\n'),
+      metadata: {
+        transactionTable: intlTx.length > 0 ? {
+          title: 'International Payments',
+          rows: intlTx.map(t => ({
+            id: t.id,
+            counterparty: t.merchant,
+            amount: t.amount,
+            date: t.date,
+            status: t.status
+          }))
+        } : undefined
+      }
+    }
+  }
+  
+  // Special handling for vague "fix it" requests
+  if (boundaryType === 'vague_fix_request') {
+    const cards = getCardsWithSpending()
+    const frozenCards = cards.filter(c => c.status === 'frozen')
+    const pendingTx = getTransactions({ status: 'pending', limit: 5 })
+    
+    const parts: string[] = [
+      `I'd be happy to help! What would you like me to look into?`,
+      '',
+      `**Common things I can help fix:**`,
+      `• **Card issues** — Frozen, declined, or lost cards`,
+      `• **Payment problems** — Failed or pending payments`,
+      `• **Balance questions** — Missing money or discrepancies`,
+      `• **Access issues** — Team permissions or login help`,
+      ''
+    ]
+    
+    // Add context about current state
+    if (frozenCards.length > 0) {
+      parts.push(`*I notice you have ${frozenCards.length} frozen card${frozenCards.length > 1 ? 's' : ''}.*`)
+      parts.push('')
+    }
+    if (pendingTx.length > 0) {
+      parts.push(`*You have ${pendingTx.length} pending transaction${pendingTx.length > 1 ? 's' : ''}.*`)
+      parts.push('')
+    }
+    
+    parts.push(`Just describe what's wrong and I'll investigate.`)
+    
+    return {
+      responseText: parts.join('\n'),
+      metadata: {
+        cardsTable: frozenCards.length > 0 ? {
+          title: 'Frozen Cards',
+          cards: frozenCards.map(c => ({
+            id: c.id,
+            cardName: c.cardName,
+            cardholder: c.cardholder,
+            status: c.status,
+            lastFour: c.cardNumber.slice(-4),
+            spent: c.spentThisMonth,
+            limit: c.monthlyLimit
+          })),
+          allowFreeze: true
+        } : undefined
+      }
+    }
+  }
+  
+  // Special handling for insurance - clean response without internal reasoning
+  if (boundaryType === 'insurance') {
+    const parts: string[] = [
+      `I understand you're looking for business insurance! While Mercury doesn't offer insurance directly, here are some options:`,
+      '',
+      `• **Mercury Perks** — Partner discounts on business services including insurance providers`,
+      `• **Your insurance spending** — I can show you your current insurance-related transactions`,
+      '',
+      `Would you like me to show your Perks options or insurance spending?`
+    ]
+    
+    return {
+      responseText: parts.join('\n'),
+      metadata: {
+        navigation: { target: 'Perks', url: '/perks', countdown: true }
+      }
+    }
+  }
+  
+  // Special handling for tax advice - offer tax documents and exports
+  if (boundaryType === 'tax_advice') {
+    const parts: string[] = [
+      `I can't file taxes directly, but I can help you prepare:`,
+      '',
+      `**Available for your accountant:**`,
+      `• **Tax documents** — 1099s, annual statements`,
+      `• **Transaction export** — CSV/PDF for any date range`,
+      `• **Quarterly summary** — Income and expenses breakdown`,
+      '',
+      `Would you like me to show your tax documents or export transactions?`
+    ]
+    
+    return {
+      responseText: parts.join('\n'),
+      metadata: {
+        documents: {
+          title: 'Tax Documents',
+          documents: [
+            { id: 'doc-1', name: '2025 1099-INT', type: 'tax', date: '2026-01-10' },
+            { id: 'doc-2', name: '2024 1099-INT', type: 'tax', date: '2025-01-10' }
+          ]
+        },
+        navigation: { target: 'Documents', url: '/documents', countdown: true }
+      }
+    }
+  }
+  
+  // Special handling for account closure - offer to help transfer funds first
+  if (boundaryType === 'close_account') {
+    const accounts = getAccounts()
+    const total = getTotalBalance()
+    
+    const parts: string[] = [
+      `I can't close accounts directly, but I can help you prepare.`,
+      '',
+      `**Your total balance:** ${formatCurrency(total)}`,
+      '',
+      `**Before closing, you'll need to:**`,
+      `1. **Transfer funds** — Move your balance to another account`,
+      `2. **Contact support** — They'll process the closure`,
+      '',
+      `Would you like me to help transfer the funds first, or connect you with support?`
+    ]
+    
+    return {
+      responseText: parts.join('\n'),
+      metadata: {
+        accountBalances: {
+          accounts: accounts.map(a => ({ id: a.id, name: a.name, type: a.type, balance: a.balance })),
+          totalBalance: total
+        }
+      }
+    }
+  }
+  
+  // Special handling for investment advice - highlight Treasury
+  if (boundaryType === 'investment_advice') {
+    const accounts = getAccounts()
+    const treasury = accounts.find(a => a.type === 'treasury')
+    
+    const parts: string[] = [
+      `I can't provide investment advice, but Mercury does offer **Treasury** — a cash management account earning competitive yields.`,
+      ''
+    ]
+    
+    if (treasury) {
+      parts.push(`**Your Treasury account:** ${formatCurrency(treasury.balance)} at ${treasury.apy || 4.5}% APY`)
+      parts.push('')
+    }
+    
+    parts.push(`This isn't investing in stocks/bonds, but it's a way to earn yield on idle cash.`)
+    parts.push('')
+    parts.push(`Would you like to learn more about Treasury or move funds?`)
+    
+    return {
+      responseText: parts.join('\n'),
+      metadata: {
+        accountBalances: treasury ? {
+          accounts: [{ id: treasury.id, name: treasury.name, type: treasury.type, balance: treasury.balance, apy: treasury.apy }],
+          totalBalance: treasury.balance
+        } : undefined,
+        navigation: { target: 'Accounts', url: '/accounts', countdown: true }
+      }
+    }
+  }
+  
+  // Special handling for balance verification (investor proof)
+  if (boundaryType === 'investor_verification') {
+    const accounts = getAccounts()
+    const total = getTotalBalance()
+    
+    const parts: string[] = [
+      `I can help you verify your balance for investors.`,
+      '',
+      `**Current total:** ${formatCurrency(total)}`,
+      '',
+      `**Verification options:**`,
+      `• **Balance Verification Letter** — Official Mercury document (Settings → Documents)`,
+      `• **Account Statement** — PDF of your latest statement`,
+      `• **Screenshot** — I can display your current balances right here`,
+      '',
+      `Which would work best for your investor?`
+    ]
+    
+    return {
+      responseText: parts.join('\n'),
+      metadata: {
+        accountBalances: {
+          accounts: accounts.map(a => ({ id: a.id, name: a.name, type: a.type, balance: a.balance })),
+          totalBalance: total
         }
       }
     }
