@@ -634,7 +634,8 @@ INTENTS (choose the BEST match):
 - SPENDING_ANALYSIS: User asks about spending by category, vendor, or period (how much on AWS, marketing spend, etc)
 - REVENUE_QUERY: User asks about revenue, MRR, income, top customers
 - WIRE_TRANSACTIONS: User asks about wire transfers
-- RECIPIENT_QUERY: User asks about recipients, top recipients, who they paid, vendors they paid most
+- RECIPIENT_BANK_DETAILS: User asks for bank details, routing number, or account number FOR A SPECIFIC RECIPIENT/VENDOR (e.g., "bank details for AWS", "routing number for Stripe")
+- RECIPIENT_QUERY: User asks about recipients list, top recipients, who they paid, vendors they paid most
 - NAVIGATE: User wants to go to a page
 - BALANCE: User asks about account balances
 - ACCOUNT_QUERY: User asks about specific accounts, account types, account details
@@ -787,6 +788,69 @@ async function handleWithRouter(
           url: '/transactions?filter=wire',
           countdown: true,
           filters: { types: ['wire'] }
+        }
+      }
+      break
+    }
+
+    case 'RECIPIENT_BANK_DETAILS': {
+      const recipients = getRecipients()
+      const query = message.toLowerCase()
+      
+      // Try to find the recipient by name in the query
+      const matchedRecipient = recipients.find(r => 
+        query.includes(r.name.toLowerCase())
+      )
+      
+      if (matchedRecipient) {
+        // Generate mock bank details for the recipient
+        // In a real app, this would come from the recipient data
+        const routingNumber = '021000021' // Mock routing
+        const accountNumber = `****${Math.floor(1000 + Math.random() * 9000)}` // Mock last 4
+        const bankName = 'Chase Bank' // Mock bank
+        
+        responseText = `**Bank Details for ${matchedRecipient.name}:**\n\n`
+        responseText += `• **Bank:** ${bankName}\n`
+        responseText += `• **Routing Number:** ${routingNumber}\n`
+        responseText += `• **Account Number:** ${accountNumber}\n`
+        responseText += `• **Account Type:** Checking\n\n`
+        responseText += `Last paid: ${matchedRecipient.lastPaid || 'Never'}`
+        if (matchedRecipient.totalPaid) {
+          responseText += ` (Total: ${formatCurrency(matchedRecipient.totalPaid)})`
+        }
+        
+        metadata = {
+          navigation: {
+            target: 'Recipients',
+            url: '/payments/recipients',
+            countdown: true
+          }
+        }
+      } else {
+        // Recipient not found - show list of recipients
+        responseText = `I couldn't find that recipient. Here are your saved recipients:`
+        
+        const topRecipients = [...recipients]
+          .filter(r => r.totalPaid && r.totalPaid > 0)
+          .sort((a, b) => (b.totalPaid || 0) - (a.totalPaid || 0))
+          .slice(0, 8)
+        
+        metadata = {
+          recipients: {
+            title: 'Select a recipient to view bank details',
+            rows: topRecipients.map(r => ({
+              id: r.id,
+              name: r.name,
+              lastPaidDate: r.lastPaid || undefined,
+              lastPaidAmount: r.totalPaid || undefined,
+            })),
+            allowPayment: false,
+          },
+          navigation: {
+            target: 'Recipients',
+            url: '/payments/recipients',
+            countdown: true
+          }
         }
       }
       break
@@ -1292,15 +1356,19 @@ async function handleWithRouter(
       const page = classification.navigationTarget || 'home'
       const pageUrls: Record<string, string> = {
         home: '/dashboard', transactions: '/transactions', accounts: '/accounts',
-        cards: '/cards', payments: '/payments/recipients', insights: '/dashboard',
-        recipients: '/payments/recipients'
+        cards: '/cards', payments: '/payments/recipients', insights: '/insights',
+        recipients: '/payments/recipients', tasks: '/tasks', capital: '/capital',
+        explore: '/explore', command: '/command'
       }
-      responseText = `Taking you to ${page}.`
+      const targetUrl = pageUrls[page.toLowerCase()] || '/dashboard'
+      const pageName = page.charAt(0).toUpperCase() + page.slice(1)
+      responseText = `Navigating to **${pageName}** (${targetUrl})...`
       metadata = {
         navigation: {
-          target: page.charAt(0).toUpperCase() + page.slice(1),
-          url: pageUrls[page] || '/dashboard',
-          countdown: true
+          target: pageName,
+          url: targetUrl,
+          countdown: true,
+          action: 'navigate'
         }
       }
       break
@@ -1498,6 +1566,10 @@ async function handleWithRouter(
     case 'TRANSACTION_SEARCH': {
       const query = message.toLowerCase()
       
+      // Check for "recent transactions" query - return recent transactions
+      const isRecentQuery = /\b(recent|latest|last|newest)\s*(transactions?|txns?|payments?)?\s*$/i.test(query) ||
+        query === 'transactions' || query === 'txns' || query === 'recent transactions'
+      
       // Detect if query asks for pending/completed/failed status
       const statusMatch = query.match(/\b(pending|completed|failed)\b/)
       const status = statusMatch ? statusMatch[1] as 'pending' | 'completed' | 'failed' : undefined
@@ -1528,11 +1600,18 @@ async function handleWithRouter(
         dateLabel = 'this year'
       }
       
+      // Extract merchant/counterparty name from query (e.g., "transactions with Stripe", "txns from AWS")
+      const merchantMatch = query.match(/(?:with|from|to|for|by)\s+([a-z0-9\s]+?)(?:\s+(?:over|above|last|this|in|during)|$)/i)
+      const merchantFilter = merchantMatch ? merchantMatch[1].trim() : undefined
+      
       // Build filters object
-      const hasFilters = status || minAmount || startDate
+      const hasFilters = status || minAmount || startDate || merchantFilter
       let results: Transaction[]
       
-      if (hasFilters) {
+      if (isRecentQuery && !hasFilters) {
+        // "Recent transactions" - return the most recent 20 transactions
+        results = getRecentTransactions(20)
+      } else if (hasFilters) {
         // Apply filters via getTransactions
         results = getTransactions({ 
           status, 
@@ -1540,16 +1619,44 @@ async function handleWithRouter(
           limit: 50 
         })
         
+        // Apply merchant filter (case-insensitive)
+        if (merchantFilter) {
+          const filterLower = merchantFilter.toLowerCase()
+          results = results.filter(t => 
+            t.merchant.toLowerCase().includes(filterLower) ||
+            t.description.toLowerCase().includes(filterLower)
+          )
+        }
+        
         // Apply amount filter (getTransactions doesn't support this natively)
         if (minAmount) {
           results = results.filter(t => Math.abs(t.amount) >= minAmount)
         }
         
-        // Limit results
-        results = results.slice(0, 20)
+        // Sort by date (newest first) and limit results
+        results = results
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .slice(0, 20)
       } else {
-        // No filters - do text search
-        results = searchTransactions(query, 20)
+        // No filters and not "recent" - do text search on remaining query words
+        // Extract meaningful search terms (remove common words)
+        const stopWords = ['show', 'me', 'all', 'my', 'the', 'transactions', 'txns', 'transaction', 'please', 'find', 'get', 'list']
+        const searchTerms = query.split(/\s+/).filter(w => !stopWords.includes(w) && w.length > 2)
+        
+        if (searchTerms.length > 0) {
+          // Search for each term
+          const allTxns = getTransactions()
+          results = allTxns.filter(t => 
+            searchTerms.some(term => 
+              t.merchant.toLowerCase().includes(term) ||
+              t.description.toLowerCase().includes(term) ||
+              t.category.toLowerCase().includes(term)
+            )
+          ).slice(0, 20)
+        } else {
+          // No search terms - default to recent transactions
+          results = getRecentTransactions(20)
+        }
       }
 
       if (results.length > 0) {
@@ -1557,18 +1664,23 @@ async function handleWithRouter(
         
         // Build description based on filters applied
         const filterParts: string[] = []
+        if (merchantFilter) filterParts.push(`with ${merchantFilter}`)
         if (status) filterParts.push(status)
         if (minAmount) filterParts.push(`over ${formatCurrency(minAmount)}`)
         if (dateLabel) filterParts.push(`from ${dateLabel}`)
         
         const filterDesc = filterParts.length > 0 ? filterParts.join(', ') + ' ' : ''
-        responseText = `I found **${results.length} ${filterDesc}transactions** (${formatCurrency(total)} total):`
+        const isRecent = isRecentQuery && !hasFilters
+        responseText = isRecent 
+          ? `Here are your **${results.length} most recent transactions** (${formatCurrency(total)} total):`
+          : `I found **${results.length} ${filterDesc}transactions** (${formatCurrency(total)} total):`
         
         // Build navigation URL with query params
         const urlParams = new URLSearchParams()
         if (status) urlParams.set('status', status)
         if (minAmount) urlParams.set('minAmount', minAmount.toString())
         if (startDate) urlParams.set('startDate', startDate)
+        if (merchantFilter) urlParams.set('merchant', merchantFilter)
         const navUrl = urlParams.toString() ? `/transactions?${urlParams.toString()}` : '/transactions'
         
         // Build transaction table metadata for UI rendering
@@ -1592,12 +1704,12 @@ async function handleWithRouter(
           }
         }
       } else {
-        const filterDesc = minAmount ? `over ${formatCurrency(minAmount)}` : (dateLabel ? `from ${dateLabel}` : '')
-        responseText = `I couldn't find any ${status ? status + ' ' : ''}transactions${filterDesc ? ' ' + filterDesc : ''} matching your search.`
+        const filterDesc = merchantFilter ? `with "${merchantFilter}"` : (minAmount ? `over ${formatCurrency(minAmount)}` : (dateLabel ? `from ${dateLabel}` : ''))
+        responseText = `I couldn't find any ${status ? status + ' ' : ''}transactions${filterDesc ? ' ' + filterDesc : ''}.`
         metadata = {
           emptyState: {
             message: 'No transactions found',
-            suggestion: 'Try adjusting your filters or search for a merchant name.'
+            suggestion: 'Try adjusting your filters or search for a different merchant name.'
           }
         }
       }
@@ -2080,13 +2192,28 @@ export default async function handler(
   try {
     const { message, conversationId, history, agentMode } = req.body || {}
 
-    if (!message || typeof message !== 'string') {
-      sendEvent('error', { error: 'Message is required' })
+    const convId = conversationId || generateConversationId()
+    
+    // Handle empty or missing message with a friendly greeting
+    if (!message || typeof message !== 'string' || message.trim() === '') {
+      const greetingText = `Hi! I'm Mercury Assistant. How can I help you today?\n\n` +
+        `I can help with:\n\n` +
+        `• **Balances** — Check your account balances\n` +
+        `• **Transactions** — Search and filter transactions\n` +
+        `• **Cards** — View and manage your cards\n` +
+        `• **Payments** — Send payments to recipients\n` +
+        `• **Documents** — Access statements and tax docs\n\n` +
+        `Just ask me anything about your Mercury account!`
+      
+      for (let i = 0; i < greetingText.length; i += 3) {
+        sendEvent('chunk', { text: greetingText.slice(i, i + 3) })
+        await sleep(10)
+      }
+      sendEvent('done', { conversationId: convId })
       res.end()
       return
     }
 
-    const convId = conversationId || generateConversationId()
     const apiKey = process.env.ANTHROPIC_API_KEY
     const isSupportMode = agentMode === 'support'
 
