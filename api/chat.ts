@@ -14,6 +14,7 @@ import transactionsData from '../src/data/transactions.json' with { type: 'json'
 import cardsData from '../src/data/cards.json' with { type: 'json' }
 import employeesData from '../src/data/employees.json' with { type: 'json' }
 import recipientsData from '../src/data/recipients.json' with { type: 'json' }
+import tasksData from '../src/data/tasks.json' with { type: 'json' }
 
 // =============================================================================
 // Type Definitions
@@ -313,10 +314,129 @@ function getWireTransactions(limit: number = 10): Transaction[] {
     .slice(0, limit)
 }
 
-function getMerchantSpending(merchantName: string): { total: number; transactions: Transaction[]; count: number } {
+function getMerchantSpending(merchantName: string): { 
+  total: number
+  transactions: Transaction[]
+  averageTransaction: number
+  lastTransaction: Transaction | null 
+} {
   const txns = searchTransactions(merchantName, 50)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   const total = txns.reduce((sum, t) => sum + Math.abs(t.amount), 0)
-  return { total, transactions: txns, count: txns.length }
+  return { 
+    total, 
+    transactions: txns, 
+    averageTransaction: txns.length > 0 ? total / txns.length : 0,
+    lastTransaction: txns[0] || null
+  }
+}
+
+function getTopMerchants(limit: number = 10, period: '30d' | '90d' = '30d'): Array<{
+  merchant: string
+  amount: number
+  transactionCount: number
+  category: string
+}> {
+  const startDate = getDateNDaysAgo(period === '30d' ? 30 : 90)
+  const transactions = getTransactions({ startDate })
+    .filter(t => t.amount < 0)
+
+  const merchantMap = new Map<string, { amount: number; count: number; category: string }>()
+
+  for (const t of transactions) {
+    const current = merchantMap.get(t.merchant) || { amount: 0, count: 0, category: t.category }
+    merchantMap.set(t.merchant, {
+      amount: current.amount + Math.abs(t.amount),
+      count: current.count + 1,
+      category: t.category,
+    })
+  }
+
+  return Array.from(merchantMap.entries())
+    .map(([merchant, data]) => ({
+      merchant,
+      amount: data.amount,
+      transactionCount: data.count,
+      category: data.category,
+    }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, limit)
+}
+
+function getRevenueSummary(): {
+  currentMRR: number
+  previousMRR: number
+  mrrGrowth: number
+  mrrGrowthPercent: number
+  totalRevenueLast30Days: number
+  totalRevenueYTD: number
+  topCustomers: Array<{ name: string; amount: number }>
+} {
+  const now = new Date()
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const lastMonth = now.getMonth() === 0
+    ? `${now.getFullYear() - 1}-12`
+    : `${now.getFullYear()}-${String(now.getMonth()).padStart(2, '0')}`
+  const yearStart = `${now.getFullYear()}-01-01`
+  const thirtyDaysAgo = getDateNDaysAgo(30)
+
+  const allRevenue = getTransactions({ categories: ['Revenue'] })
+
+  const thisMonthRevenue = allRevenue
+    .filter(t => t.date.startsWith(thisMonth))
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const lastMonthRevenue = allRevenue
+    .filter(t => t.date.startsWith(lastMonth))
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const last30DaysRevenue = allRevenue
+    .filter(t => t.date >= thirtyDaysAgo)
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const ytdRevenue = allRevenue
+    .filter(t => t.date >= yearStart)
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  // Get top customers
+  const customerMap = new Map<string, number>()
+  for (const t of allRevenue) {
+    if (t.merchant !== 'Stripe') {
+      const current = customerMap.get(t.merchant) || 0
+      customerMap.set(t.merchant, current + t.amount)
+    }
+  }
+
+  const topCustomers = Array.from(customerMap.entries())
+    .map(([name, amount]) => ({ name, amount }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 5)
+
+  return {
+    currentMRR: thisMonthRevenue,
+    previousMRR: lastMonthRevenue,
+    mrrGrowth: thisMonthRevenue - lastMonthRevenue,
+    mrrGrowthPercent: lastMonthRevenue > 0 ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 : 0,
+    totalRevenueLast30Days: last30DaysRevenue,
+    totalRevenueYTD: ytdRevenue,
+    topCustomers,
+  }
+}
+
+interface Task {
+  id: string
+  description: string
+  status: 'incomplete' | 'completed'
+  type: string
+  received?: string
+  completedOn?: string
+  completedBy?: string
+  actionLabel?: string
+  actionHref?: string
+}
+
+function getTasks(): Task[] {
+  return (tasksData as { tasks: Task[] }).tasks || []
 }
 
 // =============================================================================
@@ -493,13 +613,20 @@ INTENTS:
 - FLAGGED_TRANSACTIONS: User asks about suspicious, flagged, or unusual transactions
 - PAYMENT_LIMITS: User asks about payment limits
 - EIN_QUERY: User asks about their EIN
+- COMPANY_QUERY: User asks about company info, funding, founding date, metrics
+- EMPLOYEE_QUERY: User asks about employees, team size, who works here, departments, salaries
 - CASHFLOW_QUESTION: User asks about cashflow, money in/out, spending trends, burn rate, runway
+- SPENDING_ANALYSIS: User asks about spending by category, vendor, or period (how much on AWS, marketing spend, etc)
+- REVENUE_QUERY: User asks about revenue, MRR, income, top customers
 - WIRE_TRANSACTIONS: User asks about wire transfers
 - RECIPIENT_QUERY: User asks about recipients, top recipients, who they paid, vendors they paid most
 - NAVIGATE: User wants to go to a page
 - BALANCE: User asks about account balances
-- TRANSACTION_SEARCH: User asks about specific transactions, spending on a vendor/category
-- CARD_ACTION: User wants to freeze/manage cards or asks about card spending
+- ACCOUNT_QUERY: User asks about specific accounts, account types, account details
+- TRANSACTION_SEARCH: User asks about specific transactions, recent transactions, transaction history
+- CARD_QUERY: User asks about cards, card spending, card limits, who has cards
+- CARD_ACTION: User wants to freeze/manage cards, issue new cards
+- TASK_QUERY: User asks about tasks, pending items, what needs attention
 - AGENT_MODE: Multi-step workflow like issuing cards to employees
 - SUPPORT: User explicitly asks for human support
 - COMPLEX_QUESTION: Requires deep analysis, comparisons, forecasting
@@ -680,6 +807,231 @@ async function handleWithRouter(
         navigation: {
           target: 'Recipients',
           url: '/payments/recipients',
+          countdown: true
+        }
+      }
+      break
+    }
+
+    case 'COMPANY_QUERY': {
+      responseText = `Here's information about **${company.name}**:\n\n`
+      responseText += `**Company Details:**\n`
+      responseText += `- Legal Name: ${company.legalName}\n`
+      responseText += `- Industry: ${company.industry}\n`
+      responseText += `- Founded: ${company.founded}\n`
+      responseText += `- EIN: ${company.ein}\n`
+      responseText += `- Website: ${company.website}\n\n`
+      
+      responseText += `**Funding:**\n`
+      responseText += `- Stage: ${company.funding.stage}\n`
+      responseText += `- Total Raised: ${formatCurrency(company.funding.totalRaised)}\n`
+      responseText += `- Last Round: ${formatCurrency(company.funding.lastRoundAmount)} (${company.funding.lastRoundDate})\n\n`
+      
+      responseText += `**Current Metrics:**\n`
+      responseText += `- Employees: ${company.metrics.employeeCount}\n`
+      responseText += `- Monthly Burn: ${formatCurrency(company.metrics.monthlyBurnRate)}\n`
+      responseText += `- MRR: ${formatCurrency(company.metrics.currentMRR)}\n`
+      responseText += `- Customers: ${company.metrics.customersCount}\n`
+      break
+    }
+
+    case 'EMPLOYEE_QUERY': {
+      const employees = getEmployees()
+      const departments = new Map<string, { count: number; totalSalary: number }>()
+      
+      // Group by department
+      for (const emp of employees) {
+        const dept = departments.get(emp.department) || { count: 0, totalSalary: 0 }
+        departments.set(emp.department, {
+          count: dept.count + 1,
+          totalSalary: dept.totalSalary + emp.salary,
+        })
+      }
+      
+      responseText = `**Team Overview** (${employees.length} employees):\n\n`
+      
+      // Sort departments by headcount
+      const sortedDepts = Array.from(departments.entries())
+        .sort((a, b) => b[1].count - a[1].count)
+      
+      responseText += `**By Department:**\n`
+      for (const [dept, data] of sortedDepts) {
+        const avgSalary = data.totalSalary / data.count
+        responseText += `- **${dept}**: ${data.count} people (avg ${formatCurrency(avgSalary)}/yr)\n`
+      }
+      
+      // Total payroll
+      const totalAnnualPayroll = employees.reduce((sum, e) => sum + e.salary, 0)
+      responseText += `\n**Total Annual Payroll**: ${formatCurrency(totalAnnualPayroll)}\n`
+      responseText += `**Monthly Payroll**: ~${formatCurrency(totalAnnualPayroll / 12)}\n`
+      
+      // List a few key people (executives/leadership)
+      const leadership = employees.filter(e => 
+        e.title.includes('CEO') || e.title.includes('CTO') || e.title.includes('CFO') || 
+        e.title.includes('Head') || e.title.includes('Director') || e.title.includes('VP')
+      ).slice(0, 5)
+      
+      if (leadership.length > 0) {
+        responseText += `\n**Leadership:**\n`
+        leadership.forEach(e => {
+          responseText += `- **${e.firstName} ${e.lastName}** - ${e.title}\n`
+        })
+      }
+      break
+    }
+
+    case 'SPENDING_ANALYSIS': {
+      const query = message.toLowerCase()
+      const topCategories = getTopSpendingCategories(10, '30d')
+      const topMerchants = getTopMerchants(10, '30d')
+      
+      // Check if asking about a specific merchant/vendor
+      const mentionedMerchant = topMerchants.find(m => 
+        query.includes(m.merchant.toLowerCase())
+      )
+      
+      if (mentionedMerchant) {
+        const spending = getMerchantSpending(mentionedMerchant.merchant)
+        responseText = `**${mentionedMerchant.merchant}** Spending:\n\n`
+        responseText += `- Total: ${formatCurrency(spending.total)}\n`
+        responseText += `- Transactions: ${spending.transactions.length}\n`
+        responseText += `- Average: ${formatCurrency(spending.averageTransaction)}\n`
+        if (spending.lastTransaction) {
+          responseText += `- Last: ${spending.lastTransaction.date} (${formatCurrency(Math.abs(spending.lastTransaction.amount))})\n`
+        }
+        responseText += `\n**Recent transactions:**\n`
+        spending.transactions.slice(0, 5).forEach((t, i) => {
+          responseText += `${i + 1}. ${t.date} - ${formatCurrency(Math.abs(t.amount))}\n`
+        })
+      } else {
+        // General spending overview
+        const totalSpend = topCategories.reduce((sum, c) => sum + c.amount, 0)
+        
+        responseText = `**Spending Analysis (Last 30 Days)**\n\n`
+        responseText += `**Total Spend**: ${formatCurrency(totalSpend)}\n\n`
+        
+        responseText += `**By Category:**\n`
+        topCategories.slice(0, 7).forEach((c, i) => {
+          responseText += `${i + 1}. **${c.category}**: ${formatCurrency(c.amount)} (${c.percentOfTotal.toFixed(1)}%)\n`
+        })
+        
+        responseText += `\n**Top Merchants:**\n`
+        topMerchants.slice(0, 5).forEach((m, i) => {
+          responseText += `${i + 1}. **${m.merchant}**: ${formatCurrency(m.amount)} (${m.transactionCount} txns)\n`
+        })
+      }
+      break
+    }
+
+    case 'REVENUE_QUERY': {
+      const revenue = getRevenueSummary()
+      
+      responseText = `**Revenue Overview:**\n\n`
+      responseText += `**Monthly Revenue:**\n`
+      responseText += `- Current MRR: ${formatCurrency(revenue.currentMRR)}\n`
+      responseText += `- Previous MRR: ${formatCurrency(revenue.previousMRR)}\n`
+      responseText += `- MRR Growth: ${formatCurrency(revenue.mrrGrowth)} (${revenue.mrrGrowthPercent.toFixed(1)}%)\n\n`
+      
+      responseText += `**Period Totals:**\n`
+      responseText += `- Last 30 Days: ${formatCurrency(revenue.totalRevenueLast30Days)}\n`
+      responseText += `- Year to Date: ${formatCurrency(revenue.totalRevenueYTD)}\n\n`
+      
+      if (revenue.topCustomers.length > 0) {
+        responseText += `**Top Customers:**\n`
+        revenue.topCustomers.forEach((c, i) => {
+          responseText += `${i + 1}. **${c.name}**: ${formatCurrency(c.amount)}\n`
+        })
+      }
+      break
+    }
+
+    case 'ACCOUNT_QUERY': {
+      const accounts = getAccounts()
+      const total = getTotalBalance()
+      
+      responseText = `**Account Details:**\n\n`
+      accounts.forEach((a, i) => {
+        const typeLabel = a.type.charAt(0).toUpperCase() + a.type.slice(1)
+        responseText += `**${i + 1}. ${a.name}** (${typeLabel})\n`
+        responseText += `   Balance: ${formatCurrency(a.balance)}\n`
+        responseText += `   Account #: ••${a.accountNumber}\n`
+        responseText += `   Routing: ${a.routingNumber}\n\n`
+      })
+      
+      responseText += `**Total Across All Accounts**: ${formatCurrency(total)}`
+      
+      metadata = {
+        navigation: {
+          target: 'Accounts',
+          url: '/accounts',
+          countdown: true
+        }
+      }
+      break
+    }
+
+    case 'CARD_QUERY': {
+      const cards = getCardsWithSpending()
+      const totalSpent = cards.reduce((sum, c) => sum + c.spentThisMonth, 0)
+      const totalLimit = cards.reduce((sum, c) => sum + c.monthlyLimit, 0)
+      const overBudget = cards.filter(c => c.spentThisMonth > c.monthlyLimit)
+      
+      responseText = `**Card Overview** (${cards.length} cards):\n\n`
+      responseText += `**Total This Month**: ${formatCurrency(totalSpent)} of ${formatCurrency(totalLimit)} (${((totalSpent/totalLimit)*100).toFixed(0)}% used)\n\n`
+      
+      if (overBudget.length > 0) {
+        responseText += `⚠️ **${overBudget.length} cards over limit**\n\n`
+      }
+      
+      responseText += `**Cards:**\n`
+      cards.forEach((c, i) => {
+        const pct = c.monthlyLimit > 0 ? ((c.spentThisMonth / c.monthlyLimit) * 100).toFixed(0) : 0
+        const overMsg = c.spentThisMonth > c.monthlyLimit ? ' ⚠️' : ''
+        const statusBadge = c.status === 'active' ? '✓' : c.status === 'frozen' ? '❄️' : '○'
+        responseText += `${i + 1}. ${statusBadge} **${c.cardholder}** (••${c.cardNumber})\n`
+        responseText += `   ${formatCurrency(c.spentThisMonth)} / ${formatCurrency(c.monthlyLimit)} (${pct}%)${overMsg}\n`
+      })
+      
+      metadata = {
+        navigation: {
+          target: 'Cards',
+          url: '/cards',
+          countdown: true
+        }
+      }
+      break
+    }
+
+    case 'TASK_QUERY': {
+      const tasks = getTasks()
+      const incomplete = tasks.filter(t => t.status === 'incomplete')
+      const completed = tasks.filter(t => t.status === 'completed')
+      
+      responseText = `**Tasks Overview:**\n\n`
+      responseText += `**Pending**: ${incomplete.length} tasks\n`
+      responseText += `**Completed**: ${completed.length} tasks\n\n`
+      
+      if (incomplete.length > 0) {
+        responseText += `**Items Needing Attention:**\n`
+        incomplete.slice(0, 5).forEach((t, i) => {
+          const typeLabel = t.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+          responseText += `${i + 1}. **${typeLabel}**: ${t.description}\n`
+          if (t.received) {
+            responseText += `   Received: ${t.received}\n`
+          }
+        })
+        
+        if (incomplete.length > 5) {
+          responseText += `\n...and ${incomplete.length - 5} more tasks.`
+        }
+      } else {
+        responseText += `✅ No pending tasks! You're all caught up.`
+      }
+      
+      metadata = {
+        navigation: {
+          target: 'Tasks',
+          url: '/tasks',
           countdown: true
         }
       }
