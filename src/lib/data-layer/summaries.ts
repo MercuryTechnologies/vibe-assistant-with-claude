@@ -5,8 +5,6 @@
 
 import {
   getTransactions,
-  getAccounts,
-  getCards,
   getEmployees,
   getCardsWithSpending,
   getTotalBalance,
@@ -39,10 +37,6 @@ function getStartOfMonth(date: Date = new Date()): string {
 
 function getStartOfYear(date: Date = new Date()): string {
   return `${date.getFullYear()}-01-01`;
-}
-
-function parseDate(dateStr: string): Date {
-  return new Date(dateStr + 'T00:00:00');
 }
 
 // =============================================================================
