@@ -94,7 +94,6 @@ export function Sidebar() {
     { path: '/tasks', label: 'Tasks', icon: faInbox, badge: 3 },
     { path: '/transactions', label: 'Transactions', icon: faList },
     { path: '/insights', label: 'Insights', icon: faChartBar },
-    { path: '/explore', label: 'Explore', icon: faSparkles },
     { path: '/cards', label: 'Cards', icon: faCreditCard },
     { path: '/capital', label: 'Capital', icon: faChartLine },
   ];
@@ -542,6 +541,23 @@ export function Sidebar() {
             </div>
           )}
         </div>
+
+        {/* Explore - positioned after Accounts */}
+        <Link to="/explore">
+          <button
+            className={`ds-sidebar-btn ${isActive('/explore') ? 'active' : ''}`}
+          >
+            <div className="ds-sidebar-btn-content">
+              <span className="ds-sidebar-icon-wrapper">
+                <FontAwesomeIcon
+                  icon={faSparkles}
+                  className="ds-sidebar-icon"
+                />
+              </span>
+              <span className="ds-sidebar-btn-label">Explore</span>
+            </div>
+          </button>
+        </Link>
 
         {/* Workflows Section */}
         <div className="ds-sidebar-section">

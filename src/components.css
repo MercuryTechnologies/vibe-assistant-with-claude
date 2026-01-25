@@ -6624,6 +6624,20 @@ body.ds-panel-resizing {
 }
 
 /* ========================================
+   EXPLORE PAGE STYLES
+   ======================================== */
+
+.explore-recommended-card:hover {
+  background-color: var(--ds-bg-default-hovered) !important;
+  border-color: var(--color-border-emphasized) !important;
+}
+
+.explore-search input {
+  font-size: 15px;
+  padding: 12px 16px;
+}
+
+/* ========================================
    MOBILE CHART RESPONSIVENESS
    ======================================== */
 

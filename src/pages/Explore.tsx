@@ -1,7 +1,48 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FeatureCardsBlock } from '@/components/chat/FeatureCardsBlock';
 import type { FeatureCardsMetadata } from '@/chat/types';
 import { useMobileLayout } from '@/hooks';
+import { DSTextInput } from '@/components/ui/ds-text-input';
+import { Icon } from '@/components/ui/icon';
+import { faMagnifyingGlass, faSparkles } from '@/icons';
+
+// Personalized recommendations with reasons
+const recommendedFeatures = [
+  {
+    id: 'feature-treasury',
+    title: 'Treasury',
+    subtitle: 'Maximize yield on cash',
+    description: 'Earn up to 3.80% APY on idle cash. Government money market funds, T-Bills, and automated sweep strategies.',
+    icon: 'piggy-bank',
+    color: 'green' as const,
+    stats: [{ label: 'Yield', value: 'Up to 3.80%' }, { label: 'Min investment', value: '$250K' }],
+    cta: { label: 'Explore treasury', action: '/accounts/treasury' },
+    recommendationReason: 'You have $847K in your checking account that could be earning 3.80% APY instead of sitting idle.',
+  },
+  {
+    id: 'feature-billpay',
+    title: 'Bill Pay',
+    subtitle: 'Pay bills efficiently',
+    description: 'Upload invoices, schedule payments, and set up approval workflows. Automated vendor payment reminders.',
+    icon: 'file-invoice-dollar',
+    color: 'neutral' as const,
+    stats: [{ label: 'Invoice capture', value: 'AI-powered' }, { label: 'Approval workflows', value: 'Multi-level' }],
+    cta: { label: 'Pay a bill', action: '/workflows/bill-pay' },
+    recommendationReason: 'You have 12 recurring vendor payments - Bill Pay can automate these and save your team 4+ hours per month.',
+  },
+  {
+    id: 'feature-employee-cards',
+    title: 'Employee Cards',
+    subtitle: 'Empower your team',
+    description: 'Issue cards to employees with custom limits. Track spending in real-time. Require receipts and categorization.',
+    icon: 'id-card',
+    color: 'neutral' as const,
+    stats: [{ label: 'Cards per employee', value: 'Unlimited' }, { label: 'Spending alerts', value: 'Real-time' }],
+    cta: { label: 'Issue cards', action: '/cards' },
+    recommendationReason: 'You have 6 employees but only 3 have cards. Issue cards to streamline expense management.',
+  },
+];
 
 // All available feature cards
 const allFeatureCards: FeatureCardsMetadata['cards'] = [
@@ -36,26 +77,6 @@ const allFeatureCards: FeatureCardsMetadata['cards'] = [
     cta: { label: 'View insights', action: '/insights' },
   },
   {
-    id: 'feature-treasury',
-    title: 'Treasury',
-    subtitle: 'Maximize yield on cash',
-    description: 'Earn up to 3.80% APY on idle cash. Government money market funds, T-Bills, and automated sweep strategies.',
-    icon: 'piggy-bank',
-    color: 'green',
-    stats: [{ label: 'Yield', value: 'Up to 3.80%' }, { label: 'Min investment', value: '$250K' }],
-    cta: { label: 'Explore treasury', action: '/accounts/treasury' },
-  },
-  {
-    id: 'feature-billpay',
-    title: 'Bill Pay',
-    subtitle: 'Pay bills efficiently',
-    description: 'Upload invoices, schedule payments, and set up approval workflows. Automated vendor payment reminders.',
-    icon: 'file-invoice-dollar',
-    color: 'neutral',
-    stats: [{ label: 'Invoice capture', value: 'AI-powered' }, { label: 'Approval workflows', value: 'Multi-level' }],
-    cta: { label: 'Pay a bill', action: '/workflows/bill-pay' },
-  },
-  {
     id: 'feature-invoicing',
     title: 'Invoicing',
     subtitle: 'Get paid faster',
@@ -74,16 +95,6 @@ const allFeatureCards: FeatureCardsMetadata['cards'] = [
     color: 'purple-magic',
     stats: [{ label: 'FDIC coverage', value: 'Up to $5M' }, { label: 'Monthly fee', value: '$0' }],
     cta: { label: 'View accounts', action: '/dashboard' },
-  },
-  {
-    id: 'feature-employee-cards',
-    title: 'Employee Cards',
-    subtitle: 'Empower your team',
-    description: 'Issue cards to employees with custom limits. Track spending in real-time. Require receipts and categorization.',
-    icon: 'id-card',
-    color: 'neutral',
-    stats: [{ label: 'Cards per employee', value: 'Unlimited' }, { label: 'Spending alerts', value: 'Real-time' }],
-    cta: { label: 'Issue cards', action: '/cards' },
   },
   {
     id: 'feature-accounting',
@@ -131,13 +142,24 @@ const allFeatureCards: FeatureCardsMetadata['cards'] = [
 export function Explore() {
   const navigate = useNavigate();
   const { isMobile } = useMobileLayout();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleNavigate = (url: string) => {
     navigate(url);
   };
 
+  // Filter cards based on search query
+  const filteredCards = searchQuery
+    ? allFeatureCards.filter(card =>
+        card.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        card.description.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : allFeatureCards;
+
   return (
     <div className="explore-page" style={{ padding: isMobile ? '0 16px' : 0 }}>
+      {/* Header */}
       <div style={{ marginBottom: isMobile ? 16 : 24 }}>
         <h1 
           className={isMobile ? "text-title-secondary" : "text-title-main"} 
@@ -150,11 +172,165 @@ export function Explore() {
         </p>
       </div>
       
-      <FeatureCardsBlock 
-        data={{ cards: allFeatureCards }}
-        context={isMobile ? "rhc" : "command"}
-        onNavigate={handleNavigate}
-      />
+      {/* Search Input */}
+      <div style={{ marginBottom: 32 }}>
+        <DSTextInput
+          placeholder="What problems are you looking to solve?"
+          prefix={<Icon icon={faMagnifyingGlass} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          containerClassName="explore-search"
+        />
+      </div>
+
+      {/* Recommended Section - only show when not searching */}
+      {!searchQuery && (
+        <div style={{ marginBottom: 40 }}>
+          <div className="flex items-center gap-2" style={{ marginBottom: 16 }}>
+            <Icon icon={faSparkles} style={{ color: 'var(--purple-magic-600)' }} />
+            <h2 className="text-title-minor" style={{ color: 'var(--ds-text-default)', margin: 0 }}>
+              Recommended for you
+            </h2>
+          </div>
+          
+          <div 
+            style={{ 
+              display: 'grid', 
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', 
+              gap: 16 
+            }}
+          >
+            {recommendedFeatures.map((feature) => (
+              <div
+                key={feature.id}
+                className="explore-recommended-card"
+                onClick={() => handleNavigate(feature.cta.action)}
+                style={{
+                  padding: 20,
+                  backgroundColor: 'var(--ds-bg-default)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--color-border-default)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {/* Icon and Title */}
+                <div className="flex items-start gap-3" style={{ marginBottom: 12 }}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 
+                        feature.color === 'green' ? 'var(--ds-bg-success)' :
+                        feature.color === 'neutral' ? 'var(--ds-bg-emphasized)' :
+                        'var(--ds-bg-primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span 
+                      className="text-body-demi" 
+                      style={{ 
+                        color: 
+                          feature.color === 'green' ? 'var(--ds-icon-success)' :
+                          feature.color === 'neutral' ? 'var(--ds-icon-secondary)' :
+                          'var(--ds-icon-on-primary)',
+                      }}
+                    >
+                      {feature.title.charAt(0)}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-body-demi" style={{ color: 'var(--ds-text-default)', margin: 0 }}>
+                      {feature.title}
+                    </h3>
+                    <p className="text-label" style={{ color: 'var(--ds-text-secondary)', margin: 0 }}>
+                      {feature.subtitle}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Recommendation Reason */}
+                <p 
+                  className="text-body-sm" 
+                  style={{ 
+                    color: 'var(--ds-text-secondary)', 
+                    margin: 0,
+                    lineHeight: '20px',
+                  }}
+                >
+                  {feature.recommendationReason}
+                </p>
+                
+                {/* Stats */}
+                <div 
+                  className="flex items-center gap-4" 
+                  style={{ 
+                    marginTop: 16,
+                    paddingTop: 12,
+                    borderTop: '1px solid var(--color-border-default)',
+                  }}
+                >
+                  {feature.stats.map((stat, idx) => (
+                    <div key={idx}>
+                      <span className="text-tiny" style={{ color: 'var(--ds-text-tertiary)' }}>
+                        {stat.label}
+                      </span>
+                      <span 
+                        className="text-label-demi" 
+                        style={{ 
+                          color: 'var(--ds-text-default)', 
+                          display: 'block',
+                          marginTop: 2,
+                        }}
+                      >
+                        {stat.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* All Features Section */}
+      <div>
+        <h2 
+          className="text-title-minor" 
+          style={{ color: 'var(--ds-text-default)', margin: 0, marginBottom: 16 }}
+        >
+          {searchQuery ? `Search results for "${searchQuery}"` : 'All features'}
+        </h2>
+        
+        {filteredCards.length > 0 ? (
+          <FeatureCardsBlock 
+            data={{ cards: filteredCards }}
+            context={isMobile ? "rhc" : "command"}
+            onNavigate={handleNavigate}
+          />
+        ) : (
+          <div 
+            style={{ 
+              padding: 40, 
+              textAlign: 'center',
+              backgroundColor: 'var(--ds-bg-secondary)',
+              borderRadius: 'var(--radius-md)',
+            }}
+          >
+            <p className="text-body" style={{ color: 'var(--ds-text-secondary)', margin: 0 }}>
+              No features found matching "{searchQuery}"
+            </p>
+            <p className="text-label" style={{ color: 'var(--ds-text-tertiary)', marginTop: 8 }}>
+              Try a different search term or browse all features below.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
