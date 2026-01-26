@@ -2,17 +2,31 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '@/components/ui/icon';
 import { DSButton } from '@/components/ui/ds-button';
-import { faPlus, faMicrophone, faArrowUp } from '@/icons';
+import { faPlus, faMicrophone, faArrowUp, faChartLine, faReceipt, faUsers } from '@/icons';
 import { useChatStore, useStreamingChat, type ChatMessage } from '@/chat';
 import { ChatBlockRenderer } from '@/components/chat';
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 
-// Shortcut card labels and their initial messages
-const SHORTCUT_CARDS = [
-  { label: 'Move Money', message: 'I want to move money' },
-  { label: 'Balances', message: 'Show me my account balances' },
-  { label: 'Accounts', message: 'Show me my accounts' },
-  { label: 'Recent', message: 'Show me my recent transactions' },
-  { label: 'Upcoming', message: 'What upcoming payments do I have?' },
+// Conversation starters - data-relevant prompts based on org metrics
+const CONVERSATION_STARTERS: readonly { icon: IconDefinition; title: string; description: string; message: string }[] = [
+  {
+    icon: faChartLine,
+    title: 'Runway & Burn',
+    description: 'Check your 43+ month runway',
+    message: "What's my current runway and burn rate?"
+  },
+  {
+    icon: faReceipt,
+    title: 'Top Spending',
+    description: 'See where your money goes',
+    message: 'Show me my top spending categories'
+  },
+  {
+    icon: faUsers,
+    title: 'Team Overview',
+    description: '28 team members across departments',
+    message: 'Who is on my team and what cards do they have?'
+  },
 ] as const;
 
 export function Command() {
@@ -281,22 +295,27 @@ export function Command() {
         </div>
       </div>
 
-      {/* Bottom shortcut cards - hidden when there are messages */}
+      {/* Conversation starters - shown when no messages */}
       {!hasMessages && (
-        <div className="command-shortcuts">
-          {SHORTCUT_CARDS.map(({ label, message }) => (
-            <button 
-              key={label} 
-              className="command-shortcut-card"
+        <div className="command-starters">
+          {CONVERSATION_STARTERS.map(({ icon, title, description, message }) => (
+            <button
+              key={title}
+              className="command-starter-card"
               onClick={() => handleShortcutClick(message)}
               disabled={isLoading}
             >
-              <span
-                className="text-body"
-                style={{ color: 'var(--ds-text-default)' }}
-              >
-                {label}
-              </span>
+              <div className="command-starter-icon">
+                <Icon icon={icon} style={{ color: 'var(--ds-icon-secondary)' }} />
+              </div>
+              <div className="command-starter-content">
+                <span className="text-label-demi" style={{ color: 'var(--ds-text-default)' }}>
+                  {title}
+                </span>
+                <span className="text-tiny" style={{ color: 'var(--ds-text-tertiary)' }}>
+                  {description}
+                </span>
+              </div>
             </button>
           ))}
         </div>

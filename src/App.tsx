@@ -128,11 +128,7 @@ function App() {
           />
           <Route
             path="/explore"
-            element={
-              <PageContainer fullWidth={false} className="py-8">
-                <Explore />
-              </PageContainer>
-            }
+            element={<Explore />}
           />
           <Route
             path="/accounts/:accountId"

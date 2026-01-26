@@ -336,6 +336,7 @@ export interface FeatureCard {
  */
 export interface FeatureCardsMetadata {
   cards: FeatureCard[]
+  moreCards?: FeatureCard[]  // Additional cards for "see more" reveal
 }
 
 /**
@@ -344,6 +345,14 @@ export interface FeatureCardsMetadata {
 export interface EmptyStateMetadata {
   message: string
   suggestion?: string
+}
+
+/**
+ * A suggested follow-up action
+ */
+export interface SuggestedAction {
+  label: string
+  action: string
 }
 
 /**
@@ -405,6 +414,8 @@ export interface MessageMetadata {
   emptyState?: EmptyStateMetadata
   // Support mode indicator
   supportMode?: boolean
+  // Suggested follow-up actions
+  suggestedActions?: SuggestedAction[]
 }
 
 /**

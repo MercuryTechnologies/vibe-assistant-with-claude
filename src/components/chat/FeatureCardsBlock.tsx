@@ -66,9 +66,17 @@ interface FeatureCardsBlockProps {
   data: FeatureCardsMetadata;
   context?: 'rhc' | 'command';
   onNavigate?: (url: string) => void;
+  animate?: boolean;  // Enable staggered "card deal" animation
+  animationOffset?: number;  // Starting index offset for animation delays (for "more cards")
 }
 
-export function FeatureCardsBlock({ data, context = 'command', onNavigate }: FeatureCardsBlockProps) {
+export function FeatureCardsBlock({ 
+  data, 
+  context = 'command', 
+  onNavigate,
+  animate = false,
+  animationOffset = 0,
+}: FeatureCardsBlockProps) {
   const handleCtaClick = (action: string) => {
     if (onNavigate) {
       onNavigate(action);
@@ -88,16 +96,18 @@ export function FeatureCardsBlock({ data, context = 'command', onNavigate }: Fea
         gap: context === 'rhc' ? 12 : 16,
         padding: context === 'rhc' ? '12px 0' : '16px 0',
         width: '100%',
+        perspective: animate ? '1000px' : undefined,
       }}
     >
-      {data.cards.map((card) => {
+      {data.cards.map((card, index) => {
         const colors = colorConfig[card.color];
         const iconDef = iconMap[card.icon];
+        const animationDelay = animate ? `${(index + animationOffset) * 120}ms` : undefined;
 
         return (
           <div
             key={card.id}
-            className="feature-card"
+            className={`feature-card ${animate ? 'feature-card-animate' : ''}`}
             style={{
               backgroundColor: 'var(--ds-bg-default)',
               border: '1px solid var(--color-border-default)',
@@ -107,6 +117,7 @@ export function FeatureCardsBlock({ data, context = 'command', onNavigate }: Fea
               flexDirection: 'column',
               gap: 12,
               minHeight: 240,
+              animationDelay,
             }}
           >
             {/* Header with icon and optional highlight badge */}

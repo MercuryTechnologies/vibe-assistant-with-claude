@@ -769,6 +769,13 @@ const BOUNDARY_PIVOTS: Record<string, PivotSuggestion> = {
  */
 function detectBoundaryType(query: string): string | null {
   const q = query.toLowerCase()
+  
+  // Skip tax_advice boundary if query is about viewing/finding documents
+  // This allows "where are my tax documents?" to route to DOCUMENT_QUERY instead
+  if (/tax.*document|document.*tax|1099.*form|form.*1099|where.*tax|show.*1099|my.*1099|get.*1099/i.test(q)) {
+    return null
+  }
+  
   const patterns: [RegExp, string][] = [
     [/invest(ment)?|stocks?|bonds?|portfolio|etf|mutual fund/i, 'investment_advice'],
     [/tax(es)?|1099|file.*quarterly|irs|deduction/i, 'tax_advice'],
@@ -1102,6 +1109,216 @@ function generateBoundaryResponse(
     }
   }
   
+  // Special handling for cancel payment - show recent payments proactively
+  if (boundaryType === 'cancel_payment') {
+    const recentPayments = getRecentTransactions(10).filter(t => t.amount < 0)
+    
+    const parts: string[] = [
+      `I can't cancel payments that have already been sent, but I can help you investigate.`,
+      '',
+      `**Your recent outgoing payments:**`
+    ]
+    
+    recentPayments.slice(0, 5).forEach(t => {
+      const statusBadge = t.status === 'pending' ? ' *(pending)*' : ''
+      parts.push(`• ${t.merchant}: ${formatCurrency(Math.abs(t.amount))} on ${t.date}${statusBadge}`)
+    })
+    
+    parts.push('')
+    parts.push(`**Options:**`)
+    parts.push(`• **Pending payments** can sometimes be cancelled — contact support immediately`)
+    parts.push(`• **ACH payments** may be recalled within 24-48 hours`)
+    parts.push(`• **Wire transfers** are typically final but support can help`)
+    parts.push('')
+    parts.push(`Which payment are you trying to cancel? I can check its status.`)
+    
+    return {
+      responseText: parts.join('\n'),
+      metadata: {
+        transactionTable: {
+          title: 'Recent Payments',
+          rows: recentPayments.slice(0, 5).map(t => ({
+            id: t.id,
+            counterparty: t.merchant,
+            amount: t.amount,
+            date: t.date,
+            status: t.status
+          }))
+        }
+      }
+    }
+  }
+  
+  // Special handling for balance discrepancy - show recent activity proactively
+  if (boundaryType === 'balance_discrepancy') {
+    const accounts = getAccounts()
+    const total = getTotalBalance()
+    const recentTxns = getRecentTransactions(10)
+    const pendingTxns = recentTxns.filter(t => t.status === 'pending')
+    
+    const parts: string[] = [
+      `I can help you investigate this. Let me show you your current state:`,
+      '',
+      `**Current balance:** ${formatCurrency(total)}`,
+      ''
+    ]
+    
+    if (pendingTxns.length > 0) {
+      parts.push(`**Pending transactions (${pendingTxns.length}):**`)
+      pendingTxns.slice(0, 3).forEach(t => {
+        parts.push(`• ${t.merchant}: ${formatCurrency(t.amount)} *(pending)*`)
+      })
+      parts.push('')
+      parts.push(`Pending transactions may temporarily affect your available balance.`)
+      parts.push('')
+    }
+    
+    parts.push(`**Recent activity:**`)
+    recentTxns.slice(0, 5).forEach(t => {
+      parts.push(`• ${t.date}: ${t.merchant} ${t.amount >= 0 ? '+' : ''}${formatCurrency(t.amount)}`)
+    })
+    
+    parts.push('')
+    parts.push(`Does anything look unexpected? I can dig deeper into any transaction.`)
+    
+    return {
+      responseText: parts.join('\n'),
+      metadata: {
+        accountBalances: {
+          accounts: accounts.map(a => ({ id: a.id, name: a.name, type: a.type, balance: a.balance })),
+          totalBalance: total
+        },
+        transactionTable: {
+          title: 'Recent Transactions',
+          rows: recentTxns.slice(0, 10).map(t => ({
+            id: t.id,
+            counterparty: t.merchant,
+            amount: t.amount,
+            date: t.date,
+            status: t.status
+          }))
+        }
+      }
+    }
+  }
+  
+  // Special handling for limit increase - show current limits upfront
+  if (boundaryType === 'increase_limits') {
+    const parts: string[] = [
+      `I can't change limits directly, but I can show you your current limits and help you request an increase.`,
+      '',
+      `**Your current limits:**`,
+      `• Daily wire limit: **$250,000**`,
+      `• Daily ACH limit: **$500,000**`,
+      `• Single transaction limit: **$100,000**`,
+      '',
+      `**To request an increase:**`,
+      `1. Go to **Settings → Account Limits**`,
+      `2. Submit a limit increase request`,
+      `3. Our team reviews within 1-2 business days`,
+      '',
+      `Would you like me to connect you with support to expedite this?`
+    ]
+    
+    return {
+      responseText: parts.join('\n'),
+      metadata: {
+        navigation: { target: 'Account Settings', url: '/settings/limits', countdown: true }
+      }
+    }
+  }
+  
+  // Special handling for salary advice - show payroll data proactively
+  if (boundaryType === 'salary_advice') {
+    const employees = getEmployees()
+    const transactions = getTransactions({ limit: 200 })
+    const payrollTx = transactions.filter(t => 
+      t.category.toLowerCase() === 'payroll' || t.description.toLowerCase().includes('payroll')
+    )
+    const totalPayroll = payrollTx.reduce((sum, t) => sum + Math.abs(t.amount), 0)
+    
+    // Calculate salary ranges
+    const salaries = employees.map(e => e.salary).filter(s => s > 0)
+    const avgSalary = salaries.length > 0 ? salaries.reduce((a, b) => a + b, 0) / salaries.length : 0
+    const minSalary = salaries.length > 0 ? Math.min(...salaries) : 0
+    const maxSalary = salaries.length > 0 ? Math.max(...salaries) : 0
+    
+    const parts: string[] = [
+      `I can't recommend specific salary levels—that depends on role, experience, market rates, and your budget. But I can show you your current payroll data:`,
+      '',
+      `**Your team:** ${employees.length} employees`,
+      `**Recent payroll:** ${formatCurrency(totalPayroll)}`,
+      ''
+    ]
+    
+    if (avgSalary > 0) {
+      parts.push(`**Salary range in your company:**`)
+      parts.push(`• Average: ${formatCurrency(avgSalary)}`)
+      parts.push(`• Range: ${formatCurrency(minSalary)} – ${formatCurrency(maxSalary)}`)
+      parts.push('')
+    }
+    
+    parts.push(`**Resources for benchmarking:**`)
+    parts.push(`• Levels.fyi, Glassdoor, Payscale for market data`)
+    parts.push(`• Your accountant or HR consultant for personalized advice`)
+    parts.push('')
+    parts.push(`Would you like to see your payroll breakdown by department?`)
+    
+    return {
+      responseText: parts.join('\n'),
+      metadata: {
+        employeeTable: {
+          title: 'Your Team',
+          rows: employees.slice(0, 5).map(e => ({
+            id: e.id,
+            name: `${e.firstName} ${e.lastName}`,
+            email: e.email,
+            department: e.department,
+            salary: e.salary,
+            hasCard: !!e.cardId
+          }))
+        }
+      }
+    }
+  }
+  
+  // Special handling for vendor recommendation - show current vendors proactively
+  if (boundaryType === 'vendor_recommendation') {
+    const transactions = getTransactions({ limit: 100 })
+    const vendorSpend: Record<string, number> = {}
+    transactions.forEach(t => {
+      if (t.amount < 0) {
+        vendorSpend[t.merchant] = (vendorSpend[t.merchant] || 0) + Math.abs(t.amount)
+      }
+    })
+    const topVendors = Object.entries(vendorSpend)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+    
+    const parts: string[] = [
+      `I can't recommend specific vendors, but I can show you who you currently work with.`,
+      '',
+      `**Your top vendors by spend:**`
+    ]
+    
+    topVendors.forEach(([vendor, amount]) => {
+      parts.push(`• ${vendor}: ${formatCurrency(amount)}`)
+    })
+    
+    parts.push('')
+    parts.push(`**I can help you:**`)
+    parts.push(`• Analyze spending by vendor category`)
+    parts.push(`• Compare vendor costs over time`)
+    parts.push(`• Show trends in specific categories`)
+    parts.push('')
+    parts.push(`What type of vendor are you looking for? I can show your current spending in that category.`)
+    
+    return {
+      responseText: parts.join('\n'),
+      metadata: {}
+    }
+  }
+  
   const parts: string[] = []
   
   // 1. Acknowledge what we can't do (if applicable)
@@ -1249,6 +1466,17 @@ function generateBoundaryResponse(
   
   let responseText = parts.join('\n')
   responseText = adjustToneForUrgency(responseText, urgency)
+  
+  // Defensive fallback - ensure we never return empty response
+  if (!responseText || responseText.trim().length === 0) {
+    responseText = `I'd be happy to help! Could you tell me more about what you're looking for?\n\n` +
+      `I can help with:\n` +
+      `• **Account balances** — Check your cash position\n` +
+      `• **Transactions** — Search and analyze spending\n` +
+      `• **Payments** — Send money or check payment status\n` +
+      `• **Cards** — Manage your cards\n\n` +
+      `Just let me know what you need!`
+  }
   
   return { responseText, metadata }
 }
@@ -1886,11 +2114,21 @@ async function handleWithRouter(
       // Generate mock document data
       const accounts = getAccounts()
       const currentDate = new Date()
-      const currentMonth = currentDate.toLocaleString('default', { month: 'long' })
       const currentYear = currentDate.getFullYear()
       
+      // Detect if user is asking specifically for tax documents
+      const isTaxQuery = /tax|1099/i.test(message)
+      
+      // Generate tax documents (1099s for last 3 years)
+      const taxDocuments: Array<{ id: string; name: string; type: 'tax' | 'statement'; date: string; accountName?: string }> = [
+        { id: 'tax-1099-2025', name: '2025 1099-INT', type: 'tax', date: '2026-01-10' },
+        { id: 'tax-1099-2024', name: '2024 1099-INT', type: 'tax', date: '2025-01-10' },
+        { id: 'tax-1099-2023', name: '2023 1099-INT', type: 'tax', date: '2024-01-10' },
+        { id: 'tax-1099-k-2025', name: '2025 1099-K', type: 'tax', date: '2026-01-15' },
+      ]
+      
       // Generate last 3 months of statements
-      const mockDocuments = []
+      const statementDocuments: Array<{ id: string; name: string; type: 'tax' | 'statement'; date: string; accountName?: string }> = []
       for (let i = 0; i < 3; i++) {
         const docDate = new Date(currentDate)
         docDate.setMonth(docDate.getMonth() - i)
@@ -1898,7 +2136,7 @@ async function handleWithRouter(
         const year = docDate.getFullYear()
         
         for (const account of accounts.slice(0, 2)) {
-          mockDocuments.push({
+          statementDocuments.push({
             id: `stmt-${account.id}-${year}-${docDate.getMonth()}`,
             name: `${monthName} ${year} Statement`,
             type: 'statement' as const,
@@ -1908,12 +2146,21 @@ async function handleWithRouter(
         }
       }
       
-      responseText = `Here are your recent statements and documents:`
+      // Choose documents based on query type
+      let displayDocuments: typeof taxDocuments
+      if (isTaxQuery) {
+        responseText = `Here are your tax documents:`
+        displayDocuments = taxDocuments
+      } else {
+        responseText = `Here are your recent statements and documents:`
+        // Combine both types, tax first then statements
+        displayDocuments = [...taxDocuments.slice(0, 2), ...statementDocuments.slice(0, 4)]
+      }
       
       metadata = {
         documents: {
-          title: '',
-          documents: mockDocuments.slice(0, 6),
+          title: isTaxQuery ? 'Tax Documents' : '',
+          documents: displayDocuments,
         }
       }
       break
@@ -2045,16 +2292,26 @@ async function handleWithRouter(
         },
       ]
       
-      // Randomly select 6 cards
+      // Randomly select 6 cards for initial display, keep remaining for "see more"
       const shuffled = [...allFeatureCards].sort(() => Math.random() - 0.5)
       const selectedCards = shuffled.slice(0, 6)
+      const moreCards = shuffled.slice(6)
       
       responseText = `Based on your activity, here are some Mercury features that could help ${company.name}:`
+      
+      // Build dynamic suggested actions based on the first card
+      const firstCard = selectedCards[0]
       
       metadata = {
         featureCards: {
           cards: selectedCards,
-        }
+          moreCards: moreCards, // Additional cards for "see more" reveal
+        },
+        suggestedActions: [
+          { label: 'See what else Mercury has', action: 'show_more_features' },
+          { label: `Help me set up ${firstCard.title}`, action: `setup_${firstCard.id}` },
+          { label: 'Why are these good for me?', action: 'explain_recommendations' },
+        ]
       }
       break
     }
@@ -2422,15 +2679,38 @@ async function handleWithRouter(
           }
         }
       } else {
+        // Build a helpful empty state message based on what was searched for
         const filterDesc = merchantFilter ? `with "${merchantFilter}"` : 
           (minAmount ? `over ${formatCurrency(minAmount)}` : 
           (maxAmount ? `under ${formatCurrency(maxAmount)}` : 
           (dateLabel ? `from ${dateLabel}` : '')))
-        responseText = `I couldn't find any ${status ? status + ' ' : ''}transactions${filterDesc ? ' ' + filterDesc : ''}.`
-        metadata = {
-          emptyState: {
-            message: 'No transactions found',
-            suggestion: 'Try adjusting your filters or search for a different merchant name.'
+        
+        // Special messaging for specific status filters
+        if (status === 'failed') {
+          responseText = `Good news! You have no failed transactions. All your payments have processed successfully.`
+          metadata = {
+            emptyState: {
+              message: 'No failed transactions',
+              suggestion: 'All your transactions have completed successfully. Would you like to see your recent transactions instead?'
+            }
+          }
+        } else if (status === 'pending') {
+          responseText = `You have no pending transactions right now. All payments have been processed.`
+          metadata = {
+            emptyState: {
+              message: 'No pending transactions',
+              suggestion: 'Would you like to see your recent completed transactions?'
+            }
+          }
+        } else {
+          responseText = `I couldn't find any ${status ? status + ' ' : ''}transactions${filterDesc ? ' ' + filterDesc : ''}.`
+          metadata = {
+            emptyState: {
+              message: 'No transactions found',
+              suggestion: merchantFilter 
+                ? `Try a different spelling or check if "${merchantFilter}" matches the exact vendor name.`
+                : 'Try adjusting your filters or time range to find what you\'re looking for.'
+            }
           }
         }
       }

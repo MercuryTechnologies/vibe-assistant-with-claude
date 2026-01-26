@@ -1,6 +1,39 @@
 {
   "transactions": [
     {
+      "id": "txn_failed_001",
+      "description": "Wire transfer - Insufficient funds",
+      "merchant": "International Supplier Co",
+      "amount": -15000,
+      "type": "debit",
+      "date": "2026-01-20",
+      "category": "Operations",
+      "status": "failed",
+      "accountId": "acc_operating"
+    },
+    {
+      "id": "txn_failed_002",
+      "description": "ACH Payment - Account closed",
+      "merchant": "Old Vendor LLC",
+      "amount": -3500,
+      "type": "debit",
+      "date": "2026-01-18",
+      "category": "Software",
+      "status": "failed",
+      "accountId": "acc_operating"
+    },
+    {
+      "id": "txn_failed_003",
+      "description": "Wire transfer - Invalid routing number",
+      "merchant": "Consulting Partners Inc",
+      "amount": -8750,
+      "type": "debit",
+      "date": "2026-01-15",
+      "category": "Professional Services",
+      "status": "failed",
+      "accountId": "acc_operating"
+    },
+    {
       "id": "txn_funding_001",
       "description": "Series A Investment",
       "merchant": "Sequoia Capital",

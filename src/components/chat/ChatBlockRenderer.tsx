@@ -11,6 +11,7 @@ import { AccountBalancesBlock } from './AccountBalancesBlock';
 import { RecipientsBlock } from './RecipientsBlock';
 import { DocumentsBlock } from './DocumentsBlock';
 import { FeatureCardsBlock } from './FeatureCardsBlock';
+import { SuggestedActions } from './SuggestedActions';
 import { PaymentFormBlock, type PaymentData } from './PaymentFormBlock';
 import { RecipientCreateBlock, type RecipientData } from './RecipientCreateBlock';
 import { CardIssueBlock, type CardIssueData } from './CardIssueBlock';
@@ -40,8 +41,10 @@ interface ChatBlockRendererProps {
   onNavigate?: (url: string) => void;
   onEmployeeSelect?: (ids: string[]) => void;
   onAction?: (action: ActionPayload) => void;
+  onSuggestedAction?: (action: string) => void;
   context?: 'rhc' | 'command';
   className?: string;
+  animateFeatureCards?: boolean;  // Enable card deal animation for feature cards
 }
 
 /**
@@ -54,8 +57,10 @@ export function ChatBlockRenderer({
   onNavigate,
   onEmployeeSelect,
   onAction,
+  onSuggestedAction,
   context = 'rhc',
-  className = '' 
+  className = '',
+  animateFeatureCards = false,
 }: ChatBlockRendererProps) {
   const navigate = useNavigate();
   
@@ -179,6 +184,15 @@ export function ChatBlockRenderer({
           data={metadata.featureCards}
           context={context}
           onNavigate={handleNavigate}
+          animate={animateFeatureCards}
+        />
+      )}
+      
+      {/* Suggested Actions */}
+      {metadata?.suggestedActions && metadata.suggestedActions.length > 0 && onSuggestedAction && (
+        <SuggestedActions
+          actions={metadata.suggestedActions}
+          onAction={onSuggestedAction}
         />
       )}
       
