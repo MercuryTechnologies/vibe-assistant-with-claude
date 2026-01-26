@@ -199,8 +199,17 @@ export function ActionToolbar() {
   // Panel resize state
   const [panelWidth, setPanelWidth] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
+  const [isPanelExiting, setIsPanelExiting] = useState(false);
+  const [isInitialPanelOpen, setIsInitialPanelOpen] = useState(false);
+  const [isToggleAnimating, setIsToggleAnimating] = useState(false);
+  const [actualSidebarWidth, setActualSidebarWidth] = useState(231);
   const resizeStartX = useRef(0);
   const resizeStartWidth = useRef(400);
+  
+  // Track window width for responsive behavior
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1440);
+  const LARGE_SCREEN_BREAKPOINT = 1440; // 14in MacBook Pro
+  const isLargeScreen = windowWidth >= LARGE_SCREEN_BREAKPOINT;
 
   // Chat store and streaming
   const { 
@@ -226,6 +235,32 @@ export function ActionToolbar() {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, panelType, isLoading]);
+
+  // Get actual sidebar width from DOM and track window width
+  useEffect(() => {
+    const updateSidebarWidth = () => {
+      const sidebar = document.querySelector('.ds-sidebar');
+      if (sidebar) {
+        const width = sidebar.getBoundingClientRect().width;
+        setActualSidebarWidth(width);
+      }
+    };
+    
+    const updateWindowWidth = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    updateSidebarWidth();
+    updateWindowWidth();
+    
+    window.addEventListener('resize', updateSidebarWidth);
+    window.addEventListener('resize', updateWindowWidth);
+    
+    return () => {
+      window.removeEventListener('resize', updateSidebarWidth);
+      window.removeEventListener('resize', updateWindowWidth);
+    };
+  }, []);
 
   // Handle navigation metadata from assistant messages
   useEffect(() => {
@@ -533,12 +568,31 @@ export function ActionToolbar() {
     } else {
       document.body.classList.remove('ds-panel-open');
     }
+    
+    // Add class for large screen panel mode (panel pushes content)
+    if (panelType && isLargeScreen && !isPanelFullScreen) {
+      document.body.classList.add('ds-panel-open-side');
+      document.body.style.setProperty('--chat-panel-width', `${panelWidth}px`);
+    } else {
+      document.body.classList.remove('ds-panel-open-side');
+      document.body.style.removeProperty('--chat-panel-width');
+    }
+    
     // Sync full-screen chat state with the store for nav highlighting
     setFullScreenChat(!!isFullScreen);
     return () => {
       document.body.classList.remove('ds-panel-open');
+      document.body.classList.remove('ds-panel-open-side');
+      document.body.style.removeProperty('--chat-panel-width');
     };
-  }, [panelType, isPanelFullScreen, setFullScreenChat]);
+  }, [panelType, isPanelFullScreen, isLargeScreen, panelWidth, setFullScreenChat]);
+  
+  // Update panel width CSS variable during resize
+  useEffect(() => {
+    if (isResizing && isLargeScreen && !isPanelFullScreen) {
+      document.body.style.setProperty('--chat-panel-width', `${panelWidth}px`);
+    }
+  }, [panelWidth, isResizing, isLargeScreen, isPanelFullScreen]);
 
   // Handle panel resize
   const handleResizeStart = (e: React.MouseEvent) => {
@@ -554,6 +608,7 @@ export function ActionToolbar() {
 
     const handleMouseMove = (e: MouseEvent) => {
       const viewportWidth = window.innerWidth;
+      
       // Calculate new width based on drag (dragging left increases width)
       const deltaX = resizeStartX.current - e.clientX;
       let newWidth = resizeStartWidth.current + deltaX;
@@ -561,20 +616,31 @@ export function ActionToolbar() {
       // Clamp minimum width to 300px
       newWidth = Math.max(300, newWidth);
       
-      // Check if we should snap to full screen (60% of viewport)
-      const fullScreenThreshold = viewportWidth * 0.6;
+      // Calculate maximum width (full screen width)
+      const maxWidth = viewportWidth - actualSidebarWidth;
       
-      if (newWidth >= fullScreenThreshold) {
-        setIsPanelFullScreen(true);
-      } else {
-        setIsPanelFullScreen(false);
-        setPanelWidth(newWidth);
-      }
+      // Cap at max width but don't snap to full screen during drag
+      newWidth = Math.min(newWidth, maxWidth);
+      
+      // Keep it in panel mode during drag
+      setIsPanelFullScreen(false);
+      setPanelWidth(newWidth);
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
       document.body.classList.remove('ds-panel-resizing');
+      
+      // Check if we should snap to full screen on release
+      const viewportWidth = window.innerWidth;
+      const fullScreenThreshold = viewportWidth * 0.6;
+      
+      // If dragged close to full screen (within 60% threshold), snap to full screen
+      if (panelWidth >= fullScreenThreshold) {
+        setIsToggleAnimating(true);
+        setIsPanelFullScreen(true);
+        setTimeout(() => setIsToggleAnimating(false), 400);
+      }
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -585,7 +651,7 @@ export function ActionToolbar() {
       document.removeEventListener('mouseup', handleMouseUp);
       document.body.classList.remove('ds-panel-resizing');
     };
-  }, [isResizing, panelWidth]);
+  }, [isResizing, panelWidth, actualSidebarWidth]);
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -608,6 +674,7 @@ export function ActionToolbar() {
   // Open chat panel with an initial message
   const openChatWithMessage = async (initialMessage: string) => {
     setPanelType('chat');
+    setIsInitialPanelOpen(true);
     setIsFocused(false);
     setInputValue('');
     setChatInput('');
@@ -618,21 +685,29 @@ export function ActionToolbar() {
     // Start a new conversation - don't pass message here, sendMessage will add it
     startNewConversation();
     await sendMessage(initialMessage);
+    
+    // Clear initial open state after animation completes
+    setTimeout(() => setIsInitialPanelOpen(false), 350);
   };
 
   // Close panel and reset toolbar to default state
   const handleClosePanel = () => {
-    setPanelType(null);
-    setIsFocused(false);
-    setInputValue('');
-    setIsPanelFullScreen(false);
-    setPanelWidth(400);
-    setChatInput('');
-    clearConversation();
-    setAgentMode('assistant'); // Reset to default mode
-    if (inputRef.current) {
-      inputRef.current.blur();
-    }
+    setIsPanelExiting(true);
+    setTimeout(() => {
+      setPanelType(null);
+      setIsFocused(false);
+      setInputValue('');
+      setIsPanelFullScreen(false);
+      setPanelWidth(400);
+      setChatInput('');
+      setIsPanelExiting(false);
+      setIsInitialPanelOpen(false);
+      clearConversation();
+      setAgentMode('assistant'); // Reset to default mode
+      if (inputRef.current) {
+        inputRef.current.blur();
+      }
+    }, 300);
   };
 
   // Start a new conversation in the panel
@@ -701,12 +776,29 @@ export function ActionToolbar() {
 
   return (
     <>
-      {panelType && (
+      {(panelType || isPanelExiting) && (
         <div 
-          className={cn('ds-chat-panel-overlay', !isPanelFullScreen && 'ds-chat-panel-overlay-panel')}
+          className={cn(
+            'ds-chat-panel-overlay',
+            // Large screen modes - use same class for both panel and fullscreen
+            isLargeScreen && 'ds-chat-panel-as-sidebar',
+            // Small screen overlay mode (not full screen)
+            !isLargeScreen && !isPanelFullScreen && 'ds-chat-panel-overlay-panel',
+            // Add initial-open only on first open for slide-in animation
+            isInitialPanelOpen && 'initial-open',
+            // States
+            isToggleAnimating && 'toggle-animating',
+            isResizing && 'resizing',
+            isPanelExiting && 'exiting'
+          )}
           style={{ 
-            width: isPanelFullScreen ? undefined : panelWidth,
-            transition: isResizing ? 'none' : 'width 200ms ease-out'
+            width: isPanelFullScreen 
+              ? `calc(100vw - ${actualSidebarWidth}px)` 
+              : panelWidth,
+            right: isPanelFullScreen || isLargeScreen 
+              ? 0 
+              : 16,
+            left: 'auto'
           }}
         >
           {/* Resize Handle - only visible when not full screen */}
@@ -753,7 +845,15 @@ export function ActionToolbar() {
                   size="small" 
                   iconOnly 
                   aria-label={isPanelFullScreen ? "Minimize to panel" : "Expand to full screen"}
-                  onClick={() => setIsPanelFullScreen(!isPanelFullScreen)}
+                  onClick={() => {
+                    setIsToggleAnimating(true);
+                    setIsPanelFullScreen(!isPanelFullScreen);
+                    // When collapsing from full screen, reset to default width
+                    if (isPanelFullScreen) {
+                      setPanelWidth(400);
+                    }
+                    setTimeout(() => setIsToggleAnimating(false), 300);
+                  }}
                 >
                   <Icon 
                     icon={isPanelFullScreen ? faDownLeftAndUpRightToCenter : faUpRightAndDownLeftFromCenter} 

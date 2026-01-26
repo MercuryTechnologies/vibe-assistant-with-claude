@@ -457,6 +457,11 @@
   /* Alias for compatibility - uses medium (8px) as default */
   --radius: 8px;
 
+  /* ============================================
+     LAYOUT TOKENS
+     ============================================ */
+  --sidebar-width: 231px;
+
   /* Font family - Arcadia as the only typography (no generic fallbacks) */
   --font-sans: 'Arcadia';
   --font-display: 'Arcadia Display';

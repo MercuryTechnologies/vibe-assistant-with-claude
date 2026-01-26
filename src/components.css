@@ -2990,7 +2990,7 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
    ======================================== */
 
 .ds-sidebar {
-  width: 231px;
+  width: var(--sidebar-width);
   border-right: 1px solid var(--border);
   background-color: var(--sidebar);
   display: flex;
@@ -3598,7 +3598,7 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
 .ds-action-container {
   position: fixed;
   bottom: 24px;
-  left: 231px; /* Account for sidebar width */
+  left: var(--sidebar-width); /* Account for sidebar width */
   right: 0;
   display: flex;
   flex-direction: column;
@@ -3609,6 +3609,15 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   /* Animation properties for hide/show */
   transform: translateY(0) scale(1);
   opacity: 1;
+  transition: transform 300ms ease-out, opacity 300ms ease-out, right 200ms ease-out;
+}
+
+/* Adjust action toolbar when panel is open in sidebar mode on large screens */
+body.ds-panel-open-side .ds-action-container {
+  right: var(--chat-panel-width, 400px);
+}
+
+body.ds-panel-open-side.ds-panel-resizing .ds-action-container {
   transition: transform 300ms ease-out, opacity 300ms ease-out;
 }
 
@@ -3660,8 +3669,14 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   flex-direction: column;
   align-items: stretch;
   gap: 10px;
-  padding: 0px 8px 12px;
-  border-radius: 24px;
+  padding: 8px;
+  border-radius: 16px 16px 28px 28px;
+}
+
+/* When bulk mode is focused, show normal focused layout */
+.ds-action-toolbar.bulk-mode.focused {
+  padding: 8px;
+  gap: 10px;
 }
 
 /* Results area */
@@ -3669,10 +3684,9 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-top: 16px;
-  max-height: 360px;
+  max-height: 348px;
   overflow-y: auto;
-  animation: slideUpFadeIn 300ms cubic-bezier(0.215, 0.61, 0.355, 1) backwards;
+  animation: slideUpFadeIn 350ms cubic-bezier(0.34, 1.35, 0.64, 1) 100ms backwards;
 }
 
 @keyframes slideUpFadeIn {
@@ -3739,7 +3753,7 @@ tr[data-state="selected"] .ds-table-cell-hover-layer::before {
   padding: 4px 16px;
   background-color: var(--ds-bg-input-default);
   border: 1px solid var(--color-border-input);
-  border-radius: 55px;
+  border-radius: 20px;
   overflow: clip;
   transition:
     border-color 300ms cubic-bezier(0.215, 0.61, 0.355, 1),
@@ -4041,7 +4055,7 @@ body.ds-panel-resizing * {
 
 /* Full Screen Mode */
 .ds-insights-panel-fullscreen {
-  left: 247px; /* Sidebar width (231px) + 16px padding */
+  left: calc(var(--sidebar-width) + 16px); /* Sidebar width + 16px padding */
   right: 16px;
   width: auto !important;
   border-radius: var(--radius-lg);
@@ -4096,12 +4110,44 @@ body.ds-panel-resizing * {
   top: 0;
   right: 0;
   bottom: 0;
-  left: 231px; /* Sidebar width - retains sidebar visibility */
+  left: var(--sidebar-width); /* Sidebar width - retains sidebar visibility */
   display: flex;
   background-color: var(--ds-bg-default);
   z-index: 300;
   pointer-events: auto;
   border-left: 1px solid var(--color-border-default);
+  transform-origin: right center;
+  transition: 
+    width 200ms ease-out,
+    right 200ms ease-out,
+    top 200ms ease-out, 
+    bottom 200ms ease-out, 
+    border-radius 200ms ease-out, 
+    box-shadow 200ms ease-out;
+}
+
+/* Only play slide-in animation on initial open for overlay mode on small screens */
+.ds-chat-panel-overlay-panel.initial-open {
+  animation: panelSlideIn 350ms cubic-bezier(0.34, 1.35, 0.64, 1) backwards;
+}
+
+.ds-chat-panel-overlay.toggle-animating {
+  transition: 
+    width 400ms cubic-bezier(0.34, 1.15, 0.64, 1),
+    right 400ms cubic-bezier(0.34, 1.15, 0.64, 1),
+    top 400ms cubic-bezier(0.34, 1.15, 0.64, 1), 
+    bottom 400ms cubic-bezier(0.34, 1.15, 0.64, 1), 
+    border-radius 400ms cubic-bezier(0.34, 1.15, 0.64, 1), 
+    box-shadow 400ms cubic-bezier(0.34, 1.15, 0.64, 1);
+}
+
+/* When transitioning between sidebar and fullscreen on large screens, only animate width */
+.ds-chat-panel-as-sidebar.toggle-animating {
+  transition: width 300ms cubic-bezier(0.34, 1.15, 0.64, 1);
+}
+
+.ds-chat-panel-overlay.resizing {
+  transition: none;
 }
 
 .ds-chat-panel {
@@ -4480,6 +4526,120 @@ body.ds-panel-resizing {
   user-select: none;
 }
 
+/* Exiting animation - slide out to the right with spring */
+.ds-chat-panel-overlay.exiting {
+  animation: panelSlideOut 300ms cubic-bezier(0.34, 1.15, 0.64, 1) forwards;
+}
+
+@keyframes panelSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%) scale(0.95);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-chat-panel-overlay.exiting {
+    animation: panelSlideOutReduced 300ms ease forwards;
+  }
+
+  @keyframes panelSlideOutReduced {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+}
+
+/* Large screen panel mode - acts as sidebar, pushes content */
+.ds-chat-panel-as-sidebar {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: auto;
+  border-radius: 0;
+  border-left: 1px solid var(--color-border-default);
+  box-shadow: none;
+  z-index: 100; /* Lower z-index than overlay mode */
+}
+
+/* Only play slide-in animation when panel is initially opening (not on mode switches) */
+.ds-chat-panel-as-sidebar.initial-open {
+  animation: panelSidebarSlideIn 300ms cubic-bezier(0.34, 1.15, 0.64, 1) backwards;
+}
+
+@keyframes panelSidebarSlideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-chat-panel-as-sidebar.initial-open {
+    animation: panelSlideInReduced 300ms ease backwards;
+  }
+}
+
+.ds-chat-panel-as-sidebar.exiting {
+  animation: panelSidebarSlideOut 250ms cubic-bezier(0.34, 1.15, 0.64, 1) forwards;
+}
+
+@keyframes panelSidebarSlideOut {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-chat-panel-as-sidebar.exiting {
+    animation: panelSlideOutReduced 250ms ease forwards;
+  }
+}
+
+/* Panel styling when in sidebar mode on large screens (includes fullscreen) */
+.ds-chat-panel-as-sidebar .ds-chat-panel {
+  padding-left: 32px;
+  padding-right: 32px;
+  border-radius: 0;
+}
+
+.ds-chat-panel-as-sidebar .ds-chat-panel-container {
+  max-width: 100%;
+  margin: 0; /* Remove auto centering to prevent content shift */
+}
+
+.ds-chat-panel-as-sidebar .ds-chat-panel-message-bubble {
+  max-width: 280px;
+}
+
+/* Hide demo FAB when panel is open in sidebar mode */
+body.ds-panel-open .ds-demo-settings-fab,
+body.ds-panel-open-side .ds-demo-settings-fab {
+  display: none;
+}
+
+/* Adjust main content when panel is open in sidebar mode on large screens */
+body.ds-panel-open-side .flex.min-h-screen.bg-background > .flex-1.flex.flex-col {
+  margin-right: var(--chat-panel-width, 400px);
+  transition: margin-right 200ms ease-out;
+}
+
+body.ds-panel-open-side.ds-panel-resizing .flex.min-h-screen.bg-background > .flex-1.flex.flex-col {
+  transition: none;
+}
+
 /* ========================================
    SEND BUTTON HOVER MENU
    Dropdown menu that appears on hover over the Send button
@@ -4661,7 +4821,7 @@ body.ds-panel-resizing {
 .bulk-action-bar-container {
   position: fixed;
   bottom: 48px;
-  left: 231px; /* Account for sidebar width */
+  left: var(--sidebar-width); /* Account for sidebar width */
   right: 0;
   display: flex;
   justify-content: center;
@@ -4790,7 +4950,7 @@ body.ds-panel-resizing {
 .ds-toast-container {
   position: fixed;
   bottom: 120px; /* Above bulk action bar */
-  left: 231px; /* Account for sidebar width */
+  left: var(--sidebar-width); /* Account for sidebar width */
   right: 0;
   display: flex;
   flex-direction: column;
@@ -6431,8 +6591,8 @@ body.ds-panel-resizing {
 
 /* Mobile Action Toolbar Container */
 .ds-action-container-mobile {
-  left: 16px;
-  right: 16px;
+  left: 24px;
+  right: 24px;
   bottom: 16px;
 }
 
