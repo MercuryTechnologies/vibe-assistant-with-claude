@@ -542,10 +542,10 @@ export function Sidebar() {
           )}
         </div>
 
-        {/* Explore - positioned after Accounts */}
-        <Link to="/explore">
+        {/* Explore - redirects to Command with product discovery query */}
+        <Link to="/command?q=What products would be great for me?">
           <button
-            className={`ds-sidebar-btn ${isActive('/explore') ? 'active' : ''}`}
+            className="ds-sidebar-btn"
           >
             <div className="ds-sidebar-btn-content">
               <span className="ds-sidebar-icon-wrapper">

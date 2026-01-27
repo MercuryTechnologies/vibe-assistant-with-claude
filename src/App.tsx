@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import { Layout, PageContainer } from '@/components/core';
-import { Dashboard, ComponentGallery, ComponentDetail, DesignSystemOverview, TypographyGallery, ColorsGallery, BorderRadiusGallery, Tasks, Transactions, Cards, Recipients, VisualTestPage, BillPay, Command, AccountDetail, Insights, Explore } from '@/pages';
+import { Dashboard, ComponentGallery, ComponentDetail, DesignSystemOverview, TypographyGallery, ColorsGallery, BorderRadiusGallery, Tasks, Transactions, Cards, Recipients, VisualTestPage, BillPay, Command, AccountDetail, Insights } from '@/pages';
 import { ToastProvider } from '@/components/ui/toast';
 import { DataProvider } from '@/context/DataContext';
 
@@ -128,7 +128,7 @@ function App() {
           />
           <Route
             path="/explore"
-            element={<Explore />}
+            element={<Navigate to="/command?q=What products would be great for me?" replace />}
           />
           <Route
             path="/accounts/:accountId"
