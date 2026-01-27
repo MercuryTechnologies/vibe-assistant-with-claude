@@ -12,6 +12,7 @@ const mockConversations: SavedConversation[] = mockConversationsData.conversatio
   ...conv,
   messages: conv.messages.map(msg => ({
     ...msg,
+    role: msg.role as 'user' | 'assistant',
     timestamp: new Date(msg.timestamp),
   })),
 }))
