@@ -5261,8 +5261,7 @@ body.ds-panel-open-side.ds-panel-resizing .flex.min-h-screen.bg-background > .fl
 .command-conversation-header {
   position: absolute;
   top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 24px;
   z-index: 20;
 }
 
@@ -5288,8 +5287,7 @@ body.ds-panel-open-side.ds-panel-resizing .flex.min-h-screen.bg-background > .fl
 .command-conversation-dropdown {
   position: absolute;
   top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   min-width: 280px;
   background-color: var(--ds-bg-default);
   border: 1px solid var(--color-border-default);
