@@ -143,10 +143,9 @@ export function Explore() {
     }
   };
 
-  const hasMessages = messages.length > 0;
-
   // Get the last assistant message with feature cards for the "more cards" reveal
-  const lastAssistantMessage = messages.findLast(m => m.role === 'assistant');
+  const assistantMessages = messages.filter((m: ChatMessage) => m.role === 'assistant');
+  const lastAssistantMessage = assistantMessages.length > 0 ? assistantMessages[assistantMessages.length - 1] : undefined;
   const moreCards = lastAssistantMessage?.metadata?.featureCards?.moreCards;
 
   return (

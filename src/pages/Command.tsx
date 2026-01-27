@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '@/components/ui/icon';
 import { DSButton } from '@/components/ui/ds-button';
-import { faPlus, faMicrophone, faArrowUp, faChartLine, faReceipt, faUsers } from '@/icons';
+import { faPlus, faMicrophone, faArrowUp, faChartLine, faCreditCard, faUsers } from '@/icons';
 import { useChatStore, useStreamingChat, type ChatMessage } from '@/chat';
 import { ChatBlockRenderer } from '@/components/chat';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
@@ -16,7 +16,7 @@ const CONVERSATION_STARTERS: readonly { icon: IconDefinition; title: string; des
     message: "What's my current runway and burn rate?"
   },
   {
-    icon: faReceipt,
+    icon: faCreditCard,
     title: 'Top Spending',
     description: 'See where your money goes',
     message: 'Show me my top spending categories'
