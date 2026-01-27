@@ -3239,6 +3239,15 @@ export default async function handler(
           }
         }
 
+        // Fast-path for feature discovery queries - skip LLM classification for speed
+        const isFeatureDiscovery = /what.*product|product.*for me|recommend.*feature|feature.*recommend|what.*can.*mercury.*do|what.*do.*you.*offer|explore.*feature|discover.*feature/i.test(message)
+        
+        if (isFeatureDiscovery && !isSupportMode) {
+          sendEvent('ack', { message: 'Finding the best products for you...' })
+          await handleWithRouter(sendEvent, message, { intent: 'FEATURE_DISCOVERY', needsSmartModel: false }, convId)
+          return
+        }
+
         sendEvent('ack', { message: isSupportMode ? 'Connecting to support...' : 'Understanding your request...' })
 
         // In support mode, skip classification and go straight to support handler
