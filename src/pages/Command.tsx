@@ -237,20 +237,7 @@ export function Command() {
 
         {/* Conversation Header - shown when there are messages or conversations */}
         {(hasMessages || conversations.length > 0) && (
-          <div className="command-conversation-header">
-            {/* New conversation button */}
-            <DSButton
-              variant="secondary"
-              size="small"
-              onClick={handleNewConversation}
-              disabled={!hasMessages}
-            >
-              <Icon icon={faPlus} size="small" style={{ marginRight: 6 }} />
-              New
-            </DSButton>
-
-            {/* Current conversation title with history dropdown */}
-            <div className="command-conversation-selector" ref={dropdownRef}>
+          <div className="command-conversation-header" ref={dropdownRef}>
               <button
                 className="command-conversation-title-button"
                 onClick={() => setShowHistoryDropdown(!showHistoryDropdown)}
@@ -326,7 +313,6 @@ export function Command() {
                   </div>
                 </div>
               )}
-            </div>
           </div>
         )}
 

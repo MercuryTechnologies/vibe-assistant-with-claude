@@ -5263,35 +5263,25 @@ body.ds-panel-open-side.ds-panel-resizing .flex.min-h-screen.bg-background > .fl
   top: 16px;
   left: 50%;
   transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 12px;
   z-index: 20;
-  padding: 8px 12px;
-  background-color: var(--ds-bg-default);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.command-conversation-selector {
-  position: relative;
 }
 
 .command-conversation-title-button {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  background-color: var(--ds-bg-default);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-full);
   cursor: pointer;
-  transition: background-color 150ms ease;
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .command-conversation-title-button:hover {
   background-color: var(--ds-bg-secondary);
+  border-color: var(--color-border-emphasized);
 }
 
 /* Conversation dropdown */
