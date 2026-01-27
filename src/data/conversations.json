@@ -1,0 +1,112 @@
+{
+  "conversations": [
+    {
+      "id": "conv_runway_analysis",
+      "title": "Runway analysis",
+      "preview": "What's my current runway and burn rate?",
+      "createdAt": "2026-01-25T14:30:00.000Z",
+      "updatedAt": "2026-01-25T14:32:00.000Z",
+      "messages": [
+        {
+          "id": "msg_1a",
+          "role": "user",
+          "content": "What's my current runway and burn rate?",
+          "timestamp": "2026-01-25T14:30:00.000Z"
+        },
+        {
+          "id": "msg_1b",
+          "role": "assistant",
+          "content": "Based on your current financials, here's your runway analysis:\n\n**Current Runway:** 43 months\n**Monthly Burn Rate:** $350,000\n**Total Cash Position:** $15.2M\n\nYour burn rate has been relatively stable over the past 6 months, with a slight decrease of 3% compared to Q3. At this pace, you have a comfortable runway extending well into 2029.\n\nWould you like me to break down the burn rate by category or show you trends over time?",
+          "timestamp": "2026-01-25T14:30:15.000Z"
+        },
+        {
+          "id": "msg_1c",
+          "role": "user",
+          "content": "Yes, break it down by category",
+          "timestamp": "2026-01-25T14:31:00.000Z"
+        },
+        {
+          "id": "msg_1d",
+          "role": "assistant",
+          "content": "Here's your monthly burn rate breakdown by category:\n\n| Category | Amount | % of Burn |\n|----------|--------|----------|\n| Payroll | $245,000 | 70% |\n| Infrastructure (AWS, etc.) | $42,000 | 12% |\n| Office & Operations | $28,000 | 8% |\n| Marketing | $21,000 | 6% |\n| Other | $14,000 | 4% |\n\n**Total:** $350,000/month\n\nPayroll is your largest expense, which is typical for a Series A company with 28 employees. Your infrastructure costs are well-optimized compared to industry benchmarks.",
+          "timestamp": "2026-01-25T14:31:30.000Z"
+        }
+      ]
+    },
+    {
+      "id": "conv_aws_spending",
+      "title": "AWS spending",
+      "preview": "How much did we spend on AWS last month?",
+      "createdAt": "2026-01-24T10:15:00.000Z",
+      "updatedAt": "2026-01-24T10:17:00.000Z",
+      "messages": [
+        {
+          "id": "msg_2a",
+          "role": "user",
+          "content": "How much did we spend on AWS last month?",
+          "timestamp": "2026-01-24T10:15:00.000Z"
+        },
+        {
+          "id": "msg_2b",
+          "role": "assistant",
+          "content": "Your AWS spending for December 2025 was **$38,450**, which is 8% lower than November ($41,820).\n\nHere's the breakdown:\n- EC2 Instances: $18,200\n- RDS Databases: $8,900\n- S3 Storage: $4,100\n- Lambda & API Gateway: $3,250\n- Other services: $4,000\n\nThe decrease is primarily due to the reserved instance savings that kicked in mid-month. Would you like to see a trend over the past 6 months?",
+          "timestamp": "2026-01-24T10:15:20.000Z"
+        },
+        {
+          "id": "msg_2c",
+          "role": "user",
+          "content": "Compare it to the same month last year",
+          "timestamp": "2026-01-24T10:16:00.000Z"
+        },
+        {
+          "id": "msg_2d",
+          "role": "assistant",
+          "content": "Great question! Here's the year-over-year comparison:\n\n| Month | 2024 | 2025 | Change |\n|-------|------|------|--------|\n| December | $24,300 | $38,450 | +58% |\n\nThe increase reflects your growth - you've scaled from 15 to 28 employees and significantly increased your customer base. On a per-employee basis, your AWS costs have actually decreased by 12%, showing improved efficiency.\n\nYour infrastructure cost as a percentage of MRR has also improved from 18% to 14%.",
+          "timestamp": "2026-01-24T10:16:30.000Z"
+        }
+      ]
+    },
+    {
+      "id": "conv_card_limits",
+      "title": "Card limits",
+      "preview": "Who is over their card limit?",
+      "createdAt": "2026-01-23T16:45:00.000Z",
+      "updatedAt": "2026-01-23T16:46:00.000Z",
+      "messages": [
+        {
+          "id": "msg_3a",
+          "role": "user",
+          "content": "Who is over their card limit?",
+          "timestamp": "2026-01-23T16:45:00.000Z"
+        },
+        {
+          "id": "msg_3b",
+          "role": "assistant",
+          "content": "I found **2 employees** who are currently at or over their card spending limits:\n\n1. **Sarah Chen** (Marketing)\n   - Limit: $5,000/month\n   - Spent: $5,240 (105%)\n   - Last transaction: Google Ads - $1,200\n\n2. **Marcus Johnson** (Engineering)\n   - Limit: $2,000/month\n   - Spent: $2,150 (108%)\n   - Last transaction: GitHub Enterprise - $450\n\nWould you like me to increase their limits or review their recent transactions?",
+          "timestamp": "2026-01-23T16:45:30.000Z"
+        }
+      ]
+    },
+    {
+      "id": "conv_team_cards",
+      "title": "Team cards overview",
+      "preview": "Show me all team members and their cards",
+      "createdAt": "2026-01-22T09:00:00.000Z",
+      "updatedAt": "2026-01-22T09:02:00.000Z",
+      "messages": [
+        {
+          "id": "msg_4a",
+          "role": "user",
+          "content": "Show me all team members and their cards",
+          "timestamp": "2026-01-22T09:00:00.000Z"
+        },
+        {
+          "id": "msg_4b",
+          "role": "assistant",
+          "content": "Here's an overview of your team's card assignments:\n\n**28 employees total** | **8 have cards** | **20 without cards**\n\n| Name | Department | Card Status | Limit | This Month |\n|------|------------|-------------|-------|------------|\n| Sarah Chen | Marketing | Active | $5,000 | $5,240 |\n| Marcus Johnson | Engineering | Active | $2,000 | $2,150 |\n| Emily Rodriguez | Operations | Active | $3,000 | $1,890 |\n| David Kim | Sales | Active | $2,500 | $980 |\n| Lisa Wang | Finance | Active | $10,000 | $4,200 |\n| James Miller | Engineering | Active | $1,500 | $650 |\n| Anna Thompson | HR | Active | $1,000 | $320 |\n| Michael Brown | Product | Active | $2,000 | $1,100 |\n\nWould you like to issue cards to employees who don't have them, or adjust any limits?",
+          "timestamp": "2026-01-22T09:00:45.000Z"
+        }
+      ]
+    }
+  ]
+}

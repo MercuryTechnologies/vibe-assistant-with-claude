@@ -468,6 +468,18 @@ export interface ChatMessage {
 }
 
 /**
+ * A saved conversation for history
+ */
+export interface SavedConversation {
+  id: string
+  title: string  // Auto-generated from first user message
+  messages: ChatMessage[]
+  createdAt: string  // ISO date string for JSON serialization
+  updatedAt: string  // ISO date string for JSON serialization
+  preview: string  // First ~50 chars of first message
+}
+
+/**
  * Response from the agent API
  */
 export interface AgentResponse {

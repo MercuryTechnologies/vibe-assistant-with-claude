@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '@/components/ui/icon';
 import { DSButton } from '@/components/ui/ds-button';
-import { faPlus, faMicrophone, faArrowUp, faChartLine, faCreditCard, faUsers } from '@/icons';
+import { faPlus, faMicrophone, faArrowUp, faChartLine, faCreditCard, faUsers, faClock, faChevronDown, faMessage } from '@/icons';
 import { useChatStore, useStreamingChat, type ChatMessage } from '@/chat';
 import { ChatBlockRenderer } from '@/components/chat';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
@@ -29,12 +29,30 @@ const CONVERSATION_STARTERS: readonly { icon: IconDefinition; title: string; des
   },
 ] as const;
 
+// Helper to format relative time
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
 export function Command() {
   const [inputValue, setInputValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [hasProcessedQuery, setHasProcessedQuery] = useState(false);
+  const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -47,8 +65,24 @@ export function Command() {
     startNewConversation,
     isNavigationComplete,
     markNavigationComplete,
+    conversations,
+    conversationId,
+    loadConversation,
+    getConversationTitle,
+    clearConversation,
   } = useChatStore();
   const { sendMessage } = useStreamingChat();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowHistoryDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Handle ?q= query parameter - auto-send message on mount
   useEffect(() => {
@@ -146,7 +180,21 @@ export function Command() {
     }
   };
 
+  // Handle starting a new conversation
+  const handleNewConversation = () => {
+    clearConversation();
+    setShowHistoryDropdown(false);
+    textareaRef.current?.focus();
+  };
+
+  // Handle loading a conversation from history
+  const handleLoadConversation = (id: string) => {
+    loadConversation(id);
+    setShowHistoryDropdown(false);
+  };
+
   const hasMessages = messages.length > 0;
+  const currentTitle = hasMessages ? getConversationTitle() : 'New conversation';
 
   return (
     <div className="command-page">
@@ -186,6 +234,101 @@ export function Command() {
             }}
           />
         </div>
+
+        {/* Conversation Header - shown when there are messages or conversations */}
+        {(hasMessages || conversations.length > 0) && (
+          <div className="command-conversation-header">
+            {/* New conversation button */}
+            <DSButton
+              variant="secondary"
+              size="small"
+              onClick={handleNewConversation}
+              disabled={!hasMessages}
+            >
+              <Icon icon={faPlus} size="small" style={{ marginRight: 6 }} />
+              New
+            </DSButton>
+
+            {/* Current conversation title with history dropdown */}
+            <div className="command-conversation-selector" ref={dropdownRef}>
+              <button
+                className="command-conversation-title-button"
+                onClick={() => setShowHistoryDropdown(!showHistoryDropdown)}
+              >
+                <Icon icon={faMessage} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
+                <span className="text-label-demi" style={{ color: 'var(--ds-text-default)' }}>
+                  {currentTitle}
+                </span>
+                <Icon icon={faChevronDown} size="small" style={{ color: 'var(--ds-icon-tertiary)' }} />
+              </button>
+
+              {/* History Dropdown */}
+              {showHistoryDropdown && (
+                <div className="command-conversation-dropdown">
+                  <div className="command-conversation-dropdown-header">
+                    <Icon icon={faClock} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
+                    <span className="text-label-demi" style={{ color: 'var(--ds-text-secondary)' }}>
+                      Recent Conversations
+                    </span>
+                  </div>
+                  
+                  <div className="command-conversation-dropdown-list">
+                    {/* Current conversation (if any) */}
+                    {hasMessages && (
+                      <button
+                        className="command-conversation-item active"
+                        onClick={() => setShowHistoryDropdown(false)}
+                      >
+                        <div className="command-conversation-item-content">
+                          <span className="text-label-demi" style={{ color: 'var(--ds-text-default)' }}>
+                            {currentTitle}
+                          </span>
+                          <span className="text-tiny" style={{ color: 'var(--ds-text-tertiary)' }}>
+                            Current
+                          </span>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Past conversations */}
+                    {conversations
+                      .filter(conv => conv.id !== conversationId)
+                      .slice(0, 5)
+                      .map(conv => (
+                        <button
+                          key={conv.id}
+                          className="command-conversation-item"
+                          onClick={() => handleLoadConversation(conv.id)}
+                        >
+                          <div className="command-conversation-item-content">
+                            <span className="text-label" style={{ color: 'var(--ds-text-default)' }}>
+                              {conv.title}
+                            </span>
+                            <span className="text-tiny" style={{ color: 'var(--ds-text-tertiary)' }}>
+                              {formatRelativeTime(conv.updatedAt)}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                  </div>
+
+                  {/* Start new action */}
+                  <div className="command-conversation-dropdown-footer">
+                    <button
+                      className="command-conversation-new-btn"
+                      onClick={handleNewConversation}
+                    >
+                      <Icon icon={faPlus} size="small" style={{ color: 'var(--ds-icon-primary)' }} />
+                      <span className="text-label" style={{ color: 'var(--ds-text-primary)' }}>
+                        Start new conversation
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Messages Area - shown when there are messages */}
         {hasMessages && (

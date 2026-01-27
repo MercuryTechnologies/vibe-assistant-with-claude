@@ -4,7 +4,17 @@
 // Zustand store for managing chat conversation state with streaming support
 
 import { create } from 'zustand'
-import type { ChatMessage, MessageMetadata, ThinkingStatus, NavigationMetadata, ClarificationRequest, EntityCard } from './types'
+import type { ChatMessage, MessageMetadata, ThinkingStatus, NavigationMetadata, ClarificationRequest, EntityCard, SavedConversation } from './types'
+import mockConversationsData from '@/data/conversations.json'
+
+// Parse mock conversations and convert date strings to proper format
+const mockConversations: SavedConversation[] = mockConversationsData.conversations.map(conv => ({
+  ...conv,
+  messages: conv.messages.map(msg => ({
+    ...msg,
+    timestamp: new Date(msg.timestamp),
+  })),
+}))
 
 /**
  * Generate a unique ID for messages and conversations
@@ -31,6 +41,10 @@ interface ChatState {
   messages: ChatMessage[]
   conversationId: string | null
   conversationNumber: number
+  conversationTitle: string | null  // Title of current conversation
+  
+  // Conversation history
+  conversations: SavedConversation[]
   
   // Loading/thinking state
   isLoading: boolean
@@ -88,6 +102,12 @@ interface ChatState {
   
   // Agent mode actions
   setAgentMode: (mode: AgentMode) => void
+  
+  // Conversation history actions
+  saveCurrentConversation: () => void
+  loadConversation: (id: string) => void
+  deleteConversation: (id: string) => void
+  getConversationTitle: () => string
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -95,6 +115,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   conversationId: null,
   conversationNumber: 0,
+  conversationTitle: null,
+  conversations: mockConversations,
   isLoading: false,
   thinkingStatus: null,
   streamingMessageId: null,
@@ -314,6 +336,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
   
   // Start a new conversation, optionally with an initial message
   startNewConversation: (initialMessage?: string) => {
+    // Save current conversation first if it has messages
+    const currentMessages = get().messages
+    if (currentMessages.length > 0) {
+      get().saveCurrentConversation()
+    }
+    
     const conversationId = generateId()
     const conversationNumber = generateConversationNumber()
     
@@ -332,6 +360,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       messages,
       conversationId,
       conversationNumber,
+      conversationTitle: null,
       isLoading: !!initialMessage,
       thinkingStatus: initialMessage ? 'Thinking' : null,
       streamingMessageId: null,
@@ -385,5 +414,100 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // Set the agent mode (assistant or support)
   setAgentMode: (mode: AgentMode) => {
     set({ agentMode: mode })
+  },
+  
+  // Save the current conversation to history
+  saveCurrentConversation: () => {
+    const { messages, conversationId, conversations } = get()
+    if (messages.length === 0 || !conversationId) return
+    
+    // Generate title from first user message
+    const firstUserMessage = messages.find(m => m.role === 'user')
+    const title = firstUserMessage 
+      ? firstUserMessage.content.slice(0, 40) + (firstUserMessage.content.length > 40 ? '...' : '')
+      : 'New conversation'
+    const preview = firstUserMessage?.content.slice(0, 50) || ''
+    
+    const now = new Date().toISOString()
+    
+    // Check if this conversation already exists
+    const existingIndex = conversations.findIndex(c => c.id === conversationId)
+    
+    const savedConversation: SavedConversation = {
+      id: conversationId,
+      title,
+      messages: messages.map(m => ({
+        ...m,
+        timestamp: m.timestamp instanceof Date ? m.timestamp : new Date(m.timestamp),
+      })),
+      createdAt: existingIndex >= 0 ? conversations[existingIndex].createdAt : now,
+      updatedAt: now,
+      preview,
+    }
+    
+    if (existingIndex >= 0) {
+      // Update existing conversation
+      const updatedConversations = [...conversations]
+      updatedConversations[existingIndex] = savedConversation
+      set({ conversations: updatedConversations })
+    } else {
+      // Add new conversation at the beginning
+      set({ conversations: [savedConversation, ...conversations] })
+    }
+  },
+  
+  // Load a conversation from history
+  loadConversation: (id: string) => {
+    const { conversations } = get()
+    const conversation = conversations.find(c => c.id === id)
+    if (!conversation) return
+    
+    // Save current conversation first if it has messages
+    const currentMessages = get().messages
+    if (currentMessages.length > 0 && get().conversationId !== id) {
+      get().saveCurrentConversation()
+    }
+    
+    // Load the conversation
+    set({
+      messages: conversation.messages.map(m => ({
+        ...m,
+        timestamp: m.timestamp instanceof Date ? m.timestamp : new Date(m.timestamp),
+      })),
+      conversationId: conversation.id,
+      conversationTitle: conversation.title,
+      conversationNumber: 0,
+      isLoading: false,
+      thinkingStatus: null,
+      streamingMessageId: null,
+      completedNavigations: new Set<string>(),
+      pendingFollowUp: null,
+      pendingClarification: null,
+    })
+  },
+  
+  // Delete a conversation from history
+  deleteConversation: (id: string) => {
+    const { conversations, conversationId } = get()
+    const updatedConversations = conversations.filter(c => c.id !== id)
+    set({ conversations: updatedConversations })
+    
+    // If we deleted the current conversation, clear it
+    if (conversationId === id) {
+      get().clearConversation()
+    }
+  },
+  
+  // Get the title of the current conversation
+  getConversationTitle: () => {
+    const { messages, conversationTitle } = get()
+    if (conversationTitle) return conversationTitle
+    
+    const firstUserMessage = messages.find(m => m.role === 'user')
+    if (firstUserMessage) {
+      return firstUserMessage.content.slice(0, 30) + (firstUserMessage.content.length > 30 ? '...' : '')
+    }
+    
+    return 'New conversation'
   },
 }))
