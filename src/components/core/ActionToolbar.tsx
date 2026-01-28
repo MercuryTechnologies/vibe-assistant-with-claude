@@ -561,6 +561,19 @@ export function ActionToolbar() {
     };
   }, [panelType]);
 
+  // Close RHC panel when navigating to /command - Command is the terminal destination
+  useEffect(() => {
+    if (isCommandPage && panelType) {
+      // Close the RHC panel without clearing conversation - let Command take over
+      setPanelType(null);
+      setIsPanelFullScreen(false);
+      setPanelWidth(400);
+      setChatInput('');
+      setIsPanelExiting(false);
+      setIsInitialPanelOpen(false);
+    }
+  }, [isCommandPage, panelType]);
+
   useEffect(() => {
     const isFullScreen = panelType && isPanelFullScreen;
     if (isFullScreen) {
@@ -776,7 +789,8 @@ export function ActionToolbar() {
 
   return (
     <>
-      {(panelType || isPanelExiting) && (
+      {/* RHC panel - never show on Command page (Command is the terminal destination) */}
+      {!isCommandPage && (panelType || isPanelExiting) && (
         <div 
           className={cn(
             'ds-chat-panel-overlay',
