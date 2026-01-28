@@ -4771,6 +4771,32 @@ body.ds-panel-open-side [style*="width:"] {
   max-width: 100%;
 }
 
+/* Left-align centered content when panel is open to eliminate gap */
+body.ds-panel-open-side .flex.items-center.justify-center.w-full,
+body.ds-panel-open-side .flex.flex-col.items-center.justify-between.w-full,
+body.ds-panel-open-side .flex.flex-col.items-center.w-full {
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+/* Dashboard sections - expand to fill available width */
+body.ds-panel-open-side .ds-dashboard-header,
+body.ds-panel-open-side .ds-data-summary-container,
+body.ds-panel-open-side .ds-xaxis-labels,
+body.ds-panel-open-side .ds-dashboard-cards {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Chart section - left align and expand */
+body.ds-panel-open-side .ds-chart-section {
+  align-items: flex-start;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
 /* ========================================
    SEND BUTTON HOVER MENU
    Dropdown menu that appears on hover over the Send button
