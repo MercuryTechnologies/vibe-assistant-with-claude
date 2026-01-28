@@ -4724,10 +4724,51 @@ body.ds-panel-open-side .ds-demo-settings-fab {
 body.ds-panel-open-side .flex.min-h-screen.bg-background > .flex-1.flex.flex-col {
   margin-right: var(--chat-panel-width, 400px);
   transition: margin-right 200ms ease-out;
+  /* Ensure content respects the reduced width */
+  max-width: calc(100vw - var(--sidebar-width, 231px) - var(--chat-panel-width, 400px));
+  overflow-x: hidden;
 }
 
 body.ds-panel-open-side.ds-panel-resizing .flex.min-h-screen.bg-background > .flex-1.flex.flex-col {
   transition: none;
+}
+
+/* Global responsive content when RHC panel is open */
+body.ds-panel-open-side main {
+  /* Force main content to stay within bounds */
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Make all page content responsive when panel is open */
+body.ds-panel-open-side main > * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Dashboard and other pages with fixed widths - make them responsive */
+body.ds-panel-open-side .ds-dashboard-chart,
+body.ds-panel-open-side .ds-dashboard-cards,
+body.ds-panel-open-side .ds-dashboard-section {
+  max-width: 100% !important;
+  width: auto !important;
+}
+
+/* Ensure charts and SVG containers are responsive */
+body.ds-panel-open-side svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Cards and grids should wrap or shrink */
+body.ds-panel-open-side .ds-dashboard-cards {
+  flex-wrap: wrap;
+}
+
+/* Force children with inline width styles to respect container */
+body.ds-panel-open-side [style*="width:"],
+body.ds-panel-open-side [style*="width:"] {
+  max-width: 100%;
 }
 
 /* ========================================

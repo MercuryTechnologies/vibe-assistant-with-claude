@@ -595,7 +595,7 @@ export function Dashboard() {
               "flex items-center justify-between ds-dashboard-header",
               isMobile && "flex-col items-start gap-4"
             )}
-            style={{ width: isMobile ? '100%' : 1024, height: isMobile ? 'auto' : 36 }}
+            style={{ maxWidth: isMobile ? '100%' : 1024, width: '100%', height: isMobile ? 'auto' : 36 }}
           >
             {/* Welcome Title */}
             <h1 className={cn("text-title-main", isMobile && "text-title-secondary")}>
@@ -677,7 +677,7 @@ export function Dashboard() {
           >
             <div
               className="flex flex-col items-start ds-data-summary-container"
-              style={{ width: isMobile ? '100%' : 1024 }}
+              style={{ maxWidth: isMobile ? '100%' : 1024, width: '100%' }}
             >
               <div className="flex items-start gap-2 w-full">
                 <div className="flex items-center gap-6">
@@ -821,7 +821,8 @@ export function Dashboard() {
           <div
             className="z-[5] relative ds-xaxis-labels"
             style={{
-              width: isMobile ? '100%' : 1026,
+              maxWidth: isMobile ? '100%' : 1026,
+              width: '100%',
               padding: isMobile ? '8px 16px' : '8px 0',
               borderBottomLeftRadius: 12,
               borderBottomRightRadius: 12,
@@ -1448,12 +1449,13 @@ function DashboardCards() {
       className="flex items-center justify-center w-full"
       style={{ paddingTop: 24, paddingBottom: isMobile ? 100 : 48, paddingLeft: isMobile ? 16 : 0, paddingRight: isMobile ? 16 : 0 }}
     >
-      <div className={cn("flex gap-6 ds-dashboard-cards", isMobile && "flex-col")} style={{ width: isMobile ? '100%' : 1024 }}>
+      <div className={cn("flex gap-6 ds-dashboard-cards", isMobile && "flex-col")} style={{ maxWidth: isMobile ? '100%' : 1024, width: '100%' }}>
         {/* Left Column - Account Breakdown Card */}
         <div
           className="flex flex-col rounded-lg overflow-clip ds-dashboard-card"
           style={{
-            width: isMobile ? '100%' : 500,
+            flex: isMobile ? undefined : '1 1 500px',
+            minWidth: isMobile ? '100%' : 0,
             border: '1px solid var(--color-border-default)',
           }}
         >
@@ -1518,7 +1520,7 @@ function DashboardCards() {
             </div>
 
             {/* Account List */}
-            <div className="flex flex-col ds-account-list" style={{ width: isMobile ? '100%' : 458 }}>
+            <div className="flex flex-col ds-account-list" style={{ maxWidth: isMobile ? '100%' : 458, width: '100%' }}>
               {depositoryAccounts.map((account, index) => {
                 const hasDetailPage = account.type !== 'treasury';
                 const rowContent = (
@@ -1638,7 +1640,8 @@ function DashboardCards() {
         <div
           className="flex flex-col gap-4 rounded-lg relative overflow-clip ds-dashboard-card"
           style={{
-            width: isMobile ? '100%' : 500,
+            flex: isMobile ? undefined : '1 1 500px',
+            minWidth: isMobile ? '100%' : 0,
             backgroundColor: 'var(--ds-bg-default)',
             border: '1px solid var(--color-border-default)',
             paddingTop: 24,
