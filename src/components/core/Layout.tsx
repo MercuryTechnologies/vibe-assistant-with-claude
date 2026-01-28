@@ -39,7 +39,7 @@ export function Layout({ children }: LayoutProps) {
           </header>
         )}
         {!isDashboard && !isMobile && <TopNav />}
-        <main className="flex-1 overflow-x-hidden">{children}</main>
+        <main className="flex-1 overflow-x-hidden min-w-0">{children}</main>
       </div>
       <ActionToolbar />
     </div>

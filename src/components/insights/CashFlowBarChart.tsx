@@ -631,7 +631,7 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
             display: none !important;
           }
         `}</style>
-        <svg ref={svgRef} className={`w-full h-auto ${!chartOptions.showBars ? 'bars-hidden' : ''}`} style={{ minWidth: 600 }} />
+        <svg ref={svgRef} className={`w-full h-auto ${!chartOptions.showBars ? 'bars-hidden' : ''}`} />
         <div 
           ref={gradientContainerMoneyOutRef} 
           style={{ 
@@ -664,8 +664,7 @@ const CashFlowBarChart: React.FC<CashFlowBarChartProps> = ({
             left: 0, 
             width: '100%', 
             height: '100%',
-            pointerEvents: 'none',
-            minWidth: 600
+            pointerEvents: 'none'
           }} 
         />
         {tooltip && (

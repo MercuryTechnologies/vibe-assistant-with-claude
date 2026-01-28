@@ -4773,8 +4773,12 @@ body.ds-panel-open-side [style*="width:"] {
 
 /* ========================================
    RHC PANEL RESPONSIVE CONTENT
-   When RHC panel is open, content expands to fill available space
+   When RHC panel is open, content shrinks to fit available space
    When closed, content returns to centered layout
+   
+   CRITICAL: The min-width: 0 rule is essential for flexbox children
+   to shrink below their content size. Without this, flex items have
+   min-width: auto by default, preventing them from shrinking.
    ======================================== */
 
 /* Add transitions to all page content for smooth open/close animation */
@@ -4790,6 +4794,21 @@ main > *,
   transition: max-width 200ms ease-out, padding 200ms ease-out, width 200ms ease-out;
 }
 
+/* CRITICAL FIX: Force all flex children to allow shrinking below content size */
+body.ds-panel-open-side main,
+body.ds-panel-open-side main > *,
+body.ds-panel-open-side .insights-page,
+body.ds-panel-open-side .insights-content,
+body.ds-panel-open-side .insights-main-grid,
+body.ds-panel-open-side .insights-header,
+body.ds-panel-open-side .insights-controls,
+body.ds-panel-open-side .ds-dashboard-header,
+body.ds-panel-open-side .ds-data-summary-container,
+body.ds-panel-open-side .ds-chart-section,
+body.ds-panel-open-side .ds-dashboard-cards {
+  min-width: 0 !important;
+}
+
 /* When RHC panel is open: all page content should fill available width */
 body.ds-panel-open-side main > * {
   max-width: 100% !important;
@@ -4800,6 +4819,12 @@ body.ds-panel-open-side main > * {
 body.ds-panel-open-side main [style*="max-width"],
 body.ds-panel-open-side main [style*="maxWidth"] {
   max-width: 100% !important;
+}
+
+/* Override any fixed min-widths on inline styles when panel is open */
+body.ds-panel-open-side main [style*="min-width"],
+body.ds-panel-open-side main [style*="minWidth"] {
+  min-width: 0 !important;
 }
 
 /* Parent containers that center content - make them fill width */
