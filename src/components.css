@@ -4771,22 +4771,43 @@ body.ds-panel-open-side [style*="width:"] {
   max-width: 100%;
 }
 
-/* Left-align centered content when panel is open to eliminate gap */
+/* ========================================
+   RHC PANEL RESPONSIVE CONTENT
+   When RHC panel is open, content expands to fill available space
+   When closed, content returns to centered 1024px layout
+   ======================================== */
+
+/* Add transitions to dashboard content containers for smooth open/close animation */
+.ds-dashboard-header,
+.ds-data-summary-container,
+.ds-xaxis-labels,
+.ds-dashboard-cards {
+  transition: max-width 200ms ease-out, padding 200ms ease-out;
+}
+
+/* Parent containers that center content - add transition for justify-content change */
+.flex.items-center.justify-center.w-full,
+.flex.flex-col.items-center.justify-between.w-full,
+.flex.flex-col.items-center.w-full {
+  transition: padding 200ms ease-out;
+}
+
+/* When RHC panel is open: left-align content and expand to fill available space */
 body.ds-panel-open-side .flex.items-center.justify-center.w-full,
 body.ds-panel-open-side .flex.flex-col.items-center.justify-between.w-full,
 body.ds-panel-open-side .flex.flex-col.items-center.w-full {
   justify-content: flex-start;
-  align-items: flex-start;
+  align-items: stretch;
   padding-left: 24px;
   padding-right: 24px;
 }
 
-/* Dashboard sections - expand to fill available width */
+/* Dashboard sections - expand to fill available width with small buffer */
 body.ds-panel-open-side .ds-dashboard-header,
 body.ds-panel-open-side .ds-data-summary-container,
 body.ds-panel-open-side .ds-xaxis-labels,
 body.ds-panel-open-side .ds-dashboard-cards {
-  max-width: 100% !important;
+  max-width: calc(100% - 48px) !important;
   width: 100% !important;
 }
 
@@ -4795,6 +4816,11 @@ body.ds-panel-open-side .ds-chart-section {
   align-items: flex-start;
   padding-left: 24px;
   padding-right: 24px;
+}
+
+/* Chart container - expand when panel is open */
+body.ds-panel-open-side .ds-chart-container {
+  right: 24px !important;
 }
 
 /* ========================================
