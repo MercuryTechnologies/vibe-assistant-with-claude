@@ -4774,53 +4774,74 @@ body.ds-panel-open-side [style*="width:"] {
 /* ========================================
    RHC PANEL RESPONSIVE CONTENT
    When RHC panel is open, content expands to fill available space
-   When closed, content returns to centered 1024px layout
+   When closed, content returns to centered layout
    ======================================== */
 
-/* Add transitions to dashboard content containers for smooth open/close animation */
+/* Add transitions to all page content for smooth open/close animation */
+main,
+main > *,
 .ds-dashboard-header,
 .ds-data-summary-container,
 .ds-xaxis-labels,
-.ds-dashboard-cards {
-  transition: max-width 200ms ease-out, padding 200ms ease-out;
+.ds-dashboard-cards,
+.insights-page,
+.insights-content,
+.insights-main-grid {
+  transition: max-width 200ms ease-out, padding 200ms ease-out, width 200ms ease-out;
 }
 
-/* Parent containers that center content - add transition for justify-content change */
-.flex.items-center.justify-center.w-full,
-.flex.flex-col.items-center.justify-between.w-full,
-.flex.flex-col.items-center.w-full {
-  transition: padding 200ms ease-out;
+/* When RHC panel is open: all page content should fill available width */
+body.ds-panel-open-side main > * {
+  max-width: 100% !important;
+  width: 100% !important;
 }
 
-/* When RHC panel is open: left-align content and expand to fill available space */
+/* Override any fixed max-widths on inline styles when panel is open */
+body.ds-panel-open-side main [style*="max-width"],
+body.ds-panel-open-side main [style*="maxWidth"] {
+  max-width: 100% !important;
+}
+
+/* Parent containers that center content - make them fill width */
 body.ds-panel-open-side .flex.items-center.justify-center.w-full,
 body.ds-panel-open-side .flex.flex-col.items-center.justify-between.w-full,
 body.ds-panel-open-side .flex.flex-col.items-center.w-full {
   justify-content: flex-start;
   align-items: stretch;
-  padding-left: 24px;
-  padding-right: 24px;
 }
 
-/* Dashboard sections - expand to fill available width with small buffer */
+/* Dashboard sections - expand to fill available width */
 body.ds-panel-open-side .ds-dashboard-header,
 body.ds-panel-open-side .ds-data-summary-container,
 body.ds-panel-open-side .ds-xaxis-labels,
 body.ds-panel-open-side .ds-dashboard-cards {
-  max-width: calc(100% - 48px) !important;
+  max-width: 100% !important;
   width: 100% !important;
 }
 
 /* Chart section - left align and expand */
 body.ds-panel-open-side .ds-chart-section {
   align-items: flex-start;
-  padding-left: 24px;
-  padding-right: 24px;
 }
 
 /* Chart container - expand when panel is open */
 body.ds-panel-open-side .ds-chart-container {
-  right: 24px !important;
+  right: 0 !important;
+}
+
+/* Insights page - expand content when RHC is open */
+body.ds-panel-open-side .insights-page,
+body.ds-panel-open-side .insights-content,
+body.ds-panel-open-side .insights-main-grid,
+body.ds-panel-open-side .insights-header,
+body.ds-panel-open-side .insights-controls {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Insights grid layout - adjust for smaller space */
+body.ds-panel-open-side .insights-main-grid {
+  grid-template-columns: minmax(240px, 320px) 1fr !important;
 }
 
 /* ========================================
