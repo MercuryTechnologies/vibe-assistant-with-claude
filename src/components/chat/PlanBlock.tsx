@@ -26,6 +26,7 @@ interface PlanBlockProps {
   onConfirm?: (planId: string) => void;
   onCancel?: (planId: string) => void;
   onEditStep?: (planId: string, stepId: string) => void;
+  context?: 'rhc' | 'command';
   className?: string;
 }
 
@@ -48,68 +49,63 @@ function getStepIcon(status: PlanStep['status']) {
 }
 
 /**
- * Get icon color for step status
+ * Get step status class modifier
  */
-function getStepIconColor(status: PlanStep['status']): string {
+function getStepStatusClass(status: PlanStep['status']): string {
   switch (status) {
     case 'completed':
-      return 'var(--ds-icon-success)';
+      return 'chat-plan__step-icon--success';
     case 'in_progress':
-      return 'var(--ds-icon-primary)';
+      return 'chat-plan__step-icon--primary';
     case 'error':
-      return 'var(--ds-icon-error)';
-    case 'skipped':
-      return 'var(--ds-icon-tertiary)';
+      return 'chat-plan__step-icon--error';
     default:
-      return 'var(--ds-icon-tertiary)';
+      return 'chat-plan__step-icon--default';
   }
 }
 
 /**
  * PlanBlock - Displays a multi-step workflow plan with progress tracking
  * Used for complex actions like "Invite John and issue him a card"
+ * Supports compact mode for RHC panel
  */
 export function PlanBlock({ 
   plan,
   onConfirm,
   onCancel,
   onEditStep,
+  context = 'rhc',
   className = '' 
 }: PlanBlockProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   
+  const isCompact = context === 'rhc';
   const completedSteps = plan.steps.filter(s => s.status === 'completed').length;
   const totalSteps = plan.steps.length;
   const progressPercent = (completedSteps / totalSteps) * 100;
   
+  const blockClass = `chat-block chat-plan ${isCompact ? 'chat-block--compact' : ''} ${className}`;
+  
   // Completed state - show summary
   if (plan.status === 'completed') {
     return (
-      <div 
-        className={`chat-plan-block ${className}`}
-        style={{
-          marginTop: 12,
-          padding: 16,
-          backgroundColor: 'var(--ds-bg-success)',
-          borderRadius: 'var(--radius-md)',
-        }}
-      >
-        <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
-          <Icon icon={faCircleCheck} style={{ color: 'var(--ds-icon-success)' }} />
-          <span className="text-body-demi" style={{ color: 'var(--ds-text-default)' }}>
+      <div className={`${blockClass} chat-block--success`}>
+        <div className="chat-plan__header-row">
+          <Icon icon={faCircleCheck} className="chat-block__icon chat-block__icon--success" />
+          <span className="text-body-demi chat-block__title">
             Plan completed
           </span>
         </div>
         
-        <div className="flex flex-col gap-2">
+        <div className="chat-plan__steps-summary">
           {plan.steps.map((step) => (
-            <div key={step.id} className="flex items-center gap-2">
-              <Icon icon={faCheck} size="small" style={{ color: 'var(--ds-icon-success)' }} />
-              <span className="text-body-sm" style={{ color: 'var(--ds-text-default)' }}>
+            <div key={step.id} className="chat-plan__step-summary">
+              <Icon icon={faCheck} size="small" className="chat-block__icon--success" />
+              <span className="text-body-sm chat-block__title">
                 {step.label}
               </span>
               {step.result && (
-                <span className="text-label" style={{ color: 'var(--ds-text-secondary)' }}>
+                <span className="text-label chat-block__subtitle">
                   - {step.result}
                 </span>
               )}
@@ -123,19 +119,10 @@ export function PlanBlock({
   // Cancelled state
   if (plan.status === 'cancelled') {
     return (
-      <div 
-        className={`chat-plan-block ${className}`}
-        style={{
-          marginTop: 12,
-          padding: 16,
-          backgroundColor: 'var(--ds-bg-secondary)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--color-border-default)',
-        }}
-      >
+      <div className={`${blockClass} chat-block--secondary`}>
         <div className="flex items-center gap-3">
-          <Icon icon={faXmark} style={{ color: 'var(--ds-icon-secondary)' }} />
-          <span className="text-body" style={{ color: 'var(--ds-text-secondary)' }}>
+          <Icon icon={faXmark} className="chat-block__icon chat-block__icon--secondary" />
+          <span className="text-body chat-block__subtitle">
             Plan cancelled
           </span>
         </div>
@@ -144,47 +131,26 @@ export function PlanBlock({
   }
   
   return (
-    <div 
-      className={`chat-plan-block ${className}`}
-      style={{
-        marginTop: 12,
-        padding: 16,
-        backgroundColor: 'var(--ds-bg-secondary)',
-        borderRadius: 'var(--radius-md)',
-        border: '1px solid var(--color-border-default)',
-      }}
-    >
+    <div className={`${blockClass} chat-block--secondary`}>
       {/* Header */}
-      <div 
-        className="flex items-center justify-between"
-        style={{ marginBottom: 12, cursor: 'pointer' }}
+      <button 
+        type="button"
+        className="chat-plan__header"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
-          <div 
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: plan.status === 'executing' ? 'var(--ds-bg-primary)' : 'var(--ds-bg-emphasized)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+          <div className={`chat-plan__icon-badge ${plan.status === 'executing' ? 'chat-plan__icon-badge--executing' : ''}`}>
             <Icon 
               icon={plan.status === 'executing' ? faSpinner : faArrowRight} 
               size="small"
-              style={{ 
-                color: plan.status === 'executing' ? 'var(--ds-icon-on-primary)' : 'var(--ds-icon-secondary)',
-              }} 
+              className={plan.status === 'executing' ? 'chat-plan__icon--on-primary' : 'chat-plan__icon--secondary'}
             />
           </div>
           <div className="flex flex-col">
-            <span className="text-body-demi" style={{ color: 'var(--ds-text-default)' }}>
+            <span className="text-body-demi chat-block__title">
               {plan.title}
             </span>
-            <span className="text-label" style={{ color: 'var(--ds-text-secondary)' }}>
+            <span className="text-label chat-block__subtitle">
               {plan.status === 'executing' 
                 ? `Step ${completedSteps + 1} of ${totalSteps}` 
                 : `${totalSteps} steps`}
@@ -194,76 +160,34 @@ export function PlanBlock({
         
         {/* Progress bar (only when executing) */}
         {plan.status === 'executing' && (
-          <div 
-            style={{
-              width: 80,
-              height: 4,
-              backgroundColor: 'var(--ds-bg-emphasized)',
-              borderRadius: 2,
-              overflow: 'hidden',
-            }}
-          >
+          <div className="chat-plan__progress">
             <div 
-              style={{
-                width: `${progressPercent}%`,
-                height: '100%',
-                backgroundColor: 'var(--ds-bg-primary)',
-                transition: 'width 0.3s ease',
-              }}
+              className="chat-plan__progress-bar"
+              style={{ width: `${progressPercent}%` }}
             />
           </div>
         )}
-      </div>
+      </button>
       
       {/* Steps list */}
       {isExpanded && (
-        <div 
-          className="flex flex-col gap-3"
-          style={{
-            paddingTop: 12,
-            borderTop: '1px solid var(--color-border-default)',
-          }}
-        >
+        <div className="chat-plan__steps">
           {plan.steps.map((step, index) => (
             <div 
               key={step.id}
-              className="flex items-start gap-3"
-              style={{
-                opacity: step.status === 'skipped' ? 0.5 : 1,
-              }}
+              className={`chat-plan__step ${step.status === 'skipped' ? 'chat-plan__step--skipped' : ''}`}
             >
               {/* Step number/status icon */}
-              <div 
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 'var(--radius-full)',
-                  backgroundColor: step.status === 'completed' 
-                    ? 'var(--ds-bg-success)' 
-                    : step.status === 'in_progress'
-                    ? 'var(--ds-bg-primary)'
-                    : step.status === 'error'
-                    ? 'var(--ds-bg-error)'
-                    : 'var(--ds-bg-emphasized)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
+              <div className={`chat-plan__step-icon ${getStepStatusClass(step.status)}`}>
                 {step.status === 'pending' ? (
-                  <span className="text-tiny-demi" style={{ color: 'var(--ds-text-secondary)' }}>
+                  <span className="text-tiny-demi chat-plan__step-number">
                     {index + 1}
                   </span>
                 ) : (
                   <Icon 
                     icon={getStepIcon(step.status)} 
                     size="small" 
-                    style={{ 
-                      color: step.status === 'completed' || step.status === 'in_progress' || step.status === 'error'
-                        ? 'white' 
-                        : getStepIconColor(step.status),
-                    }} 
+                    className="chat-plan__step-icon-svg"
                   />
                 )}
               </div>
@@ -271,13 +195,7 @@ export function PlanBlock({
               {/* Step content */}
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <span 
-                    className="text-body-sm" 
-                    style={{ 
-                      color: step.status === 'completed' ? 'var(--ds-text-secondary)' : 'var(--ds-text-default)',
-                      textDecoration: step.status === 'skipped' ? 'line-through' : 'none',
-                    }}
-                  >
+                  <span className={`text-body-sm ${step.status === 'completed' ? 'chat-plan__step-label--completed' : 'chat-plan__step-label'} ${step.status === 'skipped' ? 'chat-plan__step-label--skipped' : ''}`}>
                     {step.label}
                   </span>
                   {plan.status === 'pending_confirmation' && onEditStep && (
@@ -293,12 +211,12 @@ export function PlanBlock({
                 
                 {/* Result or error message */}
                 {step.result && (
-                  <span className="text-label" style={{ color: 'var(--ds-text-secondary)' }}>
+                  <span className="text-label chat-block__subtitle">
                     {step.result}
                   </span>
                 )}
                 {step.error && (
-                  <span className="text-label" style={{ color: 'var(--color-error)' }}>
+                  <span className="text-label chat-plan__step-error">
                     {step.error}
                   </span>
                 )}
@@ -310,23 +228,20 @@ export function PlanBlock({
       
       {/* Actions (only for pending confirmation) */}
       {plan.status === 'pending_confirmation' && (
-        <div 
-          className="flex items-center justify-between"
-          style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--color-border-default)' }}
-        >
+        <div className="chat-plan__actions">
           <DSButton 
             variant="tertiary" 
-            size="large"
+            size={isCompact ? 'small' : 'large'}
             onClick={() => onCancel?.(plan.id)}
           >
             Cancel
           </DSButton>
           <DSButton 
             variant="primary" 
-            size="large"
+            size={isCompact ? 'small' : 'large'}
             onClick={() => onConfirm?.(plan.id)}
           >
-            <Icon icon={faArrowRight} size="small" style={{ color: 'var(--ds-icon-on-primary)' }} />
+            <Icon icon={faArrowRight} size="small" />
             Execute Plan
           </DSButton>
         </div>

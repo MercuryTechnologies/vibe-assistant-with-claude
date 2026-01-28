@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '@/components/ui/icon';
 import { DSButton } from '@/components/ui/ds-button';
-import { faPlus, faMicrophone, faArrowUp, faChartLine, faCreditCard, faUsers, faClock, faChevronDown, faMessage } from '@/icons';
+import { faPlus, faMicrophone, faArrowUp, faChartLine, faCreditCard, faUsers, faClock, faChevronDown, faMessage, faHeadset, faXmark } from '@/icons';
 import { useChatStore, useStreamingChat, type ChatMessage } from '@/chat';
 import { ChatBlockRenderer } from '@/components/chat';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
@@ -50,9 +50,11 @@ export function Command() {
   const [isFocused, setIsFocused] = useState(false);
   const [hasProcessedQuery, setHasProcessedQuery] = useState(false);
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const mentionDropdownRef = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -70,6 +72,8 @@ export function Command() {
     loadConversation,
     getConversationTitle,
     clearConversation,
+    agentMode,
+    setAgentMode,
   } = useChatStore();
   const { sendMessage } = useStreamingChat();
 
@@ -79,10 +83,50 @@ export function Command() {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowHistoryDropdown(false);
       }
+      if (mentionDropdownRef.current && !mentionDropdownRef.current.contains(event.target as Node)) {
+        setShowMentionDropdown(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Handle input change with @support detection
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+    
+    // Detect @mention
+    const atIndex = value.lastIndexOf('@');
+    if (atIndex !== -1) {
+      const afterAt = value.slice(atIndex + 1);
+      // Show dropdown immediately on @ or if "support" starts with what user typed
+      if (!afterAt.includes(' ')) {
+        setShowMentionDropdown(afterAt === '' || 'support'.startsWith(afterAt.toLowerCase()));
+      } else {
+        setShowMentionDropdown(false);
+      }
+    } else {
+      setShowMentionDropdown(false);
+    }
+  };
+
+  // Handle selecting @support mention
+  const handleSelectMention = () => {
+    // Remove the @query from input and set agent mode
+    const atIndex = inputValue.lastIndexOf('@');
+    if (atIndex !== -1) {
+      setInputValue(inputValue.slice(0, atIndex));
+    }
+    setAgentMode('support');
+    setShowMentionDropdown(false);
+    textareaRef.current?.focus();
+  };
+
+  // Clear support mode
+  const handleClearSupportMode = () => {
+    setAgentMode('assistant');
+  };
 
   // Handle ?q= query parameter - auto-send message on mount
   useEffect(() => {
@@ -248,6 +292,23 @@ export function Command() {
                 </span>
                 <Icon icon={faChevronDown} size="small" style={{ color: 'var(--ds-icon-tertiary)' }} />
               </button>
+              {/* Support mode badge in header */}
+              {agentMode === 'support' && (
+                <div
+                  className="flex items-center gap-1"
+                  style={{
+                    padding: '4px 8px',
+                    backgroundColor: 'var(--green-magic-100)',
+                    borderRadius: 'var(--radius-sm)',
+                    marginLeft: 8,
+                  }}
+                >
+                  <Icon icon={faHeadset} size="small" style={{ color: 'var(--green-magic-700)' }} />
+                  <span className="text-tiny-demi" style={{ color: 'var(--green-magic-700)' }}>
+                    Support Mode
+                  </span>
+                </div>
+              )}
 
               {/* History Dropdown */}
               {showHistoryDropdown && (
@@ -363,14 +424,65 @@ export function Command() {
             className={`command-composer ${isFocused ? 'focused' : ''}`}
             onClick={handleComposerClick}
           >
+            {/* @support mention dropdown */}
+            {showMentionDropdown && (
+              <div 
+                ref={mentionDropdownRef}
+                className="command-mention-dropdown"
+              >
+                <button
+                  className="command-mention-option"
+                  onClick={handleSelectMention}
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  <Icon icon={faHeadset} size="small" style={{ color: 'var(--ds-icon-primary)' }} />
+                  <div className="flex flex-col">
+                    <span className="text-body-demi" style={{ color: 'var(--ds-text-default)' }}>
+                      @support
+                    </span>
+                    <span className="text-label" style={{ color: 'var(--ds-text-tertiary)' }}>
+                      Connect to Support Agent
+                    </span>
+                  </div>
+                </button>
+              </div>
+            )}
+
             {/* Text input area */}
             <div className="command-composer-input">
+              {/* Support mode badge */}
+              {agentMode === 'support' && (
+                <div 
+                  className="command-support-badge"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '4px 8px',
+                    marginRight: 8,
+                    backgroundColor: 'var(--green-magic-100)',
+                    borderRadius: 'var(--radius-sm)',
+                  }}
+                >
+                  <Icon icon={faHeadset} size="small" style={{ color: 'var(--green-magic-700)' }} />
+                  <span className="text-tiny-demi" style={{ color: 'var(--green-magic-700)' }}>
+                    Support
+                  </span>
+                  <button
+                    onClick={handleClearSupportMode}
+                    className="flex items-center justify-center"
+                    style={{ marginLeft: 2 }}
+                  >
+                    <Icon icon={faXmark} size="small" style={{ color: 'var(--green-magic-700)' }} />
+                  </button>
+                </div>
+              )}
               <textarea
                 ref={textareaRef}
                 className="command-composer-textarea text-body"
-                placeholder={hasMessages ? "Continue the conversation..." : "What would you like to do today?"}
+                placeholder={agentMode === 'support' ? "Describe your issue..." : (hasMessages ? "Continue the conversation..." : "What would you like to do today?")}
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={handleInputChange}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 onKeyDown={handleKeyDown}

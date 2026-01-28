@@ -11,55 +11,43 @@ interface StatItem {
 interface SummaryStatsProps {
   stats: StatItem[];
   layout?: 'row' | 'grid';
+  context?: 'rhc' | 'command';
   className?: string;
 }
 
 /**
  * SummaryStats - Compact display of key metrics
  * Shows runway, burn rate, balance, etc. with optional trend indicators
+ * Supports compact mode for RHC panel
  */
 export function SummaryStats({ 
   stats, 
   layout = 'row',
+  context = 'rhc',
   className = '' 
 }: SummaryStatsProps) {
+  const isCompact = context === 'rhc';
+  
   return (
-    <div className={`chat-summary-stats chat-summary-stats-${layout} ${className}`}>
+    <div className={`chat-stats ${isCompact ? 'chat-stats--compact' : ''} chat-stats--${layout} ${className}`}>
       {stats.map((stat, i) => (
-        <div key={i} className="chat-stat-item">
-          <span 
-            className="text-tiny"
-            style={{ color: 'var(--ds-text-secondary)' }}
-          >
+        <div key={i} className="chat-stats__item">
+          <span className={`${isCompact ? 'text-micro' : 'text-tiny'} chat-stats__label`}>
             {stat.label}
           </span>
-          <div className="chat-stat-value-row">
-            <span 
-              className="text-body-demi"
-              style={{ 
-                color: 'var(--ds-text-default)',
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
+          <div className="chat-stats__value-row">
+            <span className={`${isCompact ? 'text-body-sm-demi' : 'text-body-demi'} chat-stats__value`}>
               {stat.value}
             </span>
             {stat.trend && stat.trendValue && (
-              <span 
-                className={`chat-stat-trend chat-stat-trend-${stat.trend}`}
-              >
+              <span className={`chat-stats__trend chat-stats__trend--${stat.trend}`}>
                 {stat.trend === 'up' && (
-                  <Icon icon={faArrowTrendUp} size="small" style={{ color: 'var(--ds-icon-success)' }} />
+                  <Icon icon={faArrowTrendUp} size="small" className="chat-stats__trend-icon--up" />
                 )}
                 {stat.trend === 'down' && (
-                  <Icon icon={faArrowTrendDown} size="small" style={{ color: 'var(--ds-icon-error)' }} />
+                  <Icon icon={faArrowTrendDown} size="small" className="chat-stats__trend-icon--down" />
                 )}
-                <span className="text-tiny" style={{ 
-                  color: stat.trend === 'up' 
-                    ? 'var(--color-success)' 
-                    : stat.trend === 'down' 
-                      ? 'var(--color-error)' 
-                      : 'var(--ds-text-tertiary)'
-                }}>
+                <span className={`${isCompact ? 'text-micro' : 'text-tiny'} chat-stats__trend-value--${stat.trend}`}>
                   {stat.trendValue}
                 </span>
               </span>

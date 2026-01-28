@@ -50,6 +50,7 @@ interface ChatBlockRendererProps {
 /**
  * ChatBlockRenderer - Renders chat message content and all associated metadata blocks
  * Dispatches to the appropriate component based on metadata type
+ * Passes context to all child components for responsive styling
  */
 export function ChatBlockRenderer({ 
   content, 
@@ -107,6 +108,8 @@ export function ChatBlockRenderer({
     onAction?.({ type: 'cancel_plan', planId });
   };
 
+  const isCompact = context === 'rhc';
+
   return (
     <div className={`chat-block-renderer ${className}`}>
       {/* Support Mode Badge */}
@@ -120,7 +123,7 @@ export function ChatBlockRenderer({
       
       {/* Thinking Chain (shows tool usage steps) */}
       {metadata?.thinkingChain && (
-        <ThinkingChain steps={metadata.thinkingChain} />
+        <ThinkingChain steps={metadata.thinkingChain} context={context} />
       )}
       
       {/* Main text content with markdown */}
@@ -130,20 +133,27 @@ export function ChatBlockRenderer({
       
       {/* Transaction Table */}
       {metadata?.transactionTable && (
-        <TransactionTable data={metadata.transactionTable} />
+        <TransactionTable 
+          data={metadata.transactionTable} 
+          context={context}
+        />
       )}
       
       {/* Employee Table */}
       {metadata?.employeeTable && (
         <EmployeeTable 
           data={metadata.employeeTable}
+          context={context}
           onSelectionChange={onEmployeeSelect}
         />
       )}
       
       {/* Task Table */}
       {metadata?.taskTable && (
-        <TaskTableBlock data={metadata.taskTable} />
+        <TaskTableBlock 
+          data={metadata.taskTable}
+          context={context}
+        />
       )}
       
       {/* Cards Table */}
@@ -193,6 +203,7 @@ export function ChatBlockRenderer({
         <SuggestedActions
           actions={metadata.suggestedActions}
           onAction={onSuggestedAction}
+          context={context}
         />
       )}
       
@@ -239,6 +250,7 @@ export function ChatBlockRenderer({
           targetName={metadata.confirmationRequest.targetName}
           onConfirm={handleConfirm}
           onUndo={handleUndo}
+          context={context}
         />
       )}
       
@@ -248,27 +260,14 @@ export function ChatBlockRenderer({
           plan={metadata.plan}
           onConfirm={handlePlanConfirm}
           onCancel={handlePlanCancel}
+          context={context}
         />
       )}
       
       {/* Empty State */}
       {metadata?.emptyState && (
-        <div 
-          className="chat-empty-state"
-          style={{
-            padding: 16,
-            backgroundColor: 'var(--ds-bg-secondary)',
-            borderRadius: 8,
-            marginTop: 12,
-          }}
-        >
-          <p 
-            className="text-body"
-            style={{ 
-              color: 'var(--ds-text-secondary)', 
-              margin: 0,
-            }}
-          >
+        <div className={`chat-block chat-block--secondary ${isCompact ? 'chat-block--compact' : ''}`}>
+          <p className="text-body chat-block__subtitle" style={{ margin: 0 }}>
             {metadata.emptyState.message || 'No results found'}
           </p>
           {metadata.emptyState.suggestion && (
@@ -290,6 +289,7 @@ export function ChatBlockRenderer({
         <NavigationCard 
           navigation={metadata.navigation}
           onNavigate={handleNavigate}
+          context={context}
         />
       )}
     </div>

@@ -13,27 +13,43 @@ interface ComparisonChartProps {
     current: string;
   };
   yAxisLabel?: string;
+  context?: 'rhc' | 'command';
   className?: string;
 }
 
 /**
  * ComparisonChart - A dual-line chart comparing two time periods
  * Used to show burn rate trends, Q3 vs Q4, etc.
+ * Responsive with context awareness for RHC panel
  */
 export function ComparisonChart({ 
   periods, 
   legend, 
-  yAxisLabel: _yAxisLabel = '$K',
+  // yAxisLabel is reserved for future Y-axis display
+  yAxisLabel: _yAxisLabel = '$K', // eslint-disable-line @typescript-eslint/no-unused-vars
+  context = 'rhc',
   className = '' 
 }: ComparisonChartProps) {
+  const isCompact = context === 'rhc';
+  
+  // Chart dimensions based on context
+  const dimensions = useMemo(() => ({
+    width: isCompact ? 280 : 400,
+    height: isCompact ? 80 : 120,
+    padding: {
+      top: 10,
+      bottom: isCompact ? 16 : 20,
+      left: 10,
+      right: 10,
+    },
+  }), [isCompact]);
+
   // Generate SVG points from data
-  const { previousPoints, currentPoints, maxValue: _maxValue } = useMemo(() => {
+  const { previousPoints, currentPoints } = useMemo(() => {
     const allValues = periods.flatMap(p => [p.previousValue, p.currentValue]);
     const max = Math.max(...allValues);
     
-    const width = 300;
-    const height = 100;
-    const padding = { top: 10, bottom: 20, left: 10, right: 10 };
+    const { width, height, padding } = dimensions;
     const chartWidth = width - padding.left - padding.right;
     const chartHeight = height - padding.top - padding.bottom;
     
@@ -49,30 +65,34 @@ export function ComparisonChart({
       return `${x},${y}`;
     }).join(' ');
     
-    return { previousPoints: prevPts, currentPoints: currPts, maxValue: max };
-  }, [periods]);
+    return { previousPoints: prevPts, currentPoints: currPts };
+  }, [periods, dimensions]);
 
   return (
-    <div className={`chat-comparison-chart ${className}`}>
+    <div className={`chat-chart ${isCompact ? 'chat-chart--compact' : ''} ${className}`}>
       {/* Legend */}
-      <div className="chat-chart-legend">
-        <span className="chat-legend-item">
-          <span className="chat-legend-line chat-legend-line-dashed" />
-          <span className="text-tiny" style={{ color: 'var(--ds-text-secondary)' }}>
+      <div className="chat-chart__legend">
+        <span className="chat-chart__legend-item">
+          <span className="chat-chart__legend-line chat-chart__legend-line--dashed" />
+          <span className={`${isCompact ? 'text-micro' : 'text-tiny'} chat-chart__legend-label`}>
             {legend.previous}
           </span>
         </span>
-        <span className="chat-legend-item">
-          <span className="chat-legend-line chat-legend-line-solid" />
-          <span className="text-tiny" style={{ color: 'var(--ds-text-secondary)' }}>
+        <span className="chat-chart__legend-item">
+          <span className="chat-chart__legend-line chat-chart__legend-line--solid" />
+          <span className={`${isCompact ? 'text-micro' : 'text-tiny'} chat-chart__legend-label`}>
             {legend.current}
           </span>
         </span>
       </div>
 
       {/* Chart */}
-      <div className="chat-chart-container">
-        <svg viewBox="0 0 300 100" preserveAspectRatio="xMidYMid meet">
+      <div className="chat-chart__svg-container">
+        <svg 
+          viewBox={`0 0 ${dimensions.width} ${dimensions.height}`} 
+          preserveAspectRatio="xMidYMid meet"
+          className="chat-chart__svg"
+        >
           {/* Previous period line (dashed) */}
           <polyline
             points={previousPoints}
@@ -93,12 +113,11 @@ export function ComparisonChart({
       </div>
 
       {/* X-axis labels */}
-      <div className="chat-chart-x-axis">
+      <div className="chat-chart__x-axis">
         {periods.map((p, i) => (
           <span 
             key={i} 
-            className="text-tiny"
-            style={{ color: 'var(--ds-text-tertiary)' }}
+            className={`${isCompact ? 'text-micro' : 'text-tiny'} chat-chart__x-label`}
           >
             {p.label}
           </span>

@@ -5,6 +5,7 @@ import type { EmployeeTableMetadata, EmployeeTableRow } from '@/chat/types';
 
 interface EmployeeTableProps {
   data: EmployeeTableMetadata;
+  context?: 'rhc' | 'command';
   onSelectionChange?: (ids: string[]) => void;
   className?: string;
 }
@@ -12,13 +13,16 @@ interface EmployeeTableProps {
 /**
  * EmployeeTable - Table of employees with optional selection
  * Used for card issuance workflows, team management, etc.
+ * Supports compact mode for RHC panel
  */
 export function EmployeeTable({ 
   data, 
+  context = 'rhc',
   onSelectionChange,
   className = '' 
 }: EmployeeTableProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const isCompact = context === 'rhc';
 
   const toggleSelect = (id: string) => {
     const newSelected = new Set(selected);
@@ -46,12 +50,9 @@ export function EmployeeTable({
   const isIndeterminate = selected.size > 0 && selected.size < data.rows.length;
 
   return (
-    <div className={`chat-employee-table ${className}`}>
+    <div className={`chat-employee-table ${isCompact ? 'chat-employee-table--compact' : ''} ${className}`}>
       {data.title && (
-        <h4 className="text-label-demi" style={{ 
-          color: 'var(--ds-text-default)', 
-          marginBottom: 8 
-        }}>
+        <h4 className="text-label-demi chat-table__title">
           {data.title}
         </h4>
       )}
@@ -62,6 +63,7 @@ export function EmployeeTable({
             {data.selectable && (
               <th style={{ width: 32 }}>
                 <button
+                  type="button"
                   onClick={toggleSelectAll}
                   className={`chat-checkbox ${isAllSelected ? 'checked' : ''} ${isIndeterminate ? 'indeterminate' : ''}`}
                   aria-label={isAllSelected ? 'Deselect all' : 'Select all'}
@@ -75,16 +77,18 @@ export function EmployeeTable({
                 </button>
               </th>
             )}
-            <th className="text-tiny" style={{ color: 'var(--ds-text-secondary)' }}>
+            <th className={isCompact ? 'text-micro' : 'text-tiny'}>
               Name
             </th>
-            <th className="text-tiny" style={{ color: 'var(--ds-text-secondary)' }}>
-              Email
-            </th>
-            <th className="text-tiny" style={{ color: 'var(--ds-text-secondary)' }}>
+            {!isCompact && (
+              <th className="text-tiny">
+                Email
+              </th>
+            )}
+            <th className={isCompact ? 'text-micro' : 'text-tiny'}>
               Department
             </th>
-            <th className="text-tiny" style={{ color: 'var(--ds-text-secondary)' }}>
+            <th className={isCompact ? 'text-micro' : 'text-tiny'}>
               Card
             </th>
           </tr>
@@ -95,6 +99,7 @@ export function EmployeeTable({
               {data.selectable && (
                 <td>
                   <button
+                    type="button"
                     onClick={() => toggleSelect(row.id)}
                     className={`chat-checkbox ${selected.has(row.id) ? 'checked' : ''}`}
                     aria-label={selected.has(row.id) ? `Deselect ${row.name}` : `Select ${row.name}`}
@@ -105,16 +110,23 @@ export function EmployeeTable({
                   </button>
                 </td>
               )}
-              <td className="text-body-sm" style={{ color: 'var(--ds-text-default)' }}>
+              <td className={`${isCompact ? 'text-label' : 'text-body-sm'} chat-table__name`}>
                 {row.name}
+                {isCompact && (
+                  <span className="text-micro chat-table__email-inline">
+                    {row.email}
+                  </span>
+                )}
               </td>
-              <td className="text-body-sm" style={{ color: 'var(--ds-text-secondary)' }}>
-                {row.email}
-              </td>
-              <td className="text-body-sm" style={{ color: 'var(--ds-text-secondary)' }}>
+              {!isCompact && (
+                <td className="text-body-sm chat-table__email">
+                  {row.email}
+                </td>
+              )}
+              <td className={`${isCompact ? 'text-label' : 'text-body-sm'} chat-table__department`}>
                 {row.department}
               </td>
-              <td className="text-body-sm" style={{ color: row.hasCard ? 'var(--color-success)' : 'var(--ds-text-tertiary)' }}>
+              <td className={`${isCompact ? 'text-label' : 'text-body-sm'} ${row.hasCard ? 'chat-table__has-card' : 'chat-table__no-card'}`}>
                 {row.hasCard ? '✓' : '—'}
               </td>
             </tr>

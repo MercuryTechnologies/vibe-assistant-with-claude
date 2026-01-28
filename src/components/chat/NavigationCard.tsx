@@ -7,19 +7,23 @@ import type { NavigationMetadata } from '@/chat/types';
 interface NavigationCardProps {
   navigation: NavigationMetadata;
   onNavigate: (url: string) => void;
+  context?: 'rhc' | 'command';
   className?: string;
 }
 
 /**
  * NavigationCard - Card that navigates to a page in the app
  * Optionally shows a countdown before auto-navigating
+ * Supports compact mode for RHC panel
  */
 export function NavigationCard({ 
   navigation, 
   onNavigate,
+  context = 'rhc',
   className = '' 
 }: NavigationCardProps) {
   const [countdown, setCountdown] = useState(navigation.countdown ? 3 : 0);
+  const isCompact = context === 'rhc';
 
   useEffect(() => {
     if (countdown > 0) {
@@ -31,11 +35,13 @@ export function NavigationCard({
   }, [countdown, navigation.countdown, navigation.url, onNavigate]);
 
   return (
-    <div className={`chat-navigation-card ${className}`}>
-      <div className="chat-navigation-card-content">
-        <span className="text-body" style={{ color: 'var(--ds-text-default)' }}>
+    <div className={`chat-navigation-card ${isCompact ? 'chat-navigation-card--compact' : ''} ${className}`}>
+      <div className="chat-navigation-card__content">
+        <span className={`${isCompact ? 'text-body-sm' : 'text-body'} chat-navigation-card__text`}>
           Taking you to {navigation.target}
-          {countdown > 0 && <span className="chat-navigation-countdown">...{countdown}</span>}
+          {countdown > 0 && (
+            <span className="chat-navigation-card__countdown">...{countdown}</span>
+          )}
         </span>
       </div>
       <DSButton
@@ -44,7 +50,7 @@ export function NavigationCard({
         onClick={() => onNavigate(navigation.url)}
       >
         Go now
-        <Icon icon={faArrowRight} size="small" style={{ color: 'var(--ds-icon-primary)' }} />
+        <Icon icon={faArrowRight} size="small" />
       </DSButton>
     </div>
   );

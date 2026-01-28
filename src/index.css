@@ -461,6 +461,7 @@
      LAYOUT TOKENS
      ============================================ */
   --sidebar-width: 231px;
+  --sidebar-collapsed-width: 64px;
 
   /* Font family - Arcadia as the only typography (no generic fallbacks) */
   --font-sans: 'Arcadia';

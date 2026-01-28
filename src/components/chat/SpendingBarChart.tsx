@@ -10,6 +10,7 @@ interface SpendingBarChartProps {
   title?: string;
   items: BarChartItem[];
   showPercentages?: boolean;
+  context?: 'rhc' | 'command';
   className?: string;
 }
 
@@ -32,65 +33,51 @@ function formatCurrency(value: number): string {
 /**
  * SpendingBarChart - Horizontal bar chart showing spending breakdown
  * Used for category breakdowns, vendor spending, etc.
+ * Responsive with context awareness for RHC panel
  */
 export function SpendingBarChart({ 
   title, 
   items, 
   showPercentages = false,
+  context = 'rhc',
   className = '' 
 }: SpendingBarChartProps) {
+  const isCompact = context === 'rhc';
+  
   const maxValue = useMemo(() => {
     return Math.max(...items.map(i => Math.abs(i.value)));
   }, [items]);
 
   return (
-    <div className={`chat-spending-breakdown ${className}`}>
+    <div className={`chat-bar-chart ${isCompact ? 'chat-bar-chart--compact' : ''} ${className}`}>
       {title && (
-        <h4 className="text-label-demi" style={{ 
-          color: 'var(--ds-text-default)', 
-          marginBottom: 12 
-        }}>
+        <h4 className={`${isCompact ? 'text-label-demi' : 'text-body-demi'} chat-bar-chart__title`}>
           {title}
         </h4>
       )}
       
-      <div className="chat-spending-items">
+      <div className="chat-bar-chart__items">
         {items.map((item, i) => (
-          <div key={i} className="chat-spending-row">
-            <span 
-              className="text-body-sm chat-spending-label"
-              style={{ color: 'var(--ds-text-default)' }}
-            >
+          <div key={i} className="chat-bar-chart__row">
+            <span className={`${isCompact ? 'text-label' : 'text-body-sm'} chat-bar-chart__label`}>
               {item.label}
             </span>
             
-            <div className="chat-spending-bar-container">
+            <div className="chat-bar-chart__bar-container">
               <div
-                className="chat-spending-bar"
+                className={`chat-bar-chart__bar ${item.value < 0 ? 'chat-bar-chart__bar--negative' : ''}`}
                 style={{
                   width: `${(Math.abs(item.value) / maxValue) * 100}%`,
-                  backgroundColor: item.value < 0 
-                    ? 'var(--neutral-base-300)' 
-                    : 'var(--purple-magic-300)',
                 }}
               />
             </div>
             
-            <span 
-              className="text-body-sm chat-spending-value"
-              style={{ 
-                color: 'var(--ds-text-default)',
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
+            <span className={`${isCompact ? 'text-label' : 'text-body-sm'} chat-bar-chart__value`}>
               {formatCurrency(item.value)}
             </span>
             
             {showPercentages && item.percentage !== undefined && (
-              <span 
-                className="text-tiny chat-spending-percentage"
-                style={{ color: 'var(--ds-text-tertiary)' }}
-              >
+              <span className={`${isCompact ? 'text-micro' : 'text-tiny'} chat-bar-chart__percentage`}>
                 {item.percentage}%
               </span>
             )}

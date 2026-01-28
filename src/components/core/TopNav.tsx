@@ -24,6 +24,9 @@ import {
   faList,
   faUniversity,
   faUserCircle,
+  faBolt,
+  faSparkles,
+  faCompass,
 } from '@/icons';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 
@@ -121,12 +124,13 @@ interface ResultItemProps {
   icon: IconDefinition;
   text: string;
   rightText?: string;
+  typeBadge?: string;
   isActive?: boolean;
   onClick?: () => void;
   onMouseEnter?: () => void;
 }
 
-function ResultItem({ icon, text, rightText, isActive = false, onClick, onMouseEnter }: ResultItemProps) {
+function ResultItem({ icon, text, rightText, typeBadge, isActive = false, onClick, onMouseEnter }: ResultItemProps) {
   return (
     <div className="flex w-full items-center justify-center px-2">
       <button
@@ -141,13 +145,31 @@ function ResultItem({ icon, text, rightText, isActive = false, onClick, onMouseE
         }}
         aria-selected={isActive}
       >
-        <div className="flex items-start gap-1">
+        <div className="flex items-center gap-2">
           <Icon
             icon={icon}
             size="default"
             style={{ color: 'var(--neutral-base-500)' }}
           />
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: 15, lineHeight: '24px', color: 'var(--neutral-base-700)' }}>{text}</span>
+          {typeBadge && (
+            <span 
+              className="rounded-sm"
+              style={{ 
+                fontFamily: 'var(--font-sans)',
+                fontSize: 10, 
+                fontWeight: 480,
+                lineHeight: '16px', 
+                letterSpacing: '0.3px',
+                textTransform: 'uppercase',
+                padding: '2px 6px',
+                backgroundColor: 'var(--ds-bg-secondary)',
+                color: 'var(--ds-text-tertiary)'
+              }}
+            >
+              {typeBadge}
+            </span>
+          )}
         </div>
         {rightText ? (
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, lineHeight: '20px', letterSpacing: '0.2px', color: 'var(--neutral-base-500)' }}>
@@ -155,6 +177,43 @@ function ResultItem({ icon, text, rightText, isActive = false, onClick, onMouseE
           </span>
         ) : null}
       </button>
+    </div>
+  );
+}
+
+interface CategoryHeaderProps {
+  icon: IconDefinition;
+  label: string;
+  count?: number;
+}
+
+function CategoryHeader({ icon, label, count }: CategoryHeaderProps) {
+  return (
+    <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+      <Icon icon={icon} size="small" style={{ color: 'var(--ds-icon-tertiary)' }} />
+      <span 
+        style={{ 
+          fontFamily: 'var(--font-sans)',
+          fontSize: 11, 
+          fontWeight: 480,
+          letterSpacing: '0.5px',
+          textTransform: 'uppercase',
+          color: 'var(--ds-text-tertiary)'
+        }}
+      >
+        {label}
+      </span>
+      {count !== undefined && (
+        <span 
+          style={{ 
+            fontFamily: 'var(--font-sans)',
+            fontSize: 11, 
+            color: 'var(--ds-text-tertiary)'
+          }}
+        >
+          ({count})
+        </span>
+      )}
     </div>
   );
 }
@@ -171,14 +230,24 @@ export function TopNav() {
 
   const normalizeSearchToken = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
+  type SearchGroup = 'Pages' | 'Actions' | 'Command Prompts' | 'Explore';
+  
   type SearchItem = {
     id: string;
-    group: 'Pages' | 'Actions';
+    group: SearchGroup;
     icon: IconDefinition;
     title: string;
     keywords: string[];
     jumpLabel?: string;
     onSelect: () => void;
+  };
+  
+  // Map groups to their header icons
+  const groupIcons: Record<SearchGroup, IconDefinition> = {
+    'Pages': faGlobe,
+    'Actions': faBolt,
+    'Command Prompts': faSparkles,
+    'Explore': faCompass,
   };
 
   function fuzzyScore(needleRaw: string, haystackRaw: string) {
@@ -230,23 +299,33 @@ export function TopNav() {
     };
 
     const pages: SearchItem[] = [
-      { id: 'page:ds', group: 'Pages', icon: faList, title: 'Design System', jumpLabel: 'ds', keywords: ['design system', 'components', 'ui'], onSelect: () => closeAndNavigate('/components') },
-      { id: 'page:dashboard', group: 'Pages', icon: faList, title: 'Dashboard', jumpLabel: 'dashboard', keywords: ['home'], onSelect: () => closeAndNavigate('/dashboard') },
-      { id: 'page:tasks', group: 'Pages', icon: faList, title: 'Tasks', jumpLabel: 'tasks', keywords: ['todo', 'to do'], onSelect: () => closeAndNavigate('/tasks') },
-      { id: 'page:transactions', group: 'Pages', icon: faList, title: 'Transactions', jumpLabel: 'transactions', keywords: ['payments'], onSelect: () => closeAndNavigate('/transactions') },
-      { id: 'page:cards', group: 'Pages', icon: faList, title: 'Cards', jumpLabel: 'cards', keywords: ['credit', 'debit'], onSelect: () => closeAndNavigate('/cards') },
-      { id: 'page:typography', group: 'Pages', icon: faList, title: 'Typography', jumpLabel: 'typography', keywords: ['fonts', 'type'], onSelect: () => closeAndNavigate('/typography') },
-      { id: 'page:colors', group: 'Pages', icon: faList, title: 'Colors', jumpLabel: 'colors', keywords: ['palette'], onSelect: () => closeAndNavigate('/colors') },
-      { id: 'page:border-radius', group: 'Pages', icon: faList, title: 'Border Radius', jumpLabel: 'radius', keywords: ['rounding', 'border radius'], onSelect: () => closeAndNavigate('/border-radius') },
-      { id: 'page:components-list', group: 'Pages', icon: faList, title: 'Components (List)', jumpLabel: 'componentslist', keywords: ['gallery', 'list'], onSelect: () => closeAndNavigate('/components/list') },
+      { id: 'page:ds', group: 'Pages', icon: faGlobe, title: 'Design System', jumpLabel: 'ds', keywords: ['design system', 'components', 'ui'], onSelect: () => closeAndNavigate('/components') },
+      { id: 'page:dashboard', group: 'Pages', icon: faGlobe, title: 'Dashboard', jumpLabel: 'dashboard', keywords: ['home'], onSelect: () => closeAndNavigate('/dashboard') },
+      { id: 'page:tasks', group: 'Pages', icon: faGlobe, title: 'Tasks', jumpLabel: 'tasks', keywords: ['todo', 'to do'], onSelect: () => closeAndNavigate('/tasks') },
+      { id: 'page:transactions', group: 'Pages', icon: faGlobe, title: 'Transactions', jumpLabel: 'transactions', keywords: ['payments'], onSelect: () => closeAndNavigate('/transactions') },
+      { id: 'page:cards', group: 'Pages', icon: faGlobe, title: 'Cards', jumpLabel: 'cards', keywords: ['credit', 'debit'], onSelect: () => closeAndNavigate('/cards') },
+      { id: 'page:typography', group: 'Pages', icon: faGlobe, title: 'Typography', jumpLabel: 'typography', keywords: ['fonts', 'type'], onSelect: () => closeAndNavigate('/typography') },
+      { id: 'page:colors', group: 'Pages', icon: faGlobe, title: 'Colors', jumpLabel: 'colors', keywords: ['palette'], onSelect: () => closeAndNavigate('/colors') },
+      { id: 'page:border-radius', group: 'Pages', icon: faGlobe, title: 'Border Radius', jumpLabel: 'radius', keywords: ['rounding', 'border radius'], onSelect: () => closeAndNavigate('/border-radius') },
+      { id: 'page:components-list', group: 'Pages', icon: faGlobe, title: 'Components (List)', jumpLabel: 'componentslist', keywords: ['gallery', 'list'], onSelect: () => closeAndNavigate('/components/list') },
     ];
 
     const actions: SearchItem[] = [
-      { id: 'action:send-money', group: 'Actions', icon: faList, title: 'Send money', keywords: ['send', 'payment', 'transfer'], onSelect: () => closeSearch() },
-      { id: 'action:add-recipient', group: 'Actions', icon: faList, title: 'Add new recipient', keywords: ['recipient', 'payee', 'contact'], onSelect: () => closeSearch() },
+      { id: 'action:send-money', group: 'Actions', icon: faBolt, title: 'Send money', keywords: ['send', 'payment', 'transfer'], onSelect: () => closeSearch() },
+      { id: 'action:add-recipient', group: 'Actions', icon: faBolt, title: 'Add new recipient', keywords: ['recipient', 'payee', 'contact'], onSelect: () => closeSearch() },
     ];
 
-    return [...pages, ...actions];
+    const commandPrompts: SearchItem[] = [
+      { id: 'prompt:runway', group: 'Command Prompts', icon: faSparkles, title: "What's my runway?", keywords: ['runway', 'burn', 'cash'], onSelect: () => closeAndNavigate('/command?q=What%27s%20my%20runway%3F') },
+      { id: 'prompt:spending', group: 'Command Prompts', icon: faSparkles, title: 'Show top spending categories', keywords: ['spending', 'expenses', 'categories'], onSelect: () => closeAndNavigate('/command?q=Show%20top%20spending%20categories') },
+      { id: 'prompt:payments', group: 'Command Prompts', icon: faSparkles, title: 'Find payments over $5,000', keywords: ['payments', 'large', 'find'], onSelect: () => closeAndNavigate('/command?q=Find%20payments%20over%20%245%2C000') },
+    ];
+
+    const explore: SearchItem[] = [
+      { id: 'explore:command', group: 'Explore', icon: faCompass, title: 'Explore with Command', keywords: ['explore', 'discover', 'command', 'ai'], onSelect: () => closeAndNavigate('/command') },
+    ];
+
+    return [...pages, ...actions, ...commandPrompts, ...explore];
   }, [navigate]);
 
   const visibleResults = useMemo(() => {
@@ -255,8 +334,21 @@ export function TopNav() {
     const needle = raw.replace(/^\/+/, '').trim();
 
     if (!needle) {
-      const suggested = searchItems.filter((i) => i.group === 'Pages').slice(0, 6);
-      return { isJump, needle, results: suggested };
+      // Show suggested pages, command prompts, and explore in empty state
+      const suggestedPages = searchItems.filter((i) => i.group === 'Pages').slice(0, 4);
+      const suggestedPrompts = searchItems.filter((i) => i.group === 'Command Prompts').slice(0, 2);
+      const suggestedExplore = searchItems.filter((i) => i.group === 'Explore').slice(0, 1);
+      const suggested = [...suggestedPages, ...suggestedPrompts, ...suggestedExplore];
+      
+      // Group by category
+      const groupedByCategory: Record<string, SearchItem[]> = {};
+      for (const item of suggested) {
+        if (!groupedByCategory[item.group]) {
+          groupedByCategory[item.group] = [];
+        }
+        groupedByCategory[item.group]!.push(item);
+      }
+      return { isJump, needle, results: suggested, grouped: groupedByCategory };
     }
 
     const pool = isJump ? searchItems.filter((i) => i.group === 'Pages') : searchItems;
@@ -273,7 +365,16 @@ export function TopNav() {
       .slice(0, 12)
       .map((x) => x.item);
 
-    return { isJump, needle, results: scored };
+    // Group by category
+    const groupedByCategory: Record<string, SearchItem[]> = {};
+    for (const item of scored) {
+      if (!groupedByCategory[item.group]) {
+        groupedByCategory[item.group] = [];
+      }
+      groupedByCategory[item.group]!.push(item);
+    }
+
+    return { isJump, needle, results: scored, grouped: groupedByCategory };
   }, [deferredQuery, searchItems]);
 
   function closeSearch() {
@@ -316,205 +417,217 @@ export function TopNav() {
   }, [visibleResults.results.length, isSearchOpen]);
 
   return (
-    <header 
-      className="flex w-full items-center justify-between bg-white px-6"
-      style={{ height: 64, borderBottom: '1px solid rgba(112,115,147,0.1)' }}
-    >
-      <div className="flex flex-1 items-start justify-between min-h-px min-w-0">
-        {/* Omnisearch Bar */}
-        <div className="relative" ref={searchContainerRef}>
-          {/* Search Trigger (shown when closed) */}
-          {!isSearchOpen && (
-            <button
-              className="relative flex items-center justify-between rounded-md transition-colors"
-              style={{ 
-                height: 40, 
-                width: 450, 
-                border: '1px solid rgba(112,115,147,0.16)', 
-                backgroundColor: 'var(--neutral-base-50)',
-                padding: '0 16px'
-              }}
-              aria-label="Search or jump to"
-              onClick={() => {
-                setIsSearchOpen(true);
-                setSearchQuery('');
-                setActiveResultIndex(0);
-              }}
-            >
-              <div className="flex items-center gap-3" style={{ height: 32 }}>
-                <Icon 
-                  icon={faMagnifyingGlass} 
-                  size="default"
-                  style={{ color: 'var(--neutral-base-400)' }}
-                />
-                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 15, lineHeight: '24px', color: 'var(--neutral-base-400)' }}>
-                  Search or jump to
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <KeyboardKey>⌘</KeyboardKey>
-                <KeyboardKey>K</KeyboardKey>
-              </div>
-            </button>
-          )}
-
-          {/* Search Dropdown (shown when open) */}
-          {isSearchOpen && (
-            <div 
-              className="absolute top-0 left-0 z-50 overflow-hidden rounded-md bg-white"
-              style={{ 
-                width: 700, 
-                boxShadow: '0px 8px 12px 0px rgba(4,4,52,0.03), 0px 14px 20px 0px rgba(4,4,52,0.03)' 
-              }}
-            >
-              {/* Search Input */}
-              <div 
-                className="relative flex items-center justify-between bg-white rounded-t-md"
-                style={{ border: '1px solid rgba(112,115,147,0.1)', padding: '4px 16px' }}
+    <>
+      {/* Backdrop overlay when search is open */}
+      {isSearchOpen && (
+        <div 
+          className="everything-backdrop"
+          onClick={closeSearch}
+          aria-hidden="true"
+        />
+      )}
+      
+      <header 
+        className="flex w-full items-center justify-between bg-white px-6"
+        style={{ height: 64, borderBottom: '1px solid rgba(112,115,147,0.1)' }}
+      >
+        <div className="flex flex-1 items-start justify-between min-h-px min-w-0 gap-6">
+          {/* Everything (Omnisearch Bar) */}
+          <div className="everything-container" ref={searchContainerRef}>
+            {/* Search Trigger (shown when closed) */}
+            {!isSearchOpen && (
+              <button
+                className="everything-trigger"
+                aria-label="Search or jump to"
+                onClick={() => {
+                  setIsSearchOpen(true);
+                  setSearchQuery('');
+                  setActiveResultIndex(0);
+                }}
               >
-                <div className="flex flex-1 items-center gap-3" style={{ height: 32 }}>
+                <div className="flex items-center gap-3" style={{ height: 32 }}>
                   <Icon 
                     icon={faMagnifyingGlass} 
                     size="default"
-                    style={{ color: 'var(--neutral-base-500)' }}
+                    style={{ color: 'var(--neutral-base-400)' }}
                   />
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search or jump to"
-                    className="flex-1 bg-transparent outline-none"
-                    style={{ fontFamily: 'var(--font-sans)', fontSize: 15, lineHeight: '24px', color: 'var(--neutral-base-700)', border: 'none' }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape') {
-                        e.preventDefault();
-                        closeSearch();
-                        return;
-                      }
-
-                      if (e.key === 'ArrowDown') {
-                        if (visibleResults.results.length > 0) {
-                          e.preventDefault();
-                          setActiveResultIndex((i) => (i + 1) % visibleResults.results.length);
-                        }
-                        return;
-                      }
-
-                      if (e.key === 'ArrowUp') {
-                        if (visibleResults.results.length > 0) {
-                          e.preventDefault();
-                          setActiveResultIndex((i) => (i - 1 + visibleResults.results.length) % visibleResults.results.length);
-                        }
-                        return;
-                      }
-
-                      if (e.key === 'Enter') {
-                        if (visibleResults.results.length > 0) {
-                          e.preventDefault();
-                          const selected = visibleResults.results[Math.min(activeResultIndex, visibleResults.results.length - 1)];
-                          selected?.onSelect();
-                        }
-                      }
-                    }}
-                  />
+                  <span style={{ fontFamily: 'var(--font-sans)', fontSize: 15, lineHeight: '24px', color: 'var(--neutral-base-400)' }}>
+                    Search or jump to
+                  </span>
                 </div>
-                <DSButton
-                  variant="tertiary"
-                  size="small"
-                  iconOnly
-                  onClick={() => closeSearch()}
-                >
-                  <Icon 
-                    icon={faXmark} 
-                    size="default"
-                    style={{ color: 'var(--neutral-base-500)' }}
-                  />
-                </DSButton>
-                {/* Focus indicator line */}
-                <div className="absolute inset-x-0 bottom-0" style={{ height: 2, backgroundColor: '#4d68eb' }} />
-              </div>
+                <div className="flex items-center gap-1">
+                  <KeyboardKey>⌘</KeyboardKey>
+                  <KeyboardKey>K</KeyboardKey>
+                </div>
+              </button>
+            )}
 
-              {/* Filter Bar */}
-              <div style={{ borderLeft: '1px solid rgba(112,115,147,0.1)', borderRight: '1px solid rgba(112,115,147,0.1)', borderBottom: '1px solid rgba(112,115,147,0.1)', paddingBottom: 16 }}>
-                <div className="px-4" style={{ paddingBottom: 8, paddingTop: 12 }}>
-                  <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13, lineHeight: '20px', letterSpacing: '0.1px', color: 'var(--neutral-base-500)' }}>
+            {/* Everything Dropdown (shown when open) */}
+            {isSearchOpen && (
+              <div className="everything-dropdown">
+                {/* Search Input */}
+                <div className="everything-input-container">
+                  <div className="everything-input-wrapper">
+                    <Icon 
+                      icon={faMagnifyingGlass} 
+                      size="default"
+                      style={{ color: 'var(--neutral-base-500)' }}
+                    />
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search or jump to"
+                      className="everything-input"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          e.preventDefault();
+                          closeSearch();
+                          return;
+                        }
+
+                        if (e.key === 'ArrowDown') {
+                          if (visibleResults.results.length > 0) {
+                            e.preventDefault();
+                            setActiveResultIndex((i) => (i + 1) % visibleResults.results.length);
+                          }
+                          return;
+                        }
+
+                        if (e.key === 'ArrowUp') {
+                          if (visibleResults.results.length > 0) {
+                            e.preventDefault();
+                            setActiveResultIndex((i) => (i - 1 + visibleResults.results.length) % visibleResults.results.length);
+                          }
+                          return;
+                        }
+
+                        if (e.key === 'Enter') {
+                          if (visibleResults.results.length > 0) {
+                            e.preventDefault();
+                            const selected = visibleResults.results[Math.min(activeResultIndex, visibleResults.results.length - 1)];
+                            selected?.onSelect();
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                  <DSButton
+                    variant="tertiary"
+                    size="small"
+                    iconOnly
+                    onClick={() => closeSearch()}
+                  >
+                    <Icon 
+                      icon={faXmark} 
+                      size="default"
+                      style={{ color: 'var(--neutral-base-500)' }}
+                    />
+                  </DSButton>
+                  {/* Focus indicator line */}
+                  <div className="everything-focus-line" />
+                </div>
+
+                {/* Filter Bar */}
+                <div className="everything-filters">
+                  <span className="everything-filters-label">
                     Searching for
                   </span>
-                </div>
-                <div className="flex flex-wrap gap-2 px-4">
-                  <FilterChip icon={faGlobe} label="Pages" />
-                  <FilterChip icon={faList} label="Transactions" />
-                  <FilterChip icon={faUniversity} label="Accounts" />
-                  <FilterChip icon={faCreditCard} label="Cards" />
-                  <FilterChip icon={faUser} label="Recipients" />
-                  <FilterChip icon={faUserCircle} label="Team" />
-                  <FilterChip icon={faFile} label="Statements" />
-                </div>
-              </div>
-
-              {/* Results */}
-              <div style={{ borderLeft: '1px solid rgba(112,115,147,0.1)', borderRight: '1px solid rgba(112,115,147,0.1)', paddingBottom: 8 }}>
-                <div className="px-4" style={{ paddingBottom: 8, paddingTop: 12 }}>
-                  <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13, lineHeight: '20px', letterSpacing: '0.1px', color: 'var(--neutral-base-500)' }}>
-                    {visibleResults.needle ? 'Results' : 'Suggested'}
-                  </span>
+                  <div className="everything-filters-chips">
+                    <FilterChip icon={faGlobe} label="Pages" />
+                    <FilterChip icon={faList} label="Transactions" />
+                    <FilterChip icon={faUniversity} label="Accounts" />
+                    <FilterChip icon={faCreditCard} label="Cards" />
+                    <FilterChip icon={faUser} label="Recipients" />
+                    <FilterChip icon={faUserCircle} label="Team" />
+                    <FilterChip icon={faFile} label="Statements" />
+                  </div>
                 </div>
 
-                {visibleResults.results.length > 0 ? (
-                  visibleResults.results.map((item, idx) => (
-                    <ResultItem
-                      key={item.id}
-                      icon={item.icon}
-                      text={item.title}
-                      rightText={visibleResults.isJump && item.jumpLabel ? `/${item.jumpLabel}` : undefined}
-                      isActive={idx === activeResultIndex}
-                      onMouseEnter={() => setActiveResultIndex(idx)}
-                      onClick={item.onSelect}
-                    />
-                  ))
-                ) : (
-                  <div className="px-4" style={{ paddingBottom: 12, fontFamily: 'var(--font-sans)', fontSize: 13, lineHeight: '20px', letterSpacing: '0.1px', color: 'var(--neutral-base-500)' }}>
-                    No results found.
-                  </div>
-                )}
-              </div>
+                {/* Results - grouped by category */}
+                <div className="everything-results">
+                  {visibleResults.results.length > 0 ? (
+                    <>
+                      {/* Render each category group */}
+                      {Object.entries(visibleResults.grouped).map(([group, items]) => {
+                        // Get the icon for the category header
+                        const categoryIcon = groupIcons[group as SearchGroup] || faGlobe;
+                        
+                        // Map group to badge label
+                        const badgeLabels: Record<string, string> = {
+                          'Pages': 'Page',
+                          'Actions': 'Action',
+                          'Command Prompts': 'Prompt',
+                          'Explore': 'Explore',
+                        };
+                        
+                        return (
+                          <div key={group}>
+                            <CategoryHeader 
+                              icon={categoryIcon} 
+                              label={group} 
+                              count={items.length}
+                            />
+                            {items.map((item) => {
+                              // Find the global index for keyboard navigation
+                              const globalIdx = visibleResults.results.findIndex(r => r.id === item.id);
+                              return (
+                                <ResultItem
+                                  key={item.id}
+                                  icon={item.icon}
+                                  text={item.title}
+                                  typeBadge={badgeLabels[item.group] || item.group}
+                                  rightText={visibleResults.isJump && item.jumpLabel ? `/${item.jumpLabel}` : undefined}
+                                  isActive={globalIdx === activeResultIndex}
+                                  onMouseEnter={() => setActiveResultIndex(globalIdx)}
+                                  onClick={item.onSelect}
+                                />
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    <div className="px-4" style={{ paddingBottom: 12, fontFamily: 'var(--font-sans)', fontSize: 13, lineHeight: '20px', letterSpacing: '0.1px', color: 'var(--neutral-base-500)' }}>
+                      No results found.
+                    </div>
+                  )}
+                </div>
 
-              {/* Footer */}
-              <div 
-                className="flex items-center justify-between rounded-b-md px-4"
-                style={{ border: '1px solid rgba(112,115,147,0.1)', padding: '8px 16px' }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1">
-                    <KeyboardKey>/</KeyboardKey>
-                    <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, lineHeight: '20px', letterSpacing: '0.2px', color: 'var(--neutral-base-500)' }}>
-                      Filter
-                    </span>
+                {/* Footer */}
+                <div className="everything-footer">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1">
+                      <KeyboardKey>/</KeyboardKey>
+                      <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, lineHeight: '20px', letterSpacing: '0.2px', color: 'var(--neutral-base-500)' }}>
+                        Filter
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <KeyboardKey>↑</KeyboardKey>
+                      <KeyboardKey>↓</KeyboardKey>
+                      <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, lineHeight: '20px', letterSpacing: '0.2px', color: 'var(--neutral-base-500)' }}>
+                        Navigate
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <KeyboardKey>↵</KeyboardKey>
+                      <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, lineHeight: '20px', letterSpacing: '0.2px', color: 'var(--neutral-base-500)' }}>
+                        Select
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <KeyboardKey>↑</KeyboardKey>
-                    <KeyboardKey>↓</KeyboardKey>
-                    <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, lineHeight: '20px', letterSpacing: '0.2px', color: 'var(--neutral-base-500)' }}>
-                      Navigate
-                    </span>
+                  <div className="flex items-center gap-1" style={{ fontFamily: 'var(--font-sans)', fontSize: 12, lineHeight: '20px', letterSpacing: '0.2px' }}>
+                    <span style={{ color: 'var(--neutral-base-500)' }}>Not what you're looking for?</span>
+                    <span style={{ color: 'var(--neutral-base-500)' }}>Try the</span>
+                    <a href="#" style={{ color: '#5266eb', textDecoration: 'none', background: 'none' }}>Help Center</a>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <KeyboardKey>↵</KeyboardKey>
-                    <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, lineHeight: '20px', letterSpacing: '0.2px', color: 'var(--neutral-base-500)' }}>
-                      Select
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1" style={{ fontFamily: 'var(--font-sans)', fontSize: 12, lineHeight: '20px', letterSpacing: '0.2px' }}>
-                  <span style={{ color: 'var(--neutral-base-500)' }}>Not what you're looking for?</span>
-                  <span style={{ color: 'var(--neutral-base-500)' }}>Try the</span>
-                  <a href="#" style={{ color: '#5266eb', textDecoration: 'none', background: 'none' }}>Help Center</a>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
         {/* Right Side Content */}
         <div className="flex items-center justify-end gap-6 self-stretch">
@@ -589,5 +702,6 @@ export function TopNav() {
         </div>
       </div>
     </header>
+    </>
   );
 }

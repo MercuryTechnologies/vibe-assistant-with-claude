@@ -2,6 +2,7 @@ import type { TransactionTableMetadata, TransactionTableRow } from '@/chat/types
 
 interface TransactionTableProps {
   data: TransactionTableMetadata;
+  context?: 'rhc' | 'command';
   className?: string;
 }
 
@@ -28,18 +29,21 @@ function formatDate(dateStr: string): string {
 /**
  * TransactionTable - Tabular display of transactions
  * Shows counterparty, amount, date, and optional category
+ * Supports compact mode for RHC panel
  */
 export function TransactionTable({ 
   data, 
+  context = 'rhc',
   className = '' 
 }: TransactionTableProps) {
+  const isCompact = context === 'rhc';
+  // Hide category column in compact mode
+  const showCategory = data.showCategory && !isCompact;
+  
   return (
-    <div className={`chat-transaction-table ${className}`}>
+    <div className={`chat-transaction-table ${isCompact ? 'chat-transaction-table--compact' : ''} ${className}`}>
       {data.title && (
-        <h4 className="text-label-demi" style={{ 
-          color: 'var(--ds-text-default)', 
-          marginBottom: 8 
-        }}>
+        <h4 className="text-label-demi chat-table__title">
           {data.title}
         </h4>
       )}
@@ -47,17 +51,17 @@ export function TransactionTable({
       <table className="chat-table">
         <thead>
           <tr>
-            <th className="text-tiny" style={{ color: 'var(--ds-text-secondary)' }}>
+            <th className={isCompact ? 'text-micro' : 'text-tiny'}>
               Counterparty
             </th>
-            <th className="text-tiny" style={{ color: 'var(--ds-text-secondary)', textAlign: 'right' }}>
+            <th className={isCompact ? 'text-micro' : 'text-tiny'} style={{ textAlign: 'right' }}>
               Amount
             </th>
-            <th className="text-tiny" style={{ color: 'var(--ds-text-secondary)' }}>
+            <th className={isCompact ? 'text-micro' : 'text-tiny'}>
               Date
             </th>
-            {data.showCategory && (
-              <th className="text-tiny" style={{ color: 'var(--ds-text-secondary)' }}>
+            {showCategory && (
+              <th className="text-tiny">
                 Category
               </th>
             )}
@@ -69,30 +73,21 @@ export function TransactionTable({
               <td>
                 <a 
                   href={row.dashboardLink} 
-                  className="chat-table-link text-body-sm"
-                  style={{ color: 'var(--ds-text-default)' }}
+                  className={`chat-table-link ${isCompact ? 'text-label' : 'text-body-sm'}`}
                 >
                   {row.counterparty}
                 </a>
               </td>
               <td 
-                className="text-body-sm"
-                style={{ 
-                  textAlign: 'right',
-                  fontVariantNumeric: 'tabular-nums',
-                  color: row.amount < 0 ? 'var(--ds-text-default)' : 'var(--color-success)',
-                }}
+                className={`chat-table__amount ${isCompact ? 'text-label' : 'text-body-sm'} ${row.amount >= 0 ? 'chat-table__amount--positive' : ''}`}
               >
                 {formatCurrency(row.amount)}
               </td>
-              <td 
-                className="text-body-sm"
-                style={{ color: 'var(--ds-text-secondary)' }}
-              >
+              <td className={`chat-table__date ${isCompact ? 'text-label' : 'text-body-sm'}`}>
                 {formatDate(row.date)}
               </td>
-              {data.showCategory && row.category && (
-                <td className="text-body-sm" style={{ color: 'var(--ds-text-secondary)' }}>
+              {showCategory && row.category && (
+                <td className="text-body-sm chat-table__category">
                   {row.category}
                 </td>
               )}

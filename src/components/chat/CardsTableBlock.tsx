@@ -4,12 +4,13 @@ import { Icon } from '@/components/ui/icon';
 import { DSButton } from '@/components/ui/ds-button';
 import { DSTextInput } from '@/components/ui/ds-text-input';
 import { Badge } from '@/components/ui/badge';
-import { faSnowflake, faEye, faEyeSlash, faPencil, faCheck, faXmark } from '@/icons';
+import { faSnowflake, faEye, faEyeSlash, faPencil, faCheck, faXmark, faChevronDown } from '@/icons';
 
 interface CardsTableBlockProps {
   data: CardsTableMetadata;
   context?: 'rhc' | 'command';
   onLimitChange?: (cardId: string, newLimit: number) => void;
+  onFreezeChange?: (cardId: string, frozen: boolean) => void;
   className?: string;
 }
 
@@ -42,12 +43,14 @@ function getStatusBadgeVariant(status: CardTableRow['status']): 'success' | 'war
 }
 
 /**
- * CardsTableBlock - Displays cards in chat with actions
+ * CardsTableBlock - Displays cards in chat with expand/collapse details
+ * Uses a card-based layout for polished expand/collapse behavior
  */
 export function CardsTableBlock({ 
   data, 
   context = 'rhc',
   onLimitChange,
+  onFreezeChange,
   className = '' 
 }: CardsTableBlockProps) {
   const [expandedCardId, setExpandedCardId] = useState<string | null>(data.showDetailFor || null);
@@ -84,6 +87,7 @@ export function CardsTableBlock({
   };
   
   const handleToggleFreeze = (cardId: string, currentStatus: string) => {
+    const willBeFrozen = !(currentStatus === 'frozen' || frozenCards.has(cardId));
     setFrozenCards(prev => {
       const next = new Set(prev);
       if (currentStatus === 'frozen' || next.has(cardId)) {
@@ -93,6 +97,7 @@ export function CardsTableBlock({
       }
       return next;
     });
+    onFreezeChange?.(cardId, willBeFrozen);
   };
   
   const handleToggleReveal = (cardId: string) => {
@@ -115,205 +120,166 @@ export function CardsTableBlock({
     }
     return card.status;
   };
+
+  const toggleExpand = (cardId: string) => {
+    setExpandedCardId(prev => prev === cardId ? null : cardId);
+  };
   
   return (
-    <div className={`chat-cards-table ${className}`} style={{ marginTop: 12 }}>
+    <div className={`chat-cards-block ${isCompact ? 'chat-cards-block--compact' : ''} ${className}`}>
       {data.title && (
-        <h4 className="text-label-demi" style={{ 
-          color: 'var(--ds-text-default)', 
-          marginBottom: 8 
-        }}>
+        <h4 className="text-label-demi chat-cards-block__title">
           {data.title}
         </h4>
       )}
       
-      <table className="chat-table">
-        <thead>
-          <tr>
-            <th className="text-tiny" style={{ color: 'var(--ds-text-secondary)' }}>
-              Cardholder
-            </th>
-            {!isCompact && (
-              <th className="text-tiny" style={{ color: 'var(--ds-text-secondary)' }}>
-                Card
-              </th>
-            )}
-            <th className="text-tiny" style={{ color: 'var(--ds-text-secondary)', textAlign: 'right' }}>
-              Spent
-            </th>
-            <th className="text-tiny" style={{ color: 'var(--ds-text-secondary)', textAlign: 'right' }}>
-              Limit
-            </th>
-            <th className="text-tiny" style={{ color: 'var(--ds-text-secondary)' }}>
-              Status
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.rows.map((card) => {
-            const isExpanded = expandedCardId === card.id;
-            const effectiveStatus = getEffectiveStatus(card);
-            const isRevealed = revealedCards.has(card.id);
-            const isOverLimit = card.spent > card.limit;
-            
-            return (
-              <>
-                <tr 
-                  key={card.id}
-                  onClick={() => setExpandedCardId(isExpanded ? null : card.id)}
-                  style={{ cursor: 'pointer' }}
-                  className={isExpanded ? 'selected' : ''}
-                >
-                  <td>
-                    <span className="text-body-sm" style={{ color: 'var(--ds-text-default)' }}>
+      <div className="chat-cards-list">
+        {data.rows.map((card) => {
+          const isExpanded = expandedCardId === card.id;
+          const effectiveStatus = getEffectiveStatus(card);
+          const isRevealed = revealedCards.has(card.id);
+          const isOverLimit = card.spent > card.limit;
+          
+          return (
+            <div 
+              key={card.id}
+              className={`chat-card-item ${isExpanded ? 'chat-card-item--expanded' : ''}`}
+            >
+              {/* Card Header - Always Visible */}
+              <button
+                type="button"
+                className="chat-card-header"
+                onClick={() => toggleExpand(card.id)}
+                aria-expanded={isExpanded}
+              >
+                <div className="chat-card-header__main">
+                  <div className="chat-card-header__info">
+                    <span className="text-body-sm-demi chat-card-header__name">
                       {card.cardholder}
                     </span>
-                    {isCompact && card.cardName && (
-                      <span className="text-tiny" style={{ color: 'var(--ds-text-tertiary)', display: 'block' }}>
-                        {card.cardName}
+                    <span className="text-tiny chat-card-header__card">
+                      {card.cardName || `•••• ${card.cardLast4}`}
+                    </span>
+                  </div>
+                  
+                  <div className="chat-card-header__amounts">
+                    <span 
+                      className={`text-body-sm chat-card-header__spent ${isOverLimit ? 'chat-card-header__spent--over' : ''}`}
+                    >
+                      {formatCurrency(card.spent)}
+                    </span>
+                    <span className="text-tiny chat-card-header__limit">
+                      of {formatCurrency(getEffectiveLimit(card))}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="chat-card-header__meta">
+                  <Badge 
+                    type={getStatusBadgeVariant(effectiveStatus as CardTableRow['status'])} 
+                    label={effectiveStatus} 
+                  />
+                  <Icon 
+                    icon={faChevronDown} 
+                    size="small" 
+                    className={`chat-card-header__chevron ${isExpanded ? 'chat-card-header__chevron--expanded' : ''}`}
+                  />
+                </div>
+              </button>
+              
+              {/* Card Details - Expandable */}
+              {isExpanded && (
+                <div className="chat-card-details">
+                  {/* Card Number Row */}
+                  <div className="chat-card-details__row">
+                    <span className="text-label chat-card-details__label">
+                      Card Number
+                    </span>
+                    <div className="chat-card-details__value">
+                      <span className="text-body-sm chat-card-details__number">
+                        {isRevealed ? `4242 4242 4242 ${card.cardLast4}` : `•••• •••• •••• ${card.cardLast4}`}
                       </span>
-                    )}
-                  </td>
-                  {!isCompact && (
-                    <td className="text-body-sm" style={{ color: 'var(--ds-text-secondary)' }}>
-                      •••• {card.cardLast4}
-                    </td>
-                  )}
-                  <td 
-                    className="text-body-sm"
-                    style={{ 
-                      textAlign: 'right',
-                      fontVariantNumeric: 'tabular-nums',
-                      color: isOverLimit ? 'var(--color-error)' : 'var(--ds-text-default)',
-                    }}
-                  >
-                    {formatCurrency(card.spent)}
-                  </td>
-                  <td 
-                    className="text-body-sm"
-                    style={{ 
-                      textAlign: 'right',
-                      fontVariantNumeric: 'tabular-nums',
-                      color: 'var(--ds-text-secondary)',
-                    }}
-                  >
-                    {formatCurrency(getEffectiveLimit(card))}
-                  </td>
-                  <td>
-                    <Badge type={getStatusBadgeVariant(effectiveStatus as CardTableRow['status'])} label={effectiveStatus} />
-                  </td>
-                </tr>
-                {isExpanded && (
-                  <tr key={`${card.id}-details`}>
-                    <td colSpan={isCompact ? 4 : 5} style={{ padding: 12, backgroundColor: 'var(--ds-bg-secondary)' }}>
-                      <div className="flex flex-col gap-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-label" style={{ color: 'var(--ds-text-secondary)' }}>
-                            Card Number
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-body-sm" style={{ color: 'var(--ds-text-default)', fontVariantNumeric: 'tabular-nums' }}>
-                              {isRevealed ? `4242 4242 4242 ${card.cardLast4}` : `•••• •••• •••• ${card.cardLast4}`}
-                            </span>
-                            <DSButton
-                              variant="tertiary"
-                              size="small"
-                              iconOnly
-                              aria-label={isRevealed ? 'Hide card number' : 'Show card number'}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleReveal(card.id);
-                              }}
-                            >
-                              <Icon icon={isRevealed ? faEyeSlash : faEye} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
-                            </DSButton>
-                          </div>
-                        </div>
-                        
-                        {/* Monthly Limit - Editable */}
-                        <div className="flex items-center justify-between">
-                          <span className="text-label" style={{ color: 'var(--ds-text-secondary)' }}>
-                            Monthly Limit
-                          </span>
-                          <div className="flex items-center gap-2">
-                            {editingCardId === card.id ? (
-                              <>
-                                <DSTextInput
-                                  prefix="$"
-                                  value={editLimitValue}
-                                  onChange={(e) => setEditLimitValue(e.target.value.replace(/[^0-9]/g, ''))}
-                                  containerClassName="inline-limit-input"
-                                  style={{ width: 100 }}
-                                />
-                                <DSButton
-                                  variant="primary"
-                                  size="small"
-                                  iconOnly
-                                  aria-label="Save limit"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSaveLimit(card.id);
-                                  }}
-                                >
-                                  <Icon icon={faCheck} size="small" style={{ color: 'var(--ds-icon-on-primary)' }} />
-                                </DSButton>
-                                <DSButton
-                                  variant="tertiary"
-                                  size="small"
-                                  iconOnly
-                                  aria-label="Cancel"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCancelEdit();
-                                  }}
-                                >
-                                  <Icon icon={faXmark} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
-                                </DSButton>
-                              </>
-                            ) : (
-                              <>
-                                <span className="text-body-sm" style={{ color: 'var(--ds-text-default)', fontVariantNumeric: 'tabular-nums' }}>
-                                  {formatCurrency(getEffectiveLimit(card))}
-                                </span>
-                                <DSButton
-                                  variant="tertiary"
-                                  size="small"
-                                  iconOnly
-                                  aria-label="Edit limit"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleStartEdit(card);
-                                  }}
-                                >
-                                  <Icon icon={faPencil} size="small" style={{ color: 'var(--ds-icon-secondary)' }} />
-                                </DSButton>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="flex gap-2">
+                      <DSButton
+                        variant="tertiary"
+                        size="small"
+                        iconOnly
+                        aria-label={isRevealed ? 'Hide card number' : 'Show card number'}
+                        onClick={() => handleToggleReveal(card.id)}
+                      >
+                        <Icon icon={isRevealed ? faEyeSlash : faEye} size="small" />
+                      </DSButton>
+                    </div>
+                  </div>
+                  
+                  {/* Monthly Limit Row - Editable */}
+                  <div className="chat-card-details__row">
+                    <span className="text-label chat-card-details__label">
+                      Monthly Limit
+                    </span>
+                    <div className="chat-card-details__value">
+                      {editingCardId === card.id ? (
+                        <div className="chat-card-details__edit">
+                          <DSTextInput
+                            prefix="$"
+                            value={editLimitValue}
+                            onChange={(e) => setEditLimitValue(e.target.value.replace(/[^0-9]/g, ''))}
+                            containerClassName="chat-card-details__input"
+                          />
                           <DSButton
-                            variant={effectiveStatus === 'frozen' ? 'primary' : 'secondary'}
+                            variant="primary"
                             size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleFreeze(card.id, effectiveStatus);
-                            }}
+                            iconOnly
+                            aria-label="Save limit"
+                            onClick={() => handleSaveLimit(card.id)}
                           >
-                            <Icon icon={faSnowflake} size="small" />
-                            {effectiveStatus === 'frozen' ? 'Unfreeze' : 'Freeze'}
+                            <Icon icon={faCheck} size="small" />
+                          </DSButton>
+                          <DSButton
+                            variant="tertiary"
+                            size="small"
+                            iconOnly
+                            aria-label="Cancel"
+                            onClick={() => handleCancelEdit()}
+                          >
+                            <Icon icon={faXmark} size="small" />
                           </DSButton>
                         </div>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </>
-            );
-          })}
-        </tbody>
-      </table>
+                      ) : (
+                        <>
+                          <span className="text-body-sm chat-card-details__number">
+                            {formatCurrency(getEffectiveLimit(card))}
+                          </span>
+                          <DSButton
+                            variant="tertiary"
+                            size="small"
+                            iconOnly
+                            aria-label="Edit limit"
+                            onClick={() => handleStartEdit(card)}
+                          >
+                            <Icon icon={faPencil} size="small" />
+                          </DSButton>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="chat-card-details__actions">
+                    <DSButton
+                      variant={effectiveStatus === 'frozen' ? 'primary' : 'secondary'}
+                      size="small"
+                      onClick={() => handleToggleFreeze(card.id, effectiveStatus)}
+                    >
+                      <Icon icon={faSnowflake} size="small" />
+                      {effectiveStatus === 'frozen' ? 'Unfreeze Card' : 'Freeze Card'}
+                    </DSButton>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -14,12 +14,14 @@ interface ConfirmationBlockProps {
   onUndo: (id: string) => void;
   onCancel?: (id: string) => void;
   undoTimeoutSeconds?: number;
+  context?: 'rhc' | 'command';
   className?: string;
 }
 
 /**
  * ConfirmationBlock - Displays a confirmation dialog for sensitive changes
  * Includes undo functionality with countdown timer
+ * Supports compact mode for RHC panel
  */
 export function ConfirmationBlock({ 
   id,
@@ -32,11 +34,14 @@ export function ConfirmationBlock({
   onUndo,
   onCancel,
   undoTimeoutSeconds = 300, // 5 minutes default
+  context = 'rhc',
   className = '' 
 }: ConfirmationBlockProps) {
   const [status, setStatus] = useState<'pending' | 'confirmed' | 'undone'>('pending');
   const [timeRemaining, setTimeRemaining] = useState(undoTimeoutSeconds);
   const [canUndo, setCanUndo] = useState(true);
+  
+  const isCompact = context === 'rhc';
   
   // Countdown timer for undo availability
   useEffect(() => {
@@ -75,26 +80,19 @@ export function ConfirmationBlock({
     onUndo(id);
   };
   
+  const blockClass = `chat-block ${isCompact ? 'chat-block--compact' : ''} ${className}`;
+  
   // Undone state
   if (status === 'undone') {
     return (
-      <div 
-        className={`chat-confirmation-block ${className}`}
-        style={{
-          marginTop: 12,
-          padding: 16,
-          backgroundColor: 'var(--ds-bg-secondary)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--color-border-default)',
-        }}
-      >
+      <div className={`${blockClass} chat-block--secondary`}>
         <div className="flex items-center gap-3">
-          <Icon icon={faRotateRight} style={{ color: 'var(--ds-icon-secondary)' }} />
+          <Icon icon={faRotateRight} className="chat-block__icon chat-block__icon--secondary" />
           <div className="flex flex-col">
-            <span className="text-body-demi" style={{ color: 'var(--ds-text-default)' }}>
+            <span className="text-body-demi chat-block__title">
               Change undone
             </span>
-            <span className="text-label" style={{ color: 'var(--ds-text-secondary)' }}>
+            <span className="text-label chat-block__subtitle">
               {targetName || targetId} reverted to {currentValue}
             </span>
           </div>
@@ -106,23 +104,15 @@ export function ConfirmationBlock({
   // Confirmed state with undo option
   if (status === 'confirmed') {
     return (
-      <div 
-        className={`chat-confirmation-block ${className}`}
-        style={{
-          marginTop: 12,
-          padding: 16,
-          backgroundColor: 'var(--ds-bg-success)',
-          borderRadius: 'var(--radius-md)',
-        }}
-      >
+      <div className={`${blockClass} chat-block--success`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Icon icon={faCheck} style={{ color: 'var(--ds-icon-success)' }} />
+            <Icon icon={faCheck} className="chat-block__icon chat-block__icon--success" />
             <div className="flex flex-col">
-              <span className="text-body-demi" style={{ color: 'var(--ds-text-default)' }}>
+              <span className="text-body-demi chat-block__title">
                 {action} confirmed
               </span>
-              <span className="text-label" style={{ color: 'var(--ds-text-secondary)' }}>
+              <span className="text-label chat-block__subtitle">
                 {targetName || targetId}: {currentValue} → {newValue}
               </span>
             </div>
@@ -144,52 +134,35 @@ export function ConfirmationBlock({
   
   // Pending confirmation state
   return (
-    <div 
-      className={`chat-confirmation-block ${className}`}
-      style={{
-        marginTop: 12,
-        padding: 16,
-        backgroundColor: 'var(--ds-bg-warning)',
-        borderRadius: 'var(--radius-md)',
-        border: '1px solid var(--color-border-default)',
-      }}
-    >
+    <div className={`${blockClass} chat-block--warning`}>
       <div className="flex items-start gap-3">
-        <Icon icon={faCircleInfo} style={{ color: 'var(--ds-icon-warning)', marginTop: 2 }} />
+        <Icon icon={faCircleInfo} className="chat-block__icon chat-block__icon--warning" />
         <div className="flex-1">
-          <span className="text-body-demi" style={{ color: 'var(--ds-text-default)', display: 'block', marginBottom: 8 }}>
+          <span className="text-body-demi chat-block__heading">
             Confirm change
           </span>
           
-          <div 
-            className="flex flex-col gap-2"
-            style={{
-              padding: 12,
-              backgroundColor: 'var(--ds-bg-default)',
-              borderRadius: 'var(--radius-sm)',
-              marginBottom: 12,
-            }}
-          >
+          <div className="chat-confirmation__details">
             <div className="flex items-center justify-between">
-              <span className="text-label" style={{ color: 'var(--ds-text-secondary)' }}>
+              <span className="text-label chat-block__subtitle">
                 {action}
               </span>
-              <span className="text-label" style={{ color: 'var(--ds-text-secondary)' }}>
+              <span className="text-label chat-block__subtitle">
                 {targetName || targetId}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-body-sm" style={{ color: 'var(--ds-text-tertiary)' }}>
+              <span className="text-body-sm chat-confirmation__current">
                 Current: {currentValue}
               </span>
-              <span className="text-body-sm" style={{ color: 'var(--ds-text-default)' }}>
+              <span className="text-body-sm chat-confirmation__new">
                 New: {newValue}
               </span>
             </div>
           </div>
           
-          <div className="flex items-center justify-between">
-            <span className="text-tiny" style={{ color: 'var(--ds-text-tertiary)' }}>
+          <div className="chat-confirmation__footer">
+            <span className="text-tiny chat-confirmation__hint">
               Undo available for 5 minutes after confirming
             </span>
             <div className="flex gap-2">

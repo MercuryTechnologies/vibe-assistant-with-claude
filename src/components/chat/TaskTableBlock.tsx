@@ -6,6 +6,7 @@ import { faCheck, faCircle } from '@/icons';
 
 interface TaskTableBlockProps {
   data: TaskTableMetadata;
+  context?: 'rhc' | 'command';
   className?: string;
 }
 
@@ -29,26 +30,19 @@ function formatTaskType(type: string): string {
 
 /**
  * TaskTableBlock - Displays a list of tasks with status and actions
+ * Supports compact mode for RHC panel
  */
 export function TaskTableBlock({ 
   data, 
+  context = 'rhc',
   className = '' 
 }: TaskTableBlockProps) {
+  const isCompact = context === 'rhc';
+  
   if (data.rows.length === 0) {
     return (
-      <div 
-        className={`chat-task-table ${className}`}
-        style={{
-          padding: 16,
-          backgroundColor: 'var(--ds-bg-secondary)',
-          borderRadius: 'var(--radius-md)',
-          marginTop: 12,
-        }}
-      >
-        <p 
-          className="text-body-sm" 
-          style={{ color: 'var(--ds-text-secondary)', margin: 0 }}
-        >
+      <div className={`chat-block chat-block--secondary ${isCompact ? 'chat-block--compact' : ''} ${className}`}>
+        <p className="text-body-sm chat-block__subtitle" style={{ margin: 0 }}>
           No tasks found.
         </p>
       </div>
@@ -56,36 +50,18 @@ export function TaskTableBlock({
   }
 
   return (
-    <div className={`chat-task-table ${className}`} style={{ marginTop: 12 }}>
+    <div className={`chat-task-table ${isCompact ? 'chat-task-table--compact' : ''} ${className}`}>
       {data.title && (
-        <h4 className="text-label-demi" style={{ 
-          color: 'var(--ds-text-default)', 
-          marginBottom: 8 
-        }}>
+        <h4 className="text-label-demi chat-task-table__title">
           {data.title}
         </h4>
       )}
       
-      <div className="flex flex-col gap-2">
+      <div className="chat-task-table__list">
         {data.rows.map((task: TaskTableRow) => (
-          <div 
-            key={task.id}
-            className="flex items-start gap-3"
-            style={{
-              padding: '12px 16px',
-              backgroundColor: 'var(--ds-bg-secondary)',
-              borderRadius: 'var(--radius-md)',
-            }}
-          >
+          <div key={task.id} className="chat-task-table__item">
             {/* Status Icon */}
-            <div 
-              style={{ 
-                marginTop: 2,
-                color: task.status === 'completed' 
-                  ? 'var(--ds-icon-success)' 
-                  : 'var(--ds-icon-secondary)',
-              }}
-            >
+            <div className={`chat-task-table__icon ${task.status === 'completed' ? 'chat-task-table__icon--success' : ''}`}>
               <Icon 
                 icon={task.status === 'completed' ? faCheck : faCircle} 
                 size="small" 
@@ -93,12 +69,9 @@ export function TaskTableBlock({
             </div>
             
             {/* Task Content */}
-            <div className="flex flex-col flex-1" style={{ minWidth: 0 }}>
-              <div className="flex items-center gap-2" style={{ marginBottom: 4 }}>
-                <span 
-                  className="text-body-sm-demi" 
-                  style={{ color: 'var(--ds-text-default)' }}
-                >
+            <div className="chat-task-table__content">
+              <div className="chat-task-table__header">
+                <span className={`${isCompact ? 'text-label-demi' : 'text-body-sm-demi'} chat-task-table__type`}>
                   {formatTaskType(task.type)}
                 </span>
                 <Badge 
@@ -108,48 +81,37 @@ export function TaskTableBlock({
                 </Badge>
               </div>
               
-              <p 
-                className="text-body-sm" 
-                style={{ 
-                  color: 'var(--ds-text-secondary)', 
-                  margin: 0,
-                  marginBottom: task.received || task.actionLabel ? 8 : 0,
-                }}
-              >
+              <p className={`${isCompact ? 'text-label' : 'text-body-sm'} chat-task-table__description`}>
                 {task.description}
               </p>
               
               {/* Task Footer */}
-              <div className="flex items-center justify-between">
-                {task.received && (
-                  <span 
-                    className="text-tiny" 
-                    style={{ color: 'var(--ds-text-tertiary)' }}
-                  >
-                    Received: {formatDate(task.received)}
-                  </span>
-                )}
-                
-                {task.completedOn && (
-                  <span 
-                    className="text-tiny" 
-                    style={{ color: 'var(--ds-text-tertiary)' }}
-                  >
-                    Completed: {formatDate(task.completedOn)}
-                    {task.completedBy && ` by ${task.completedBy}`}
-                  </span>
-                )}
-                
-                {task.actionLabel && task.actionHref && task.status === 'incomplete' && (
-                  <DSButton
-                    variant="secondary"
-                    size="small"
-                    onClick={() => window.location.href = task.actionHref!}
-                  >
-                    {task.actionLabel}
-                  </DSButton>
-                )}
-              </div>
+              {(task.received || task.completedOn || (task.actionLabel && task.actionHref && task.status === 'incomplete')) && (
+                <div className="chat-task-table__footer">
+                  {task.received && (
+                    <span className={`${isCompact ? 'text-micro' : 'text-tiny'} chat-task-table__date`}>
+                      Received: {formatDate(task.received)}
+                    </span>
+                  )}
+                  
+                  {task.completedOn && (
+                    <span className={`${isCompact ? 'text-micro' : 'text-tiny'} chat-task-table__date`}>
+                      Completed: {formatDate(task.completedOn)}
+                      {task.completedBy && ` by ${task.completedBy}`}
+                    </span>
+                  )}
+                  
+                  {task.actionLabel && task.actionHref && task.status === 'incomplete' && (
+                    <DSButton
+                      variant="secondary"
+                      size="small"
+                      onClick={() => window.location.href = task.actionHref!}
+                    >
+                      {task.actionLabel}
+                    </DSButton>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ))}

@@ -4,16 +4,24 @@ import type { ThinkingStep } from '@/chat/types';
 
 interface ThinkingChainProps {
   steps: ThinkingStep[];
+  context?: 'rhc' | 'command';
   className?: string;
 }
 
 /**
  * ThinkingChain - Shows the steps Claude is taking during a multi-step workflow
  * Displays status icons (pending, in_progress, done, error) for each step
+ * Supports compact mode for RHC panel
  */
-export function ThinkingChain({ steps, className = '' }: ThinkingChainProps) {
+export function ThinkingChain({ 
+  steps, 
+  context = 'rhc',
+  className = '' 
+}: ThinkingChainProps) {
+  const isCompact = context === 'rhc';
+  
   return (
-    <div className={`chat-thinking-chain ${className}`}>
+    <div className={`chat-thinking-chain ${isCompact ? 'chat-thinking-chain--compact' : ''} ${className}`}>
       {steps.map((step) => (
         <div 
           key={step.id} 
@@ -27,7 +35,6 @@ export function ThinkingChain({ steps, className = '' }: ThinkingChainProps) {
               <Icon 
                 icon={faSpinner} 
                 size="small" 
-                style={{ color: 'var(--ds-icon-primary)' }}
                 className="chat-thinking-spinner"
               />
             )}
@@ -35,27 +42,18 @@ export function ThinkingChain({ steps, className = '' }: ThinkingChainProps) {
               <Icon 
                 icon={faCheck} 
                 size="small" 
-                style={{ color: 'var(--ds-icon-success)' }}
+                className="chat-thinking-icon--success"
               />
             )}
             {step.status === 'error' && (
               <Icon 
                 icon={faXmark} 
                 size="small" 
-                style={{ color: 'var(--ds-icon-error)' }}
+                className="chat-thinking-icon--error"
               />
             )}
           </span>
-          <span 
-            className="text-label"
-            style={{ 
-              color: step.status === 'done' 
-                ? 'var(--ds-text-default)' 
-                : step.status === 'error'
-                  ? 'var(--ds-text-default)'
-                  : 'var(--ds-text-secondary)'
-            }}
-          >
+          <span className={`${isCompact ? 'text-tiny' : 'text-label'} chat-thinking-step-label chat-thinking-step-label--${step.status}`}>
             {step.label}
           </span>
         </div>

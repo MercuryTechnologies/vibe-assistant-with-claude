@@ -41,7 +41,7 @@ import { cn } from '@/lib/utils';
 
 export function Sidebar() {
   const location = useLocation();
-  const { isFullScreenChat } = useChatStore();
+  const { isFullScreenChat, conversations, loadConversation } = useChatStore();
   const { isMobile, isSidebarOpen, closeSidebar } = useMobileLayout();
   
   // Close sidebar on route change (mobile only)
@@ -387,8 +387,62 @@ export function Sidebar() {
 
       {/* Navigation Items */}
       <nav className="ds-sidebar-nav">
-        {/* Home, Command, Tasks, Transactions, Insights */}
-        {primaryNavigationItems.slice(0, 5).map((item) => {
+        {/* Home */}
+        <Link to="/dashboard">
+          <button className={`ds-sidebar-btn ${isActive('/dashboard') ? 'active' : ''}`}>
+            <div className="ds-sidebar-btn-content">
+              <span className="ds-sidebar-icon-wrapper">
+                <FontAwesomeIcon icon={faHome} className="ds-sidebar-icon" />
+              </span>
+              <span className="ds-sidebar-btn-label">Home</span>
+            </div>
+          </button>
+        </Link>
+
+        {/* Command with expandable history */}
+        <div>
+          <div className="flex items-center">
+            <Link to="/command" className="flex-1">
+              <button className={`ds-sidebar-btn ${isActive('/command') ? 'active' : ''}`}>
+                <div className="ds-sidebar-btn-content">
+                  <span className="ds-sidebar-icon-wrapper">
+                    <FontAwesomeIcon icon={faTerminal} className="ds-sidebar-icon" />
+                  </span>
+                  <span className="ds-sidebar-btn-label">Command</span>
+                </div>
+              </button>
+            </Link>
+          </div>
+          
+          {/* Conversation History - shown as submenu items */}
+          {conversations.length > 0 && (
+            <div className="ds-sidebar-submenu">
+              {conversations.slice(0, 3).map((conv) => (
+                <button
+                  key={conv.id}
+                  onClick={() => {
+                    loadConversation(conv.id);
+                    window.location.href = '/command';
+                  }}
+                  className="ds-sidebar-btn"
+                  style={{ fontSize: 13, lineHeight: '20px', padding: '4px 8px' }}
+                >
+                  <span className="ds-sidebar-btn-label" style={{ 
+                    overflow: 'hidden', 
+                    textOverflow: 'ellipsis', 
+                    whiteSpace: 'nowrap',
+                    maxWidth: 160
+                  }}>
+                    {conv.title}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Tasks, Transactions, Insights, Cards, Capital */}
+        {primaryNavigationItems.slice(2).map((item) => {
           const icon = item.icon;
           const active = isActive(item.path);
           
