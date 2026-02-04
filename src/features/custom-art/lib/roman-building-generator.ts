@@ -299,7 +299,7 @@ function drawCorinthianColumn(
   bottomY: number,
   width: number,
   palette: ColorPalette,
-  random: SeededRandom
+  _random: SeededRandom
 ): void {
   // Draw base column
   drawDoricColumn(ctx, x, topY, bottomY, width, palette);
@@ -349,7 +349,7 @@ function drawPediment(
   width: number,
   palette: ColorPalette,
   detailLevel: number,
-  random: SeededRandom
+  _random: SeededRandom
 ): void {
   const height = width * 0.2;
   
