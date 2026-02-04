@@ -28,6 +28,7 @@ import {
 } from '@/components/insights';
 import { Scorecard, type Insight } from '@/components/Scorecard';
 import { InsightsBreakdown, type BreakdownItem } from '@/components/InsightsBreakdown';
+import { CustomArtBanner, CustomArtModal } from '@/features/custom-art';
 import type { Transaction } from '@/types';
 
 // Date utility functions
@@ -190,6 +191,10 @@ export function Insights() {
     showCashflowLine: true,
     showBars: true,
   });
+  
+  // Custom Art feature state
+  const [showArtBanner, setShowArtBanner] = useState(true);
+  const [artModalOpen, setArtModalOpen] = useState(false);
   
   // Reference date
   const referenceDate = useMemo(() => {
@@ -446,6 +451,15 @@ export function Insights() {
         <h1 className="text-title-main m-0">Insights</h1>
       </div>
       
+      {/* Custom Art Banner */}
+      <div className="px-4 mb-4">
+        <CustomArtBanner
+          visible={showArtBanner}
+          onGetArt={() => setArtModalOpen(true)}
+          onDismiss={() => setShowArtBanner(false)}
+        />
+      </div>
+      
       {/* Header */}
       <div 
         ref={headerRef}
@@ -599,6 +613,16 @@ export function Insights() {
           onItemClick={handleBreakdownItemClick}
         />
       </div>
+      
+      {/* Custom Art Modal */}
+      <CustomArtModal
+        open={artModalOpen}
+        onClose={() => {
+          setArtModalOpen(false);
+          setShowArtBanner(false);
+        }}
+        transactions={transactions}
+      />
     </div>
   );
 }

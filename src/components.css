@@ -8596,3 +8596,209 @@ body.ds-panel-open-side .insights-main-grid {
   border-top: 1px solid rgba(112, 115, 147, 0.1);
   background: var(--neutral-base-50);
 }
+
+/* ============================================
+   Custom Art Feature
+   ============================================ */
+
+/* Banner Styles */
+.custom-art-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: linear-gradient(135deg, var(--ds-bg-highlight) 0%, rgba(148, 130, 232, 0.15) 100%);
+  border: 1px solid var(--purple-magic-200);
+  border-radius: var(--radius-lg);
+  animation: customArtBannerFadeIn 0.3s ease-out;
+}
+
+@keyframes customArtBannerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.custom-art-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.custom-art-banner-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--purple-magic-100);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.custom-art-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.custom-art-banner-actions {
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+.custom-art-banner-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.custom-art-banner-close:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.custom-art-banner-close:focus-visible {
+  outline: 2px solid var(--color-border-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Modal Styles */
+.custom-art-modal-content {
+  max-width: 860px;
+  width: 90vw;
+}
+
+.custom-art-canvas-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  margin: 16px 0;
+  background: var(--ds-bg-secondary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.custom-art-image-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.custom-art-image {
+  max-width: 100%;
+  max-height: 450px;
+  width: auto;
+  height: auto;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading State */
+.custom-art-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 48px;
+}
+
+.custom-art-loading-spinner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-art-loading-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--purple-magic-600);
+  border-radius: 50%;
+  animation: customArtLoadingPulse 1.4s ease-in-out infinite;
+}
+
+.custom-art-loading-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.custom-art-loading-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.custom-art-loading-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes customArtLoadingPulse {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Error State */
+.custom-art-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 48px;
+  text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .custom-art-banner-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .custom-art-banner-actions {
+    margin-left: 0;
+    align-self: flex-start;
+  }
+
+  .custom-art-modal-content {
+    width: 95vw;
+  }
+
+  .custom-art-canvas-container {
+    min-height: 280px;
+  }
+
+  .custom-art-image {
+    max-height: 320px;
+  }
+}
